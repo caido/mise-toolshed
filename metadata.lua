@@ -4,7 +4,7 @@
 PLUGIN = { -- luacheck: ignore
 	name = "toolshed",
 	version = "1.0.0",
-	description = "Install shared agent skills into .claude/skills, .agents/skills, and .cursor/skills",
+	description = "Sync ai-ops skills/ into .claude/skills, .agents/skills, and .cursor/skills (clone + copy)",
 	author = "Caido",
 	homepage = "https://github.com/caido/mise-toolshed",
 	notes = {

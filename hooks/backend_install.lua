@@ -1,4 +1,4 @@
---- Installs a snapshot of skills/ plus bin/skills for toolshed:skills
+--- Installs bin/skills for toolshed:skills (skills content is fetched from ai-ops at runtime)
 --- @param ctx { tool: string, version: string, install_path: string, download_path: string, options: table }
 --- @return table
 function PLUGIN:BackendInstall(ctx)
@@ -31,7 +31,6 @@ function PLUGIN:BackendInstall(ctx)
 	local ref = version == "latest" and "HEAD" or version
 
 	local q_plugin = '"' .. plugin_dir:gsub('"', '\\"') .. '"'
-	local q_install = '"' .. install_path:gsub('"', '\\"') .. '"'
 	local q_ref = '"' .. ref:gsub('"', '\\"') .. '"'
 
 	local verify = cmd.exec("git -C " .. q_plugin .. " rev-parse --verify " .. q_ref .. " 2>&1") or ""
@@ -39,31 +38,9 @@ function PLUGIN:BackendInstall(ctx)
 		error("unknown git ref for toolshed:skills: " .. tostring(version))
 	end
 
-	cmd.exec("mkdir -p " .. q_install)
+	cmd.exec("mkdir -p " .. '"' .. install_path:gsub('"', '\\"') .. '"')
 	local bin_dir = file.join_path(install_path, "bin")
 	cmd.exec("mkdir -p " .. '"' .. bin_dir:gsub('"', '\\"') .. '"')
-
-	local extract = cmd.exec(
-		"git -C "
-			.. q_plugin
-			.. " archive "
-			.. q_ref
-			.. " skills 2>&1 | tar -x -C "
-			.. q_install
-			.. " 2>&1"
-	) or ""
-	if extract:match("fatal:") or extract:match("pathspec") then
-		error("failed to extract skills/ for " .. tostring(version) .. ": " .. extract)
-	end
-
-	local skills_dir = file.join_path(install_path, "skills")
-	if not file.exists(skills_dir) then
-		error(
-			"git archive produced no skills/ directory for ref "
-				.. ref
-				.. ". Ensure that revision contains a top-level skills/ tree."
-		)
-	end
 
 	local bin_src = file.join_path(plugin_dir, "scripts", "skills")
 	if not file.exists(bin_src) then
