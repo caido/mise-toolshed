@@ -39,8 +39,6 @@ fi
 CACHE="${AI_OPS_SKILLS_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/mise-toolshed/ai-ops}"
 REF="${AI_OPS_SKILLS_REF:-}"
 
-export GIT_TERMINAL_PROMPT=0
-
 ensure_repo() {
 	if [ -d "$CACHE/.git" ]; then
 		return 0
@@ -48,7 +46,10 @@ ensure_repo() {
 	_parent="$(dirname "$CACHE")"
 	mkdir -p "$_parent"
 	echo "toolshed:get-skills: cloning $REPO_URL into $CACHE" >&2
-	git clone "$REPO_URL" "$CACHE"
+	echo "toolshed:get-skills: first run downloads the repo; --progress shows activity (large monorepos can take minutes)." >&2
+	# Shallow + single default branch: much faster than a full clone. --progress prints receiving/compressing lines.
+	# No GIT_TERMINAL_PROMPT=0 here so HTTPS/SSH can prompt for credentials if needed (avoids some silent stalls).
+	git clone --progress --depth 1 --single-branch "$REPO_URL" "$CACHE"
 }
 
 sync_ref() {
@@ -78,6 +79,9 @@ sync_ref() {
 }
 
 ensure_repo
+
+# Non-interactive fetch/checkout: fail fast instead of hanging on credential prompts in CI.
+export GIT_TERMINAL_PROMPT=0
 
 if [ -n "$REF" ]; then
 	sync_ref "$REF"
