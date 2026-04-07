@@ -1,4 +1,4 @@
--- Backend plugin for `mise install toolshed:skills@…`
+-- Backend plugin for `mise install toolshed:get-skills@…`
 -- https://mise.jdx.dev/backend-plugin-development.html
 
 PLUGIN = { -- luacheck: ignore

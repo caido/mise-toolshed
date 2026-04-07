@@ -18,7 +18,7 @@ while [ $# -gt 0 ]; do
 		shift 2
 		;;
 	*)
-		echo "toolshed:skills: unknown argument: $1" >&2
+		echo "toolshed:get-skills: unknown argument: $1" >&2
 		exit 1
 		;;
 	esac
@@ -31,12 +31,8 @@ fi
 
 DEST_ROOT="$(CDPATH= cd -- "$DEST_ROOT" && pwd)"
 
-if ! command -v gh >/dev/null 2>&1; then
-	echo "toolshed:skills: gh is required but was not found on PATH" >&2
-	exit 1
-fi
 if ! command -v git >/dev/null 2>&1; then
-	echo "toolshed:skills: git is required but was not found on PATH" >&2
+	echo "toolshed:get-skills: git is required but was not found on PATH" >&2
 	exit 1
 fi
 
@@ -51,8 +47,8 @@ ensure_repo() {
 	fi
 	_parent="$(dirname "$CACHE")"
 	mkdir -p "$_parent"
-	echo "toolshed:skills: cloning $REPO_URL into $CACHE" >&2
-	gh repo clone "$REPO_URL" "$CACHE"
+	echo "toolshed:get-skills: cloning $REPO_URL into $CACHE" >&2
+	git clone "$REPO_URL" "$CACHE"
 }
 
 sync_ref() {
@@ -64,7 +60,7 @@ sync_ref() {
 		elif git -C "$CACHE" rev-parse --verify origin/master >/dev/null 2>&1; then
 			git -C "$CACHE" checkout -B master origin/master
 		else
-			echo "toolshed:skills: neither origin/main nor origin/master exists after fetch" >&2
+			echo "toolshed:get-skills: neither origin/main nor origin/master exists after fetch" >&2
 			exit 1
 		fi
 		return 0
@@ -77,7 +73,7 @@ sync_ref() {
 		return 0
 	fi
 
-	echo "toolshed:skills: ref $_target not found in ai-ops, using default branch" >&2
+	echo "toolshed:get-skills: ref $_target not found in ai-ops, using default branch" >&2
 	sync_ref latest
 }
 
@@ -91,7 +87,7 @@ fi
 
 SRC="$CACHE/skills"
 if [ ! -d "$SRC" ]; then
-	echo "toolshed:skills: missing $SRC after checkout (is the repo OK?)" >&2
+	echo "toolshed:get-skills: missing $SRC after checkout (is the repo OK?)" >&2
 	exit 1
 fi
 
@@ -126,4 +122,4 @@ sync_one "$DEST_ROOT/.claude/skills"
 sync_one "$DEST_ROOT/.agents/skills"
 sync_one "$DEST_ROOT/.cursor/skills"
 
-echo "toolshed:skills: synced from $SRC to .claude/skills, .agents/skills, .cursor/skills (under $DEST_ROOT)" >&2
+echo "toolshed:get-skills: synced from $SRC to .claude/skills, .agents/skills, .cursor/skills (under $DEST_ROOT)" >&2

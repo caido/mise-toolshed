@@ -1,12 +1,12 @@
---- Copies bin/skills from the plugin into install_path/bin/skills.
+--- Copies bin/get-skills from the plugin into install_path/bin/get-skills.
 --- @param ctx { tool: string, install_path: string }
 --- @return table
 function PLUGIN:BackendInstall(ctx)
 	local cmd = require("cmd")
 	local file = require("file")
 
-	if ctx.tool ~= "skills" then
-		error("unknown tool: " .. tostring(ctx.tool) .. " (only 'skills' is supported)")
+	if ctx.tool ~= "get-skills" then
+		error("unknown tool: " .. tostring(ctx.tool) .. " (only 'get-skills' is supported)")
 	end
 
 	local install_path = ctx.install_path
@@ -15,16 +15,16 @@ function PLUGIN:BackendInstall(ctx)
 	end
 
 	local plugin_dir = RUNTIME.pluginDirPath
-	local skills_src = file.join_path(plugin_dir, "bin", "skills")
-	if not file.exists(skills_src) then
-		error("plugin is missing bin/skills at " .. skills_src)
+	local bin_src = file.join_path(plugin_dir, "bin", "get-skills")
+	if not file.exists(bin_src) then
+		error("plugin is missing bin/get-skills at " .. bin_src)
 	end
 
 	local bin_dir = file.join_path(install_path, "bin")
 	cmd.exec("mkdir -p " .. '"' .. bin_dir:gsub('"', '\\"') .. '"')
 
-	local content = file.read(skills_src)
-	local bin_dst = file.join_path(install_path, "bin", "skills")
+	local content = file.read(bin_src)
+	local bin_dst = file.join_path(install_path, "bin", "get-skills")
 	local out, open_err = io.open(bin_dst, "wb")
 	if not out then
 		error("failed to write " .. bin_dst .. ": " .. tostring(open_err))
