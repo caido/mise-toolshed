@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-# Clone or update ai-ops, then sync skills/ under --destination (e.g. project root).
+# Clone or update ai-ops, then sync skills/ under the destination root (default: $PWD).
 # Copy semantics: each destination skill dir is replaced to match upstream (removed skills disappear locally).
 
 set -eu
@@ -24,13 +24,9 @@ while [ $# -gt 0 ]; do
 	esac
 done
 
-if [ -z "$REPO_URL" ]; then
-	echo "toolshed:skills: --url is required" >&2
-	exit 1
-fi
-if [ -z "$DEST_ROOT" ]; then
-	echo "toolshed:skills: --destination is required" >&2
-	exit 1
+REPO_URL="${REPO_URL:-https://github.com/caido/ai-ops}"
+if [ -z "${DEST_ROOT}" ]; then
+	DEST_ROOT="${SKILLS_DESTINATION:-$PWD}"
 fi
 
 DEST_ROOT="$(CDPATH= cd -- "$DEST_ROOT" && pwd)"

@@ -1,7 +1,125 @@
 #!/usr/bin/env sh
-# Dev convenience: same entrypoint as the mise-installed wrapper.
-set -e
-ROOT="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
-exec "$ROOT/scripts/skills" \
-	--url "https://github.com/caido/ai-ops" \
-	--destination "${SKILLS_DESTINATION:-$PWD}"
+# Clone or update ai-ops, then sync skills/ under the destination root (default: $PWD).
+# Copy semantics: each destination skill dir is replaced to match upstream (removed skills disappear locally).
+
+set -eu
+
+REPO_URL=""
+DEST_ROOT=""
+
+while [ $# -gt 0 ]; do
+	case "$1" in
+	--url)
+		REPO_URL="${2:-}"
+		shift 2
+		;;
+	--destination)
+		DEST_ROOT="${2:-}"
+		shift 2
+		;;
+	*)
+		echo "toolshed:skills: unknown argument: $1" >&2
+		exit 1
+		;;
+	esac
+done
+
+REPO_URL="${REPO_URL:-https://github.com/caido/ai-ops}"
+if [ -z "${DEST_ROOT}" ]; then
+	DEST_ROOT="${SKILLS_DESTINATION:-$PWD}"
+fi
+
+DEST_ROOT="$(CDPATH= cd -- "$DEST_ROOT" && pwd)"
+
+if ! command -v git >/dev/null 2>&1; then
+	echo "toolshed:skills: git is required but was not found on PATH" >&2
+	exit 1
+fi
+
+CACHE="${AI_OPS_SKILLS_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/mise-toolshed/ai-ops}"
+REF="${AI_OPS_SKILLS_REF:-}"
+
+export GIT_TERMINAL_PROMPT=0
+
+ensure_repo() {
+	if [ -d "$CACHE/.git" ]; then
+		return 0
+	fi
+	_parent="$(dirname "$CACHE")"
+	mkdir -p "$_parent"
+	echo "toolshed:skills: cloning $REPO_URL into $CACHE" >&2
+	git clone "$REPO_URL" "$CACHE"
+}
+
+sync_ref() {
+	_target="$1"
+	if [ "$_target" = "latest" ]; then
+		git -C "$CACHE" fetch origin
+		if git -C "$CACHE" rev-parse --verify origin/main >/dev/null 2>&1; then
+			git -C "$CACHE" checkout -B main origin/main
+		elif git -C "$CACHE" rev-parse --verify origin/master >/dev/null 2>&1; then
+			git -C "$CACHE" checkout -B master origin/master
+		else
+			echo "toolshed:skills: neither origin/main nor origin/master exists after fetch" >&2
+			exit 1
+		fi
+		return 0
+	fi
+
+	git -C "$CACHE" fetch origin --tags --prune 2>/dev/null || git -C "$CACHE" fetch origin 2>/dev/null || true
+
+	if git -C "$CACHE" rev-parse --verify "$_target^{commit}" >/dev/null 2>&1; then
+		git -C "$CACHE" checkout "$_target"
+		return 0
+	fi
+
+	echo "toolshed:skills: ref $_target not found in ai-ops, using default branch" >&2
+	sync_ref latest
+}
+
+ensure_repo
+
+if [ -n "$REF" ]; then
+	sync_ref "$REF"
+else
+	sync_ref latest
+fi
+
+SRC="$CACHE/skills"
+if [ ! -d "$SRC" ]; then
+	echo "toolshed:skills: missing $SRC after checkout (is the repo OK?)" >&2
+	exit 1
+fi
+
+sync_one() {
+	_dest="$1"
+	mkdir -p "$_dest"
+	if command -v rsync >/dev/null 2>&1; then
+		rsync -a --delete "$SRC"/ "$_dest"/
+		return
+	fi
+	for _d in "$SRC"/*; do
+		[ -e "$_d" ] || continue
+		if [ ! -d "$_d" ]; then
+			continue
+		fi
+		_base="$(basename "$_d")"
+		rm -rf "$_dest/$_base"
+		cp -R "$_d" "$_dest/$_base"
+	done
+	if [ -d "$_dest" ]; then
+		for _existing in "$_dest"/*; do
+			[ -e "$_existing" ] || continue
+			_base="$(basename "$_existing")"
+			if [ ! -d "$SRC/$_base" ]; then
+				rm -rf "$_existing"
+			fi
+		done
+	fi
+}
+
+sync_one "$DEST_ROOT/.claude/skills"
+sync_one "$DEST_ROOT/.agents/skills"
+sync_one "$DEST_ROOT/.cursor/skills"
+
+echo "toolshed:skills: synced from $SRC to .claude/skills, .agents/skills, .cursor/skills (under $DEST_ROOT)" >&2

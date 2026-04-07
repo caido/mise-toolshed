@@ -1,4 +1,4 @@
---- Writes bin/skills wrapper that invokes scripts/skills with fixed --url and runtime --destination.
+--- Copies scripts/skills to install_path/bin/skills (same contents as the plugin’s skills script).
 --- @param ctx { tool: string, install_path: string }
 --- @return table
 function PLUGIN:BackendInstall(ctx)
@@ -15,33 +15,21 @@ function PLUGIN:BackendInstall(ctx)
 	end
 
 	local plugin_dir = RUNTIME.pluginDirPath
-	local skills_script = file.join_path(plugin_dir, "scripts", "skills")
-	if not file.exists(skills_script) then
-		error("plugin is missing scripts/skills at " .. skills_script)
+	local skills_src = file.join_path(plugin_dir, "scripts", "skills")
+	if not file.exists(skills_src) then
+		error("plugin is missing scripts/skills at " .. skills_src)
 	end
 
 	local bin_dir = file.join_path(install_path, "bin")
 	cmd.exec("mkdir -p " .. '"' .. bin_dir:gsub('"', '\\"') .. '"')
 
-	local url = "https://github.com/caido/ai-ops"
-	local q_script = "'" .. skills_script:gsub("'", "'\\''") .. "'"
-	local q_url = "'" .. url:gsub("'", "'\\''") .. "'"
-
-	local wrapper = table.concat({
-		"#!/usr/bin/env sh",
-		"set -e",
-		"exec " .. q_script .. " \\",
-		'  --url ' .. q_url .. " \\",
-		'  --destination "${SKILLS_DESTINATION:-$PWD}"',
-		"",
-	}, "\n")
-
+	local content = file.read(skills_src)
 	local bin_dst = file.join_path(install_path, "bin", "skills")
 	local out, open_err = io.open(bin_dst, "wb")
 	if not out then
 		error("failed to write " .. bin_dst .. ": " .. tostring(open_err))
 	end
-	out:write(wrapper)
+	out:write(content)
 	out:close()
 
 	if RUNTIME.osType ~= "windows" then
