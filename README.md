@@ -1,8 +1,10 @@
 # mise-toolshed
 
-[mise](https://mise.jdx.dev/) backend plugin that installs the `toolshed:skills` tool: a `skills` command which syncs the [`skills/`](https://github.com/caido/ai-ops/tree/main/skills) tree from **[ai-ops](https://github.com/caido/ai-ops)** into `.claude/skills`, `.agents/skills`, and `.cursor/skills` under the current working directory.
+[mise](https://mise.jdx.dev/) backend plugin that installs the `toolshed:skills` tool: a `skills` command which syncs the [`skills/`](https://github.com/caido/ai-ops/tree/main/skills) tree from **[ai-ops](https://github.com/caido/ai-ops)** into `.claude/skills`, `.agents/skills`, and `.cursor/skills` under a chosen root directory.
 
-On each run, the tool **clones or updates** a cache of the ai-ops repo (default: `~/.cache/mise-toolshed/ai-ops`), checks out a ref (default branch for `latest`, or overrides below), then copies `skills/` into those agent directories.
+`mise install` only writes a small `bin/skills` wrapper that runs `scripts/skills --url https://github.com/caido/ai-ops --destination …`. The destination defaults to the current working directory (`$PWD`); set **`SKILLS_DESTINATION`** to an absolute or relative path to sync another tree (for example a monorepo subfolder).
+
+On each run, the tool **clones or updates** a cache of that repo (default: `~/.cache/mise-toolshed/ai-ops`), checks out a ref (default branch, or overrides below), then copies `skills/` into the three agent paths under the destination root.
 
 ## Register the plugin and tool
 
@@ -33,9 +35,9 @@ That **replaces** the three skill directories so they match the selected revisio
 
 | Variable | Purpose |
 | -------- | ------- |
-| `AI_OPS_SKILLS_REPO` | Git URL for ai-ops (default `https://github.com/caido/ai-ops.git`) |
+| `SKILLS_DESTINATION` | Root directory for `.claude/skills`, etc. (default: `$PWD` when `skills` runs) |
 | `AI_OPS_SKILLS_REF` | Force ref to checkout in ai-ops (e.g. `main`, `v1.0.0`) |
-| `AI_OPS_SKILLS_CACHE` | Local clone path (default `$XDG_CACHE_HOME/mise-toolshed/ai-ops`) |
+| `AI_OPS_SKILLS_CACHE` | Local clone cache path (default `$XDG_CACHE_HOME/mise-toolshed/ai-ops`) |
 
 **Security:** mise plugins run arbitrary code during install and use; this tool runs `git` and copies files from the cloned repo—only use sources you trust ([mise plugin usage](https://mise.jdx.dev/plugin-usage.html)).
 
@@ -43,6 +45,6 @@ That **replaces** the three skill directories so they match the selected revisio
 
 **Requirement:** `git` must be on `PATH`.
 
-If the ai-ops repository is private, set `AI_OPS_SKILLS_REPO` to an SSH URL (for example `git@github.com:caido/ai-ops.git`) or ensure your credential helper can clone `https://` without a TTY.
+If the ai-ops repository is private, ensure your Git credential helper can clone `https://github.com/caido/ai-ops` without a TTY, or use SSH via your Git URL rewrites.
 
 Install the plugin from a git URL so mise can clone and resolve the plugin source.

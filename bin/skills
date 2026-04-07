@@ -1,8 +1,7 @@
 #!/usr/bin/env sh
-# Kept for mise: the install step copies this file into the tool's install `bin/`.
-# Source of truth lives at scripts/skills.
-
+# Dev convenience: same entrypoint as the mise-installed wrapper.
 set -e
-
 ROOT="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
-exec "$ROOT/scripts/skills" "$@"
+exec "$ROOT/scripts/skills" \
+	--url "https://github.com/caido/ai-ops" \
+	--destination "${SKILLS_DESTINATION:-$PWD}"

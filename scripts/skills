@@ -1,21 +1,46 @@
 #!/usr/bin/env sh
-# Clone or update caido/ai-ops in a cache dir, then sync skills/ into agent directories (cwd).
-# Copy semantics: each destination is replaced to match upstream skills (removed skills disappear locally).
+# Clone or update ai-ops, then sync skills/ under --destination (e.g. project root).
+# Copy semantics: each destination skill dir is replaced to match upstream (removed skills disappear locally).
 
 set -eu
+
+REPO_URL=""
+DEST_ROOT=""
+
+while [ $# -gt 0 ]; do
+	case "$1" in
+	--url)
+		REPO_URL="${2:-}"
+		shift 2
+		;;
+	--destination)
+		DEST_ROOT="${2:-}"
+		shift 2
+		;;
+	*)
+		echo "toolshed:skills: unknown argument: $1" >&2
+		exit 1
+		;;
+	esac
+done
+
+if [ -z "$REPO_URL" ]; then
+	echo "toolshed:skills: --url is required" >&2
+	exit 1
+fi
+if [ -z "$DEST_ROOT" ]; then
+	echo "toolshed:skills: --destination is required" >&2
+	exit 1
+fi
+
+DEST_ROOT="$(CDPATH= cd -- "$DEST_ROOT" && pwd)"
 
 if ! command -v git >/dev/null 2>&1; then
 	echo "toolshed:skills: git is required but was not found on PATH" >&2
 	exit 1
 fi
 
-ROOT="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
-VERSION="$(basename "$ROOT")"
-
-REPO="${AI_OPS_SKILLS_REPO:-https://github.com/caido/ai-ops.git}"
 CACHE="${AI_OPS_SKILLS_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/mise-toolshed/ai-ops}"
-
-# Optional: pin ref regardless of mise tool version (e.g. main, v1.0.0).
 REF="${AI_OPS_SKILLS_REF:-}"
 
 export GIT_TERMINAL_PROMPT=0
@@ -26,8 +51,8 @@ ensure_repo() {
 	fi
 	_parent="$(dirname "$CACHE")"
 	mkdir -p "$_parent"
-	echo "toolshed:skills: cloning $REPO into $CACHE" >&2
-	git clone "$REPO" "$CACHE"
+	echo "toolshed:skills: cloning $REPO_URL into $CACHE" >&2
+	git clone "$REPO_URL" "$CACHE"
 }
 
 sync_ref() {
@@ -61,12 +86,12 @@ ensure_repo
 if [ -n "$REF" ]; then
 	sync_ref "$REF"
 else
-	sync_ref "$VERSION"
+	sync_ref latest
 fi
 
 SRC="$CACHE/skills"
 if [ ! -d "$SRC" ]; then
-	echo "toolshed:skills: missing $SRC after checkout (is ai-ops OK?)" >&2
+	echo "toolshed:skills: missing $SRC after checkout (is the repo OK?)" >&2
 	exit 1
 fi
 
@@ -97,8 +122,8 @@ sync_one() {
 	fi
 }
 
-sync_one ".claude/skills"
-sync_one ".agents/skills"
-sync_one ".cursor/skills"
+sync_one "$DEST_ROOT/.claude/skills"
+sync_one "$DEST_ROOT/.agents/skills"
+sync_one "$DEST_ROOT/.cursor/skills"
 
-echo "toolshed:skills: synced from ai-ops ($SRC) to .claude/skills, .agents/skills, .cursor/skills (under $PWD)" >&2
+echo "toolshed:skills: synced from $SRC to .claude/skills, .agents/skills, .cursor/skills (under $DEST_ROOT)" >&2
