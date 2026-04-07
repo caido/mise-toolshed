@@ -43,4 +43,6 @@ Versions from `mise ls-remote toolshed:skills` are git tags on **this** repo (`v
 
 **Requirement:** `git` must be on `PATH`.
 
+If the ai-ops repository is private, set `AI_OPS_SKILLS_REPO` to an SSH URL (for example `git@github.com:caido/ai-ops.git`) or ensure your credential helper can clone `https://` without a TTY.
+
 Install the plugin from a git URL so the plugin clone retains `.git` metadata for `mise ls-remote` / version installs.
