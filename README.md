@@ -2,7 +2,7 @@
 
 [mise](https://mise.jdx.dev/) backend plugin that installs the `toolshed:skills` tool: a `skills` command which syncs the [`skills/`](https://github.com/caido/ai-ops/tree/main/skills) tree from **[ai-ops](https://github.com/caido/ai-ops)** into `.claude/skills`, `.agents/skills`, and `.cursor/skills` under the current working directory.
 
-On each run, the tool **clones or updates** a cache of the ai-ops repo (default: `~/.cache/mise-toolshed/ai-ops`), checks out a ref derived from your installed `toolshed:skills` version (or overrides below), then copies `skills/` into those agent directories.
+On each run, the tool **clones or updates** a cache of the ai-ops repo (default: `~/.cache/mise-toolshed/ai-ops`), checks out a ref (default branch for `latest`, or overrides below), then copies `skills/` into those agent directories.
 
 ## Register the plugin and tool
 
@@ -27,7 +27,7 @@ mise exec toolshed:skills@latest -- skills
 
 That **replaces** the three skill directories so they match the selected revision in ai-ops (`rsync` when available, otherwise a copy/remove pass so removed upstream skills disappear locally).
 
-Versions from `mise ls-remote toolshed:skills` are git tags on **this** repo (`v*`) plus `latest`. For `latest`, the skills script tracks ai-ops `main` (or `master` if `main` is missing). For a pinned `toolshed:skills@v1.2.3`, the script tries the same ref name in ai-ops (e.g. tag `v1.2.3`); if it does not exist, it falls back to the default branch.
+`mise ls-remote toolshed:skills` only reports **`latest`**—there is no separate toolshed version; the revision of skills comes from ai-ops (`main` / `master`, or `AI_OPS_SKILLS_REF`).
 
 **Overrides (optional):**
 
@@ -45,4 +45,4 @@ Versions from `mise ls-remote toolshed:skills` are git tags on **this** repo (`v
 
 If the ai-ops repository is private, set `AI_OPS_SKILLS_REPO` to an SSH URL (for example `git@github.com:caido/ai-ops.git`) or ensure your credential helper can clone `https://` without a TTY.
 
-Install the plugin from a git URL so the plugin clone retains `.git` metadata for `mise ls-remote` / version installs.
+Install the plugin from a git URL so mise can clone and resolve the plugin source.
