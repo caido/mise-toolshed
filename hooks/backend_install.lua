@@ -1,4 +1,4 @@
---- Copies scripts/skills to install_path/bin/skills (same contents as the plugin’s skills script).
+--- Copies bin/skills from the plugin into install_path/bin/skills.
 --- @param ctx { tool: string, install_path: string }
 --- @return table
 function PLUGIN:BackendInstall(ctx)
@@ -15,9 +15,9 @@ function PLUGIN:BackendInstall(ctx)
 	end
 
 	local plugin_dir = RUNTIME.pluginDirPath
-	local skills_src = file.join_path(plugin_dir, "scripts", "skills")
+	local skills_src = file.join_path(plugin_dir, "bin", "skills")
 	if not file.exists(skills_src) then
-		error("plugin is missing scripts/skills at " .. skills_src)
+		error("plugin is missing bin/skills at " .. skills_src)
 	end
 
 	local bin_dir = file.join_path(install_path, "bin")

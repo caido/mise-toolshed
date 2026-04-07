@@ -2,7 +2,7 @@
 
 [mise](https://mise.jdx.dev/) backend plugin that installs the `toolshed:skills` tool: a `skills` command which syncs the [`skills/`](https://github.com/caido/ai-ops/tree/main/skills) tree from **[ai-ops](https://github.com/caido/ai-ops)** into `.claude/skills`, `.agents/skills`, and `.cursor/skills` under a chosen root directory.
 
-`mise install` copies the plugin’s **`scripts/skills`** file into the tool install as **`bin/skills`** (same contents). The default clone URL is **`https://github.com/caido/ai-ops`**; the destination root defaults to **`$PWD`** (override with **`SKILLS_DESTINATION`** or **`--destination`**). The repo’s **`bin/skills`** matches **`scripts/skills`** for running the tool from a checkout without mise.
+`mise install` copies the plugin’s **`bin/skills`** into the tool install (same path). The default clone URL is **`https://github.com/caido/ai-ops`**; the destination root defaults to **`$PWD`** (override with **`SKILLS_DESTINATION`** or **`--destination`**). Run **`bin/skills`** from a checkout of this repo without mise.
 
 On each run, the tool **clones or updates** a cache of that repo (default: `~/.cache/mise-toolshed/ai-ops`), checks out a ref (default branch, or overrides below), then copies `skills/` into the three agent paths under the destination root.
 
