@@ -24,7 +24,7 @@ while [ $# -gt 0 ]; do
 	esac
 done
 
-REPO_URL="${REPO_URL:-https://github.com/caido/ai-ops}"
+REPO_URL="${REPO_URL:-ssh://git@github.com/caido/ai-ops.git}"
 if [ -z "${DEST_ROOT}" ]; then
 	DEST_ROOT="${SKILLS_DESTINATION:-$PWD}"
 fi
