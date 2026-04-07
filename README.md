@@ -39,11 +39,11 @@ That **replaces** the three skill directories so they match the selected revisio
 | `AI_OPS_SKILLS_REF` | Force ref to checkout in ai-ops (e.g. `main`, `v1.0.0`) |
 | `AI_OPS_SKILLS_CACHE` | Local clone cache path (default `$XDG_CACHE_HOME/mise-toolshed/ai-ops`) |
 
-**Security:** mise plugins run arbitrary code during install and use; this tool runs `git` and copies files from the cloned repo—only use sources you trust ([mise plugin usage](https://mise.jdx.dev/plugin-usage.html)).
+**Security:** mise plugins run arbitrary code during install and use; this tool runs **`gh`** (clone) and **`git`** (fetch/checkout in the cache), then copies files from the clone—only use sources you trust ([mise plugin usage](https://mise.jdx.dev/plugin-usage.html)).
 
 **PATH:** the executable is named `skills`. If that conflicts with another tool, use `mise exec toolshed:skills@… -- skills` or the absolute path under `~/.local/share/mise/installs/`.
 
-**Requirement:** `git` must be on `PATH`.
+**Requirements:** [`gh`](https://cli.github.com/) and `git` must be on `PATH`.
 
 If the ai-ops repository is private, ensure your Git credential helper can clone `https://github.com/caido/ai-ops` without a TTY, or use SSH via your Git URL rewrites.
 

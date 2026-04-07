@@ -31,6 +31,10 @@ fi
 
 DEST_ROOT="$(CDPATH= cd -- "$DEST_ROOT" && pwd)"
 
+if ! command -v gh >/dev/null 2>&1; then
+	echo "toolshed:skills: gh is required but was not found on PATH" >&2
+	exit 1
+fi
 if ! command -v git >/dev/null 2>&1; then
 	echo "toolshed:skills: git is required but was not found on PATH" >&2
 	exit 1
@@ -48,7 +52,7 @@ ensure_repo() {
 	_parent="$(dirname "$CACHE")"
 	mkdir -p "$_parent"
 	echo "toolshed:skills: cloning $REPO_URL into $CACHE" >&2
-	git clone "$REPO_URL" "$CACHE"
+	gh repo clone "$REPO_URL" "$CACHE"
 }
 
 sync_ref() {
