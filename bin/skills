@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+# Kept for mise: the install step copies this file into the tool's install `bin/`.
+# Source of truth lives at scripts/skills.
+
+set -e
+
+ROOT="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
+exec "$ROOT/scripts/skills" "$@"

@@ -1,0 +1,47 @@
+#!/usr/bin/env sh
+# Sync bundled skills from this mise install into agent skill directories (current working directory).
+# Copy semantics: each destination is replaced to match the bundled skills tree (removed upstream skills are removed locally).
+
+set -e
+
+ROOT="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
+SRC="$ROOT/skills"
+
+if [ ! -d "$SRC" ]; then
+	echo "toolshed:skills: missing bundled directory: $SRC (reinstall with: mise install toolshed:skills@…)" >&2
+	exit 1
+fi
+
+sync_one() {
+	_dest="$1"
+	mkdir -p "$_dest"
+	if command -v rsync >/dev/null 2>&1; then
+		rsync -a --delete "$SRC"/ "$_dest"/
+		return
+	fi
+	# No rsync: mirror skill subdirectories and drop removed ones
+	for _d in "$SRC"/*; do
+		[ -e "$_d" ] || continue
+		if [ ! -d "$_d" ]; then
+			continue
+		fi
+		_base="$(basename "$_d")"
+		rm -rf "$_dest/$_base"
+		cp -R "$_d" "$_dest/$_base"
+	done
+	if [ -d "$_dest" ]; then
+		for _existing in "$_dest"/*; do
+			[ -e "$_existing" ] || continue
+			_base="$(basename "$_existing")"
+			if [ ! -d "$SRC/$_base" ]; then
+				rm -rf "$_existing"
+			fi
+		done
+	fi
+}
+
+sync_one ".claude/skills"
+sync_one ".agents/skills"
+sync_one ".cursor/skills"
+
+echo "toolshed:skills: synced to .claude/skills, .agents/skills, .cursor/skills (under $PWD)" >&2
