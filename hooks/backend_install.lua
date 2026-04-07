@@ -1,12 +1,13 @@
---- Copies bin/get-skills from the plugin into install_path/bin/get-skills.
+--- Copies bin/get-skills from the plugin into install_path/bin/<tool> (skills or get-skills).
 --- @param ctx { tool: string, install_path: string }
 --- @return table
 function PLUGIN:BackendInstall(ctx)
 	local cmd = require("cmd")
 	local file = require("file")
 
-	if ctx.tool ~= "get-skills" then
-		error("unknown tool: " .. tostring(ctx.tool) .. " (only 'get-skills' is supported)")
+	local tool = ctx.tool
+	if tool ~= "get-skills" and tool ~= "skills" then
+		error("unknown tool: " .. tostring(tool) .. " (only 'get-skills' or legacy 'skills' is supported)")
 	end
 
 	local install_path = ctx.install_path
@@ -24,7 +25,8 @@ function PLUGIN:BackendInstall(ctx)
 	cmd.exec("mkdir -p " .. '"' .. bin_dir:gsub('"', '\\"') .. '"')
 
 	local content = file.read(bin_src)
-	local bin_dst = file.join_path(install_path, "bin", "get-skills")
+	local bin_name = tool == "skills" and "skills" or "get-skills"
+	local bin_dst = file.join_path(install_path, "bin", bin_name)
 	local out, open_err = io.open(bin_dst, "wb")
 	if not out then
 		error("failed to write " .. bin_dst .. ": " .. tostring(open_err))

@@ -18,6 +18,8 @@ toolshed = "https://github.com/caido/mise-toolshed"
 "toolshed:get-skills" = "latest"
 ```
 
+The older name **`toolshed:skills`** (command **`skills`**) is still accepted by the plugin so existing configs keep working; prefer **`toolshed:get-skills`** for new setups.
+
 ## Install and run
 
 From the consumer project root:

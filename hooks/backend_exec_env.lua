@@ -4,8 +4,9 @@
 function PLUGIN:BackendExecEnv(ctx)
 	local file = require("file")
 
-	if ctx.tool ~= "get-skills" then
-		error("unknown tool: " .. tostring(ctx.tool) .. " (only 'get-skills' is supported)")
+	-- Legacy `toolshed:skills` uses tool name "skills"; current is "get-skills".
+	if ctx.tool ~= "get-skills" and ctx.tool ~= "skills" then
+		error("unknown tool: " .. tostring(ctx.tool) .. " (only 'get-skills' or legacy 'skills' is supported)")
 	end
 
 	local bin_path = file.join_path(ctx.install_path, "bin")
