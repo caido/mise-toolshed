@@ -1,12 +1,11 @@
---- Prepends install bin to PATH so `get-skills` is available under `mise exec toolshed:get-skills`
---- @param ctx { install_path: string, tool: string, version: string, options: table }
---- @return { env_vars: { key: string, value: string }[] }
+--- Prepends install bin to PATH.
+--- Both tools get the same treatment (gh-aw doesn't install a binary but this is harmless).
 function PLUGIN:BackendExecEnv(ctx)
 	local file = require("file")
 
-	-- Legacy `toolshed:skills` uses tool name "skills"; current is "get-skills".
-	if ctx.tool ~= "get-skills" and ctx.tool ~= "skills" then
-		error("unknown tool: " .. tostring(ctx.tool) .. " (only 'get-skills' or legacy 'skills' is supported)")
+	local tool = ctx.tool
+	if tool ~= "get-skills" and tool ~= "gh-aw" then
+		error("unknown tool: " .. tostring(tool) .. " (only 'get-skills' or 'gh-aw' is supported)")
 	end
 
 	local bin_path = file.join_path(ctx.install_path, "bin")
