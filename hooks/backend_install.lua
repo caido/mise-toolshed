@@ -8,7 +8,7 @@ local function process_gh_aw(ctx)
 	cmd.exec("command -v gh >/dev/null 2>&1")
 
 	-- `gh extension install` fails if already installed; remove first for idempotency.
-	cmd.exec("gh extension remove github/gh-aw")
+	cmd.exec("gh extension remove github/gh-aw >/dev/null 2>&1 || true")
 	cmd.exec('gh extension install "github/gh-aw" --pin v' .. version)
 
 	return {}
