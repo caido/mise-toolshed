@@ -12,7 +12,6 @@ local function process_gh_aw()
 		p:close()
 	end
 
-	table.sort(versions)
 	return { versions = versions }
 end
 
