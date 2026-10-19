@@ -1,0 +1,5 @@
+{
+  "name": "mise-toolshed",
+  "private": true,
+  "packageManager": "pnpm@12.14.0"
+}
