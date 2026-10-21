@@ -129,7 +129,11 @@ function M.list_versions()
 		end
 	end
 	versions = sort_versions(versions)
-	versions[#versions + 1] = CHANNEL_LATEST
+	-- mise names a symlink "latest" and deletes a real directory of that name
+	-- once a semver install exists. Offer the checkout only when no tag exists.
+	if #versions == 0 then
+		versions[1] = CHANNEL_LATEST
+	end
 	return versions
 end
 

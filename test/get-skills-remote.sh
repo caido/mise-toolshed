@@ -55,6 +55,7 @@ git -C "$wt" push -q origin --tags
 
 git --git-dir="$origin" show get-skills-v1.0.0:bin/get-skills > "$work/blob-1.0.0"
 git --git-dir="$origin" show get-skills-v1.2.3:bin/get-skills > "$work/blob-1.2.3"
+git --git-dir="$origin" show get-skills-v1.10.0:bin/get-skills > "$work/blob-1.10.0"
 if cmp -s "$REPO/bin/get-skills" "$work/blob-1.0.0"; then
 	echo "checkout bin/get-skills matches the 1.0.0 blob" >&2
 	exit 1
@@ -100,7 +101,7 @@ assert_checkout_unchanged() {
 use_mise_home "$work/pin"
 export TOOLSHED_GET_SKILLS_REMOTE="$remote"
 "$MISE" ls-remote toolshed:get-skills > "$work/ls-remote.out"
-printf '1.0.0\n1.2.3\n1.10.0\nlatest\n' > "$work/ls-remote.expected"
+printf '1.0.0\n1.2.3\n1.10.0\n' > "$work/ls-remote.expected"
 if ! cmp -s "$work/ls-remote.out" "$work/ls-remote.expected"; then
 	echo "mise ls-remote toolshed:get-skills did not print the expected versions" >&2
 	echo "--- actual ---" >&2
@@ -147,8 +148,8 @@ if "$MISE" install toolshed:get-skills@9.9.9 >/dev/null 2>"$work/missing.err"; t
 fi
 echo "install 9.9.9 failed"
 
-# A fresh mise home so the latest request is not the symlink mise writes
-# beside a numeric install.
+# A prior numeric install makes mise treat its latest symlink as already
+# satisfied. This home has no install yet, so latest resolves to the newest tag.
 use_mise_home "$work/latest"
 export TOOLSHED_GET_SKILLS_REMOTE="$remote"
 cat > mise.toml << 'EOF'
@@ -162,15 +163,15 @@ head_before=$(git -C "$REPO" rev-parse HEAD)
 assert_checkout_unchanged
 latest=$("$MISE" where toolshed:get-skills@latest)
 latest_bin="$latest/bin/get-skills"
-if ! cmp -s "$latest_bin" "$REPO/bin/get-skills"; then
-	echo "latest install does not match the checkout bin/get-skills" >&2
+if ! cmp -s "$latest_bin" "$work/blob-1.10.0"; then
+	echo "latest install does not match get-skills-v1.10.0:bin/get-skills" >&2
 	exit 1
 fi
-if cmp -s "$latest_bin" "$work/blob-1.2.3" || cmp -s "$latest_bin" "$work/blob-1.0.0"; then
-	echo "latest install matches a pinned blob" >&2
+if cmp -s "$latest_bin" "$REPO/bin/get-skills"; then
+	echo "latest install matches the checkout bin/get-skills" >&2
 	exit 1
 fi
-echo "install latest matched the checkout bin/get-skills"
+echo "install latest matched get-skills-v1.10.0:bin/get-skills"
 
 empty="$work/empty.git"
 git init --bare -q -b main "$empty"
@@ -194,3 +195,15 @@ if ! cmp -s "$work/notags.out" "$work/notags.expected"; then
 fi
 echo "mise ls-remote with no get-skills tags"
 cat "$work/notags.out"
+
+cat > mise.toml << 'EOF'
+[tools]
+"toolshed:get-skills" = "latest"
+EOF
+"$MISE" install
+notags_bin=$("$MISE" where toolshed:get-skills@latest)/bin/get-skills
+if ! cmp -s "$notags_bin" "$REPO/bin/get-skills"; then
+	echo "latest with no tags does not match the checkout bin/get-skills" >&2
+	exit 1
+fi
+echo "install latest with no tags matched the checkout bin/get-skills"

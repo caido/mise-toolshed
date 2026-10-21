@@ -8,6 +8,6 @@ PLUGIN = { -- luacheck: ignore
 	author = "Caido",
 	homepage = "https://github.com/caido/mise-toolshed",
 	notes = {
-		"get-skills versions are get-skills-v* tags on https://github.com/caido/mise-toolshed, and latest is the plugin checkout.",
+		"get-skills versions are get-skills-v* tags on https://github.com/caido/mise-toolshed. With no such tags, latest is the plugin checkout.",
 	},
 }

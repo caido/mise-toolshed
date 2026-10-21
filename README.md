@@ -7,7 +7,7 @@ Currently provided tools:
 - **`toolshed:get-skills`**: a `get-skills` command which syncs the [`skills/`](https://github.com/caido/ai-ops/tree/main/skills) tree from **[ai-ops](https://github.com/caido/ai-ops)** into `.claude/skills`, `.agents/skills`, and `.cursor/skills` under a chosen root directory.
 - **`toolshed:gh-aw`**: installs (or updates) the `gh aw` GitHub CLI extension from `github/gh-aw` via `gh extension install github/gh-aw@[version]`.
 
-`latest` copies the checkout's `bin/get-skills`. A pin `x.y.z` installs `bin/get-skills` from tag `get-skills-vx.y.z` on `https://github.com/caido/mise-toolshed`. The default clone URL is **`https://github.com/caido/ai-ops`**; the destination root defaults to **`$PWD`** (override with **`SKILLS_DESTINATION`** or **`--destination`**). Run **`bin/get-skills`** from a checkout of this repo without mise.
+`latest` installs the newest `get-skills-v*` tag. Before any such tag exists, `latest` copies the checkout's `bin/get-skills`. A pin `x.y.z` installs `bin/get-skills` from tag `get-skills-vx.y.z` on `https://github.com/caido/mise-toolshed`. The default clone URL is **`https://github.com/caido/ai-ops`**; the destination root defaults to **`$PWD`** (override with **`SKILLS_DESTINATION`** or **`--destination`**). Run **`bin/get-skills`** from a checkout of this repo without mise.
 
 On each run, the tool **clones or updates** a cache of that repo (default: `~/.cache/mise-toolshed/ai-ops`), checks out a ref (default branch, or overrides below), then copies `skills/` into the three agent paths under the destination root.
 
@@ -59,7 +59,7 @@ gh aw --help
 
 That **replaces** the three skill directories so they match the selected revision in ai-ops (`rsync` when available, otherwise a copy/remove pass so removed upstream skills disappear locally).
 
-`mise ls-remote toolshed:get-skills` lists bare versions from `get-skills-v*` tags, oldest first, then `latest`. The ai-ops revision is still the default branch or `AI_OPS_SKILLS_REF`.
+`mise ls-remote toolshed:get-skills` lists bare versions from `get-skills-v*` tags, oldest first. With no such tags it lists `latest`. The ai-ops revision is still the default branch or `AI_OPS_SKILLS_REF`.
 
 **Overrides (optional):**
 
