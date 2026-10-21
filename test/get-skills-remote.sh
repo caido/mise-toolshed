@@ -1,6 +1,4 @@
 #!/bin/sh
-# Reviewer rerun: sh test/get-skills-remote.sh
-# Private mise dirs and a file:// bare repo. Does not talk to github.com.
 set -eu
 
 if command -v mise >/dev/null 2>&1; then

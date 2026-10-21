@@ -168,7 +168,7 @@ local function install_tag(ctx, tag)
 	local bin_dir = file.join_path(ctx.install_path, "bin")
 	local dest = file.join_path(bin_dir, "get-skills")
 	local stage = file.join_path(fetch_dir, "get-skills.stage")
-	-- Redirect the blob. cmd.exec's return value is a Lua string and would not keep the bytes.
+	-- cmd.exec returns a Lua string and does not keep the blob bytes.
 	sh([[
 mkdir -p "$TOOLSHED_BIN_DIR" "$TOOLSHED_FETCH_DIR"
 git init "$TOOLSHED_FETCH_DIR"
