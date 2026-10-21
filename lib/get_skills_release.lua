@@ -93,6 +93,11 @@ local function segment_less(left, right)
 		if left_bare ~= right_bare then
 			return right_bare
 		end
+		local left_numeric = string.match(left_rest, "^%-(%d+)$")
+		local right_numeric = string.match(right_rest, "^%-(%d+)$")
+		if left_numeric and right_numeric then
+			return tonumber(left_numeric) < tonumber(right_numeric)
+		end
 		return left_rest < right_rest
 	end
 	return left < right
