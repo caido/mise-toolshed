@@ -81,9 +81,6 @@ local function split_segments(version)
 	end
 end
 
--- GNU sort -V is absent on macOS. Numeric segments compare as numbers so 1.9
--- precedes 1.10. An equal numeric core with a hyphen suffix sorts first, so
--- 1.0.0-rc.1 precedes 1.0.0. Anything else compares as text. This is not a semver parser.
 local function segment_less(left, right)
 	local left_digits = string.match(left, "^%d+$")
 	local right_digits = string.match(right, "^%d+$")

@@ -196,8 +196,6 @@ if "$MISE" install toolshed:get-skills@9.9.9 >/dev/null 2>"$work/missing.err"; t
 fi
 echo "install 9.9.9 failed"
 
-# A prior numeric install makes mise treat its latest symlink as already
-# satisfied. This home has no install yet, so latest resolves to the newest tag.
 use_mise_home "$work/latest"
 export TOOLSHED_GET_SKILLS_REMOTE="$remote"
 cat > mise.toml << 'EOF'
