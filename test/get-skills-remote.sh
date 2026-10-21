@@ -35,6 +35,14 @@ origin="$work/origin.git"
 git init --bare -q -b main "$origin"
 wt="$work/fixture"
 git -C "$wt" init -q -b main
+printf 'pinned-1.0.0-beta\n' > "$wt/bin/get-skills"
+git -C "$wt" add bin/get-skills
+git -C "$wt" commit -m 'pin 1.0.0-beta' >/dev/null
+git -C "$wt" tag get-skills-v1.0.0-beta
+printf 'pinned-1.0.0-rc.1\n' > "$wt/bin/get-skills"
+git -C "$wt" add bin/get-skills
+git -C "$wt" commit -m 'pin 1.0.0-rc.1' >/dev/null
+git -C "$wt" tag get-skills-v1.0.0-rc.1
 printf 'pinned-1.0.0\n' > "$wt/bin/get-skills"
 git -C "$wt" add bin/get-skills
 git -C "$wt" commit -m 'pin 1.0.0' >/dev/null
@@ -53,6 +61,7 @@ git -C "$wt" remote add origin "$origin"
 git -C "$wt" push -q origin HEAD:refs/heads/main
 git -C "$wt" push -q origin --tags
 
+git --git-dir="$origin" show get-skills-v1.0.0-rc.1:bin/get-skills > "$work/blob-1.0.0-rc.1"
 git --git-dir="$origin" show get-skills-v1.0.0:bin/get-skills > "$work/blob-1.0.0"
 git --git-dir="$origin" show get-skills-v1.2.3:bin/get-skills > "$work/blob-1.2.3"
 git --git-dir="$origin" show get-skills-v1.10.0:bin/get-skills > "$work/blob-1.10.0"
@@ -111,6 +120,25 @@ fi
 echo "mise ls-remote toolshed:get-skills"
 cat "$work/ls-remote.out"
 
+"$MISE" ls-remote --prerelease toolshed:get-skills > "$work/ls-remote-pre.out"
+printf '1.0.0-beta\n1.0.0-rc.1\n1.0.0\n1.2.3\n1.10.0\n' > "$work/ls-remote-pre.expected"
+if ! cmp -s "$work/ls-remote-pre.out" "$work/ls-remote-pre.expected"; then
+	echo "mise ls-remote --prerelease did not print prereleases before their release" >&2
+	echo "--- actual ---" >&2
+	cat "$work/ls-remote-pre.out" >&2
+	exit 1
+fi
+echo "mise ls-remote --prerelease toolshed:get-skills"
+cat "$work/ls-remote-pre.out"
+
+"$MISE" install toolshed:get-skills@1.0.0-rc.1
+rc_bin=$("$MISE" where toolshed:get-skills@1.0.0-rc.1)/bin/get-skills
+if ! cmp -s "$rc_bin" "$work/blob-1.0.0-rc.1"; then
+	echo "1.0.0-rc.1 install does not match get-skills-v1.0.0-rc.1:bin/get-skills" >&2
+	exit 1
+fi
+echo "install 1.0.0-rc.1 matched get-skills-v1.0.0-rc.1:bin/get-skills"
+
 cat > mise.toml << 'EOF'
 [tools]
 "toolshed:get-skills" = "1.2.3"
@@ -141,6 +169,26 @@ if ! cmp -s "$bin" "$work/blob-1.2.3"; then
 	exit 1
 fi
 echo "second install 1.2.3 left the same bytes"
+
+cat > mise.toml << 'EOF'
+[tools]
+"toolshed:get-skills" = "latest"
+EOF
+"$MISE" install
+configured=$("$MISE" where toolshed:get-skills)
+if ! cmp -s "$configured/bin/get-skills" "$work/blob-1.2.3"; then
+	echo "configured latest replaced the installed 1.2.3" >&2
+	exit 1
+fi
+echo "configured latest stayed on the installed 1.2.3"
+
+"$MISE" exec toolshed:get-skills@latest -- true
+cli_latest=$("$MISE" where toolshed:get-skills@latest)
+if ! cmp -s "$cli_latest/bin/get-skills" "$work/blob-1.10.0"; then
+	echo "mise exec @latest did not install get-skills-v1.10.0" >&2
+	exit 1
+fi
+echo "mise exec @latest installed get-skills-v1.10.0"
 
 if "$MISE" install toolshed:get-skills@9.9.9 >/dev/null 2>"$work/missing.err"; then
 	echo "install of an unlisted version succeeded" >&2
