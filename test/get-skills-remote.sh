@@ -47,10 +47,30 @@ printf 'pinned-1.0.0\n' > "$wt/bin/get-skills"
 git -C "$wt" add bin/get-skills
 git -C "$wt" commit -m 'pin 1.0.0' >/dev/null
 git -C "$wt" tag get-skills-v1.0.0
+printf 'pinned-1.2-rc\n' > "$wt/bin/get-skills"
+git -C "$wt" add bin/get-skills
+git -C "$wt" commit -m 'pin 1.2-rc' >/dev/null
+git -C "$wt" tag get-skills-v1.2-rc
+printf 'pinned-1.2\n' > "$wt/bin/get-skills"
+git -C "$wt" add bin/get-skills
+git -C "$wt" commit -m 'pin 1.2' >/dev/null
+git -C "$wt" tag get-skills-v1.2
 printf 'pinned-1.2.3\n' > "$wt/bin/get-skills"
 git -C "$wt" add bin/get-skills
 git -C "$wt" commit -m 'pin 1.2.3' >/dev/null
 git -C "$wt" tag get-skills-v1.2.3
+printf 'pinned-1.9-rc\n' > "$wt/bin/get-skills"
+git -C "$wt" add bin/get-skills
+git -C "$wt" commit -m 'pin 1.9-rc' >/dev/null
+git -C "$wt" tag get-skills-v1.9-rc
+printf 'pinned-1.9\n' > "$wt/bin/get-skills"
+git -C "$wt" add bin/get-skills
+git -C "$wt" commit -m 'pin 1.9' >/dev/null
+git -C "$wt" tag get-skills-v1.9
+printf 'pinned-1.10-rc\n' > "$wt/bin/get-skills"
+git -C "$wt" add bin/get-skills
+git -C "$wt" commit -m 'pin 1.10-rc' >/dev/null
+git -C "$wt" tag get-skills-v1.10-rc
 printf 'pinned-1.10.0\n' > "$wt/bin/get-skills"
 git -C "$wt" add bin/get-skills
 git -C "$wt" commit -m 'pin 1.10.0' >/dev/null
@@ -110,7 +130,7 @@ assert_checkout_unchanged() {
 use_mise_home "$work/pin"
 export TOOLSHED_GET_SKILLS_REMOTE="$remote"
 "$MISE" ls-remote toolshed:get-skills > "$work/ls-remote.out"
-printf '1.0.0\n1.2.3\n1.10.0\n' > "$work/ls-remote.expected"
+printf '1.0.0\n1.2\n1.2.3\n1.9\n1.10.0\n' > "$work/ls-remote.expected"
 if ! cmp -s "$work/ls-remote.out" "$work/ls-remote.expected"; then
 	echo "mise ls-remote toolshed:get-skills did not print the expected versions" >&2
 	echo "--- actual ---" >&2
@@ -121,7 +141,7 @@ echo "mise ls-remote toolshed:get-skills"
 cat "$work/ls-remote.out"
 
 "$MISE" ls-remote --prerelease toolshed:get-skills > "$work/ls-remote-pre.out"
-printf '1.0.0-beta\n1.0.0-rc.1\n1.0.0\n1.2.3\n1.10.0\n' > "$work/ls-remote-pre.expected"
+printf '1.0.0-beta\n1.0.0-rc.1\n1.0.0\n1.2-rc\n1.2\n1.2.3\n1.9-rc\n1.9\n1.10-rc\n1.10.0\n' > "$work/ls-remote-pre.expected"
 if ! cmp -s "$work/ls-remote-pre.out" "$work/ls-remote-pre.expected"; then
 	echo "mise ls-remote --prerelease did not print prereleases before their release" >&2
 	echo "--- actual ---" >&2

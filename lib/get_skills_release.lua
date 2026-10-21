@@ -82,18 +82,18 @@ local function split_segments(version)
 end
 
 local function segment_less(left, right)
-	local left_digits = string.match(left, "^%d+$")
-	local right_digits = string.match(right, "^%d+$")
-	if left_digits and right_digits then
-		return tonumber(left) < tonumber(right)
-	end
-	local left_release = string.match(left, "^(%d+)%-.+$")
-	local right_release = string.match(right, "^(%d+)%-.+$")
-	if left_digits and right_release and tonumber(left) == tonumber(right_release) then
-		return false
-	end
-	if left_release and right_digits and tonumber(left_release) == tonumber(right) then
-		return true
+	local left_core, left_rest = string.match(left, "^(%d+)(.*)$")
+	local right_core, right_rest = string.match(right, "^(%d+)(.*)$")
+	if left_core and right_core then
+		if tonumber(left_core) ~= tonumber(right_core) then
+			return tonumber(left_core) < tonumber(right_core)
+		end
+		local left_bare = left_rest == ""
+		local right_bare = right_rest == ""
+		if left_bare ~= right_bare then
+			return right_bare
+		end
+		return left_rest < right_rest
 	end
 	return left < right
 end
