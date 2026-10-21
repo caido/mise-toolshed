@@ -45,6 +45,10 @@ printf 'pinned-1.2.3\n' > "$wt/bin/get-skills"
 git -C "$wt" add bin/get-skills
 git -C "$wt" commit -m 'pin 1.2.3' >/dev/null
 git -C "$wt" tag get-skills-v1.2.3
+printf 'pinned-1.10.0\n' > "$wt/bin/get-skills"
+git -C "$wt" add bin/get-skills
+git -C "$wt" commit -m 'pin 1.10.0' >/dev/null
+git -C "$wt" tag get-skills-v1.10.0
 git -C "$wt" tag check-pins-v9.9.9
 git -C "$wt" tag v0.0.1
 git -C "$wt" remote add origin "$origin"
@@ -98,7 +102,7 @@ assert_checkout_unchanged() {
 use_mise_home "$work/pin"
 export TOOLSHED_GET_SKILLS_REMOTE="$remote"
 "$MISE" ls-remote toolshed:get-skills > "$work/ls-remote.out"
-printf '1.0.0\n1.2.3\nlatest\n' > "$work/ls-remote.expected"
+printf '1.0.0\n1.2.3\n1.10.0\nlatest\n' > "$work/ls-remote.expected"
 if ! cmp -s "$work/ls-remote.out" "$work/ls-remote.expected"; then
 	echo "mise ls-remote toolshed:get-skills did not print the expected versions" >&2
 	echo "--- actual ---" >&2

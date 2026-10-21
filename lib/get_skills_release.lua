@@ -67,22 +67,51 @@ local function trim_trailing_newline(text)
 	return string.sub(text, 1, end_at)
 end
 
+local function split_segments(version)
+	local segments = {}
+	local rest = version
+	while true do
+		local dot = string.find(rest, ".", 1, true)
+		if not dot then
+			segments[#segments + 1] = rest
+			return segments
+		end
+		segments[#segments + 1] = string.sub(rest, 1, dot - 1)
+		rest = string.sub(rest, dot + 1)
+	end
+end
+
+-- GNU sort -V is absent on macOS. Numeric segments compare as numbers so 1.9
+-- precedes 1.10. Anything else compares as text. This is not a semver parser.
+local function segment_less(left, right)
+	local left_digits = string.match(left, "^%d+$")
+	local right_digits = string.match(right, "^%d+$")
+	if left_digits and right_digits then
+		return tonumber(left) < tonumber(right)
+	end
+	return left < right
+end
+
+local function version_less(left, right)
+	local left_segments = split_segments(left)
+	local right_segments = split_segments(right)
+	local count = #left_segments
+	if #right_segments > count then
+		count = #right_segments
+	end
+	for index = 1, count do
+		local left_segment = left_segments[index] or "0"
+		local right_segment = right_segments[index] or "0"
+		if left_segment ~= right_segment then
+			return segment_less(left_segment, right_segment)
+		end
+	end
+	return false
+end
+
 local function sort_versions(versions)
-	if #versions < 2 then
-		return versions
-	end
-	local out = sh('printf %s "$TOOLSHED_VERSIONS" | sort -V', {
-		TOOLSHED_VERSIONS = table.concat(versions, "\n") .. "\n",
-		LC_ALL = "C",
-	})
-	local sorted = {}
-	for line in string.gmatch(out, "[^\n]+") do
-		sorted[#sorted + 1] = line
-	end
-	if #sorted ~= #versions then
-		error("sort -V dropped a get-skills version")
-	end
-	return sorted
+	table.sort(versions, version_less)
+	return versions
 end
 
 function M.list_versions()
