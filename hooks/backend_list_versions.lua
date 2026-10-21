@@ -16,7 +16,8 @@ local function process_gh_aw()
 end
 
 local function process_get_skills()
-	return { versions = { "latest" } }
+	local release = require("get_skills_release")
+	return { versions = release.list_versions() }
 end
 
 --- Returns installable versions for the requested tool.

@@ -15,34 +15,8 @@ local function process_gh_aw(ctx)
 end
 
 local function process_get_skills(ctx)
-	local cmd = require("cmd")
-	local file = require("file")
-
-	local install_path = ctx.install_path
-	if not install_path or install_path == "" then
-		error("install_path cannot be empty")
-	end
-
-	local bin_src = file.join_path(RUNTIME.pluginDirPath, "bin", "get-skills")
-	if not file.exists(bin_src) then
-		error("plugin is missing bin/get-skills at " .. bin_src)
-	end
-
-	local bin_dir = file.join_path(install_path, "bin")
-	cmd.exec("mkdir -p " .. '"' .. bin_dir:gsub('"', '\\"') .. '"')
-
-	local bin_dst = file.join_path(bin_dir, "get-skills")
-	local out, open_err = io.open(bin_dst, "wb")
-	if not out then
-		error("failed to write " .. bin_dst .. ": " .. tostring(open_err))
-	end
-	out:write(file.read(bin_src))
-	out:close()
-
-	if RUNTIME.osType ~= "windows" then
-		cmd.exec('chmod +x "' .. bin_dst:gsub('"', '\\"') .. '"')
-	end
-
+	local release = require("get_skills_release")
+	release.install(ctx)
 	return {}
 end
 

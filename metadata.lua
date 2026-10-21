@@ -8,6 +8,6 @@ PLUGIN = { -- luacheck: ignore
 	author = "Caido",
 	homepage = "https://github.com/caido/mise-toolshed",
 	notes = {
-		"Requires the plugin to be a git clone (mise plugin install from git URL) so versions map to git refs.",
+		"get-skills versions are get-skills-v* tags on https://github.com/caido/mise-toolshed, and latest is the plugin checkout.",
 	},
 }

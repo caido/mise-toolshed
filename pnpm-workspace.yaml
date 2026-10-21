@@ -1,4 +1,5 @@
 packages:
   - "packages/*"
+includeWorkspaceRoot: true
 allowBuilds:
   esbuild: true
