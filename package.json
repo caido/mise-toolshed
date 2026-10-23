@@ -1,9 +1,10 @@
 {
   "name": "mise-toolshed",
   "private": true,
+  "type": "module",
   "packageManager": "pnpm@12.14.0",
   "scripts": {
-    "test": "sh test/get-skills-remote.sh && sh test/release-plan.sh && sh test/released-tool.sh"
+    "test": "tsc -p tsconfig.json --noEmit && node --test --test-reporter spec test/*.test.ts && sh test/get-skills-remote.sh"
   },
   "devDependencies": {
     "@types/node": "24.19.2",

@@ -97,4 +97,5 @@ Plugin files are at the repository root. Workspace packages are under `packages/
 - `packages/check-pins` is the only package under `packages/`.
 - `packages/check-pins` is a private CLI that prints its version.
 - `scripts/build-package.mjs` bundles a package.
-- `test/get-skills-remote.sh` is the root test.
+- `test/get-skills-remote.sh` covers get-skills tag listing.
+- `test/release-plan.test.ts` and `test/released-tool.test.ts` cover release planning and checksummed installs.

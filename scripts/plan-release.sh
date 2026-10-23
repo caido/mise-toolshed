@@ -39,15 +39,7 @@ if [ ! -f "$manifest" ]; then
 	exit 0
 fi
 
-pkg_version=$(TOOLSHED_PKG="$manifest" node --input-type=module -e '
-import { readFileSync } from "node:fs";
-const raw = JSON.parse(readFileSync(process.env.TOOLSHED_PKG, "utf8"));
-if (typeof raw.version !== "string" || raw.version.length === 0) {
-  process.stderr.write("package.json version is missing\n");
-  process.exit(1);
-}
-process.stdout.write(raw.version);
-')
+pkg_version=$(node "$root/scripts/read-package-version.ts" "$manifest")
 
 if [ "$version" != "$pkg_version" ]; then
 	echo "tag $tag version $version does not match packages/$tool/package.json $pkg_version" >&2

@@ -1,0 +1,16 @@
+#!/bin/sh
+cmd1=$1
+cmd2=${2-}
+printf '%s' "$1" >> "${GH_RECORD:?}"
+shift
+for arg in "$@"; do
+	printf '\t%s' "$arg" >> "$GH_RECORD"
+done
+printf '\n' >> "$GH_RECORD"
+if [ "$cmd1" = "release" ] && [ "$cmd2" = "view" ]; then
+	if [ "${GH_RELEASE_EXISTS:-}" = "1" ]; then
+		exit 0
+	fi
+	exit 1
+fi
+exit 0
