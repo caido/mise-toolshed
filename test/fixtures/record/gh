@@ -1,6 +1,12 @@
 #!/bin/sh
 cmd1=$1
 cmd2=${2-}
+asked_draft=0
+for arg in "$@"; do
+	if [ "$arg" = "isDraft" ]; then
+		asked_draft=1
+	fi
+done
 printf '%s' "$1" >> "${GH_RECORD:?}"
 shift
 for arg in "$@"; do
@@ -8,14 +14,25 @@ for arg in "$@"; do
 done
 printf '\n' >> "$GH_RECORD"
 if [ "$cmd1" = "release" ] && [ "$cmd2" = "view" ]; then
-	if [ "${GH_RELEASE_EXISTS:-}" = "1" ]; then
-		exit 0
-	fi
 	if [ "${GH_VIEW_ERROR:-}" = "1" ]; then
 		echo "api error" >&2
 		exit 1
 	fi
+	if [ "${GH_RELEASE_DRAFT:-}" = "1" ] || [ "${GH_RELEASE_EXISTS:-}" = "1" ]; then
+		if [ "$asked_draft" = "1" ]; then
+			if [ "${GH_RELEASE_DRAFT:-}" = "1" ]; then
+				printf 'true\n'
+			else
+				printf 'false\n'
+			fi
+		fi
+		exit 0
+	fi
 	echo "release not found" >&2
+	exit 1
+fi
+if [ "$cmd1" = "release" ] && [ "$cmd2" = "upload" ] && [ "${GH_UPLOAD_FAIL:-}" = "1" ]; then
+	echo "upload failed" >&2
 	exit 1
 fi
 exit 0

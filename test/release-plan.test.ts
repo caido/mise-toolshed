@@ -82,7 +82,7 @@ test("export-release-plan writes skip and publish outputs", async () => {
   assert.equal(await readFile(output, "utf8"), `action=publish\ntool=check-pins\n`);
 });
 
-test("publish-release creates a release and clobbers an existing one", async () => {
+test("publish-release creates, clobbers, and publishes a leftover draft", async () => {
   const work = await mkdtemp(path.join(tmpdir(), "publish-release-"));
   const stage = path.join(work, "release");
   const record = path.join(work, "gh-record");
@@ -103,8 +103,9 @@ test("publish-release creates a release and clobbers an existing one", async () 
   };
   const created = run("sh", [publishScript], { env });
   assert.equal(created.status, 0, created.stderr);
+  const view = ["release", "view", "check-pins-v0.0.0", "--json", "isDraft", "--jq", ".isDraft"];
   assert.deepEqual(recordLines(await readFile(record, "utf8")), [
-    ["release", "view", "check-pins-v0.0.0"],
+    view,
     [
       "release",
       "create",
@@ -123,7 +124,27 @@ test("publish-release creates a release and clobbers an existing one", async () 
   const replaced = run("sh", [publishScript], { env: { ...env, GH_RELEASE_EXISTS: "1" } });
   assert.equal(replaced.status, 0, replaced.stderr);
   assert.deepEqual(recordLines(await readFile(record, "utf8")), [
-    ["release", "view", "check-pins-v0.0.0"],
+    view,
+    ["release", "upload", "check-pins-v0.0.0", bundle, sums, "--clobber"],
+  ]);
+
+  await writeFile(record, "");
+  const drafted = run("sh", [publishScript], { env: { ...env, GH_RELEASE_DRAFT: "1" } });
+  assert.equal(drafted.status, 0, drafted.stderr);
+  assert.deepEqual(recordLines(await readFile(record, "utf8")), [
+    view,
+    ["release", "upload", "check-pins-v0.0.0", bundle, sums, "--clobber"],
+    ["release", "edit", "check-pins-v0.0.0", "--draft=false"],
+  ]);
+
+  await writeFile(record, "");
+  const uploadFailed = run("sh", [publishScript], {
+    env: { ...env, GH_RELEASE_DRAFT: "1", GH_UPLOAD_FAIL: "1" },
+  });
+  assert.notEqual(uploadFailed.status, 0);
+  assert.ok(uploadFailed.stderr.includes("upload failed"));
+  assert.deepEqual(recordLines(await readFile(record, "utf8")), [
+    view,
     ["release", "upload", "check-pins-v0.0.0", bundle, sums, "--clobber"],
   ]);
 
@@ -131,7 +152,7 @@ test("publish-release creates a release and clobbers an existing one", async () 
   const failed = run("sh", [publishScript], { env: { ...env, GH_VIEW_ERROR: "1" } });
   assert.notEqual(failed.status, 0);
   assert.ok(failed.stderr.includes("api error"));
-  assert.deepEqual(recordLines(await readFile(record, "utf8")), [["release", "view", "check-pins-v0.0.0"]]);
+  assert.deepEqual(recordLines(await readFile(record, "utf8")), [view]);
 });
 
 function recordLines(text: string): string[][] {
