@@ -30,16 +30,17 @@ test("plan-release skips get-skills tags and does not call gh", async () => {
     const result = run("sh", [planScript, tag], { env: refuseEnv() });
     assert.equal(result.status, 0, result.stderr);
     assert.equal(result.stdout, "skip\n");
-    assert.match(result.stderr, new RegExp(`tag ${tag} has no packages/get-skills; publishing nothing`));
+    assert.ok(result.stderr.includes(`tag ${tag} has no packages/get-skills; publishing nothing`));
     assert.doesNotMatch(result.stderr, /gh invoked/);
   }
 
   const mismatch = run("sh", [planScript, "check-pins-v9.9.9"], { env: refuseEnv() });
   assert.notEqual(mismatch.status, 0);
   assert.equal(mismatch.stdout, "");
-  assert.match(
-    mismatch.stderr,
-    new RegExp(`tag check-pins-v9.9.9 version 9.9.9 does not match packages/check-pins/package.json ${packageVersion}`),
+  assert.ok(
+    mismatch.stderr.includes(
+      `tag check-pins-v9.9.9 version 9.9.9 does not match packages/check-pins/package.json ${packageVersion}`,
+    ),
   );
   assert.doesNotMatch(mismatch.stderr, /gh invoked/);
 
@@ -61,7 +62,7 @@ test("export-release-plan writes skip and publish outputs", async () => {
     }),
   });
   assert.equal(skip.status, 0, skip.stderr);
-  assert.match(skip.stdout, /::notice::tag get-skills-v1\.2 has no workspace package; publishing nothing/);
+  assert.ok(skip.stdout.includes("::notice::tag get-skills-v1.2 has no workspace package; publishing nothing"));
   assert.equal(await readFile(output, "utf8"), "action=skip\n");
   assert.doesNotMatch(skip.stderr, /gh invoked/);
 
@@ -102,31 +103,43 @@ test("publish-release creates a release and clobbers an existing one", async () 
   };
   const created = run("sh", [publishScript], { env });
   assert.equal(created.status, 0, created.stderr);
-  const createdLines = (await readFile(record, "utf8")).trimEnd().split("\n");
-  assert.deepEqual(createdLines[0]?.split("\t"), ["release", "view", "check-pins-v0.0.0"]);
-  assert.deepEqual(createdLines[1]?.split("\t"), [
-    "release",
-    "create",
-    "check-pins-v0.0.0",
-    bundle,
-    sums,
-    "--title",
-    "check-pins-v0.0.0",
-    "--notes",
-    "",
-    "--verify-tag",
+  assert.deepEqual(recordLines(await readFile(record, "utf8")), [
+    ["release", "view", "check-pins-v0.0.0"],
+    [
+      "release",
+      "create",
+      "check-pins-v0.0.0",
+      bundle,
+      sums,
+      "--title",
+      "check-pins-v0.0.0",
+      "--notes",
+      "",
+      "--verify-tag",
+    ],
   ]);
 
   await writeFile(record, "");
   const replaced = run("sh", [publishScript], { env: { ...env, GH_RELEASE_EXISTS: "1" } });
   assert.equal(replaced.status, 0, replaced.stderr);
-  const replacedLines = (await readFile(record, "utf8")).trimEnd().split("\n");
-  assert.deepEqual(replacedLines[1]?.split("\t"), [
-    "release",
-    "upload",
-    "check-pins-v0.0.0",
-    bundle,
-    sums,
-    "--clobber",
+  assert.deepEqual(recordLines(await readFile(record, "utf8")), [
+    ["release", "view", "check-pins-v0.0.0"],
+    ["release", "upload", "check-pins-v0.0.0", bundle, sums, "--clobber"],
   ]);
+
+  await writeFile(record, "");
+  const failed = run("sh", [publishScript], { env: { ...env, GH_VIEW_ERROR: "1" } });
+  assert.notEqual(failed.status, 0);
+  assert.ok(failed.stderr.includes("api error"));
+  assert.deepEqual(recordLines(await readFile(record, "utf8")), [["release", "view", "check-pins-v0.0.0"]]);
+});
+
+function recordLines(text: string): string[][] {
+  return text.trimEnd().split("\n").map((line) => line.split("\t"));
+}
+
+test("check-release-plan accepts the package version", () => {
+  const result = run("sh", [path.join(repoRoot, "scripts/check-release-plan.sh")], { env: refuseEnv() });
+  assert.equal(result.status, 0, result.stderr);
+  assert.doesNotMatch(result.stderr, /gh invoked/);
 });
