@@ -1,34 +1,13 @@
-local function process_gh_aw()
-	local versions = {}
-
-	local p = io.popen("git ls-remote --tags --refs https://github.com/github/gh-aw.git 2>/dev/null")
-	if p then
-		for line in p:lines() do
-			local ref = line:match("%s+refs/tags/(.+)$")
-			if ref and ref ~= "" then
-				table.insert(versions, ref)
-			end
-		end
-		p:close()
-	end
-
-	return { versions = versions }
-end
-
 local function process_get_skills()
 	local release = require("get_skills_release")
 	return { versions = release.list_versions() }
 end
 
---- Returns installable versions for the requested tool.
 function PLUGIN:BackendListVersions(ctx)
 	local tool = ctx.tool
-	if tool == "gh-aw" then
-		return process_gh_aw()
-	end
 	if tool == "get-skills" then
 		return process_get_skills()
 	end
 
-	error("unknown tool: " .. tostring(tool) .. " (only 'get-skills' or 'gh-aw' is supported)")
+	error("unknown tool: " .. tostring(tool) .. " (only 'get-skills' is supported)")
 end
