@@ -37,6 +37,23 @@ jobs:
       - name: Test
         run: mise exec -- pnpm -r --if-present test
 
+  zizmor:
+    name: Zizmor
+    runs-on: warp-ubuntu-2204-x64-2x
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Install mise
+        uses: caido/action-mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
+        with:
+          version: ${{ vars.CI__MISE_VERSION }}
+
+      - name: Run zizmor
+        run: mise exec -- zizmor --offline --format=github .
+
   plugin-smoke-test:
     name: Plugin smoke test
     runs-on: warp-ubuntu-2204-x64-2x
