@@ -37,6 +37,27 @@ fi
 echo "get-skills-v1.0.0 publishes nothing and exits 0"
 cat "$work/skip.err"
 
+for tag in get-skills-v1.2 get-skills-v1.2-rc get-skills-v1.9 get-skills-v1.10-rc; do
+	skip_out=$(sh "$REPO/scripts/plan-release.sh" "$tag" 2>"$work/skip-more.err")
+	if [ "$skip_out" != "skip" ]; then
+		echo "$tag did not plan a skip" >&2
+		printf '%s\n' "$skip_out" >&2
+		cat "$work/skip-more.err" >&2
+		exit 1
+	fi
+	if ! grep -F "tag $tag has no packages/get-skills; publishing nothing" "$work/skip-more.err" >/dev/null; then
+		echo "$tag skip notice is missing" >&2
+		cat "$work/skip-more.err" >&2
+		exit 1
+	fi
+	if grep -F "gh invoked" "$work/skip-more.err" >/dev/null; then
+		echo "$tag invoked gh" >&2
+		exit 1
+	fi
+	echo "$tag publishes nothing and exits 0"
+	cat "$work/skip-more.err"
+done
+
 if sh "$REPO/scripts/plan-release.sh" check-pins-v9.9.9 >"$work/mismatch.out" 2>"$work/mismatch.err"; then
 	echo "check-pins-v9.9.9 planned a publish" >&2
 	exit 1

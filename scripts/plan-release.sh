@@ -27,13 +27,10 @@ case $tool in
 	;;
 esac
 
-case $version in
-[0-9]*.[0-9]*.[0-9]*) ;;
-*)
-	echo "tag $tag version is not semver" >&2
+if [ -z "$version" ]; then
+	echo "not a tool tag: $tag" >&2
 	exit 1
-	;;
-esac
+fi
 
 manifest="$root/packages/$tool/package.json"
 if [ ! -f "$manifest" ]; then
