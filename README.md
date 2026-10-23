@@ -89,7 +89,7 @@ Plugin files are at the repository root. Workspace packages are under `packages/
 - `hooks/` has the mise backend entry points `backend_install.lua`, `backend_list_versions.lua`, and `backend_exec_env.lua`.
 - `bin/get-skills` is the script mise installs.
 - `lib/get_skills_release.lua` lists and installs get-skills versions from this repo.
-- `packages/check-pins` is the only package today.
+- `packages/check-pins` is the only package under `packages/`.
 - `packages/check-pins` is a private CLI that prints its version.
 - `scripts/build-package.mjs` bundles a package.
 - `test/get-skills-remote.sh` is the root test.
