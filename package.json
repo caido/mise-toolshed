@@ -3,7 +3,7 @@
   "private": true,
   "packageManager": "pnpm@12.14.0",
   "scripts": {
-    "test": "sh test/get-skills-remote.sh && sh test/released-tool.sh"
+    "test": "sh test/get-skills-remote.sh && sh test/release-plan.sh && sh test/released-tool.sh"
   },
   "devDependencies": {
     "@types/node": "24.19.2",

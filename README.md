@@ -2,9 +2,26 @@
 
 [mise](https://mise.jdx.dev/) backend plugin that installs small utility tools.
 
-Currently provided tools:
+Provided tools:
 
+- **`toolshed:check-pins`**: a released `check-pins` command. Pushing `check-pins-v<semver>` publishes `check-pins.mjs` and `SHA256SUMS`. The plugin downloads that release and refuses the install when the SHA-256 does not match.
 - **`toolshed:get-skills`**: a `get-skills` command which syncs the [`skills/`](https://github.com/caido/ai-ops/tree/main/skills) tree from **[ai-ops](https://github.com/caido/ai-ops)** into `.claude/skills`, `.agents/skills`, and `.cursor/skills` under a chosen root directory.
+
+## check-pins
+
+`node` must be on `PATH` when `check-pins` runs. A consumer without `node` adds an exact `node` version to `[tools]`.
+
+```toml
+[plugins]
+toolshed = "https://github.com/caido/mise-toolshed#<40-hex sha>"
+
+[tools]
+"toolshed:check-pins" = "1.0.0"
+```
+
+`mise ls-remote toolshed:check-pins` lists bare versions from `check-pins-v*` tags, oldest first. It does not list `latest`. `mise install` downloads `check-pins.mjs` and `SHA256SUMS` from `https://github.com/caido/mise-toolshed/releases/download/check-pins-v<version>/`, checks the digest, and installs the file as `check-pins` on `PATH`.
+
+## get-skills
 
 `latest` installs the newest `get-skills-v*` tag. In a mise home that already has get-skills installed, `mise install` can keep that version. `mise exec toolshed:get-skills@latest -- get-skills` installs and runs the newest tag. Before any such tag exists, `latest` copies the checkout's `bin/get-skills`. A pin `x.y.z` installs `bin/get-skills` from tag `get-skills-vx.y.z` on `https://github.com/caido/mise-toolshed`. The default clone URL is **`https://github.com/caido/ai-ops`**; the destination root defaults to **`$PWD`** (override with **`SKILLS_DESTINATION`** or **`--destination`**). Run **`bin/get-skills`** from a checkout of this repo without mise.
 
@@ -75,6 +92,8 @@ Plugin files are at the repository root. Workspace packages are under `packages/
 - `hooks/` has the mise backend entry points `backend_install.lua`, `backend_list_versions.lua`, and `backend_exec_env.lua`.
 - `bin/get-skills` is the script mise installs.
 - `lib/get_skills_release.lua` lists and installs get-skills versions from this repo.
+- `lib/version_order.lua` orders version strings for get-skills and released tools.
+- `lib/released_tool.lua` lists and installs released tools from checksummed GitHub releases.
 - `packages/check-pins` is the only package under `packages/`.
 - `packages/check-pins` is a private CLI that prints its version.
 - `scripts/build-package.mjs` bundles a package.

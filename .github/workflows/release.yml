@@ -1,0 +1,140 @@
+name: Release
+
+on:
+  pull_request:
+  push:
+    tags:
+      - "*-v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  check:
+    name: Check release
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Install mise
+        uses: caido/action-mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
+        with:
+          version: ${{ vars.CI__MISE_VERSION }}
+
+      - name: Plan test tag
+        run: |
+          set -eu
+          version=$(mise exec -- node -p "JSON.parse(require('node:fs').readFileSync('packages/check-pins/package.json','utf8')).version")
+          tag="check-pins-v${version}"
+          plan=$(mise exec -- sh scripts/plan-release.sh "$tag")
+          case "$plan" in
+            "publish check-pins ${version}") ;;
+            *)
+              echo "unexpected plan: $plan" >&2
+              exit 1
+              ;;
+          esac
+
+      - name: Install dependencies
+        run: mise exec -- pnpm install --frozen-lockfile
+
+      - name: Build
+        run: mise exec -- pnpm -r build
+
+      - name: Checksum
+        run: mise exec -- sh scripts/stage-release.sh check-pins "$RUNNER_TEMP/release"
+
+  plan:
+    name: Plan release
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    outputs:
+      action: ${{ steps.plan.outputs.action }}
+      tool: ${{ steps.plan.outputs.tool }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Install mise
+        uses: caido/action-mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
+        with:
+          version: ${{ vars.CI__MISE_VERSION }}
+
+      - name: Plan release
+        id: plan
+        run: |
+          set -eu
+          tag="${GITHUB_REF_NAME}"
+          plan=$(mise exec -- sh scripts/plan-release.sh "$tag")
+          case "$plan" in
+            skip)
+              echo "action=skip" >> "$GITHUB_OUTPUT"
+              echo "::notice::tag ${tag} has no workspace package; publishing nothing"
+              ;;
+            publish\ *)
+              echo "action=publish" >> "$GITHUB_OUTPUT"
+              echo "tool=$(printf '%s\n' "$plan" | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "unexpected plan: $plan" >&2
+              exit 1
+              ;;
+          esac
+
+  publish:
+    name: Publish
+    needs: plan
+    if: needs.plan.outputs.action == 'publish'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Install mise
+        uses: caido/action-mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
+        with:
+          version: ${{ vars.CI__MISE_VERSION }}
+
+      - name: Install dependencies
+        run: mise exec -- pnpm install --frozen-lockfile
+
+      - name: Build
+        run: mise exec -- pnpm -r build
+
+      - name: Stage assets
+        run: mise exec -- sh scripts/stage-release.sh "${{ needs.plan.outputs.tool }}" "$RUNNER_TEMP/release"
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: ${{ runner.temp }}/release/*
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TOOL: ${{ needs.plan.outputs.tool }}
+        run: |
+          set -eu
+          tag="${GITHUB_REF_NAME}"
+          stage="${RUNNER_TEMP}/release"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" "$stage/$TOOL.mjs" "$stage/SHA256SUMS" --clobber
+          else
+            gh release create "$tag" "$stage/$TOOL.mjs" "$stage/SHA256SUMS" --title "$tag" --notes "" --verify-tag
+          fi
