@@ -3,3 +3,6 @@ packages:
 includeWorkspaceRoot: true
 allowBuilds:
   esbuild: true
+minimumReleaseAge: 10080
+minimumReleaseAgeExclude:
+  - "@caido/*"
