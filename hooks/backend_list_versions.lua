@@ -3,7 +3,6 @@ local function process_get_skills()
 	return { versions = release.list_versions() }
 end
 
---- Returns installable versions for the requested tool.
 function PLUGIN:BackendListVersions(ctx)
 	local tool = ctx.tool
 	if tool == "get-skills" then

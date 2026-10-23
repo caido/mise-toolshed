@@ -4,7 +4,6 @@ local function process_get_skills(ctx)
 	return {}
 end
 
---- Installs the requested tool.
 function PLUGIN:BackendInstall(ctx)
 	local tool = ctx.tool
 	if tool == "get-skills" then

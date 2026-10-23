@@ -1,4 +1,3 @@
---- Prepends install bin to PATH.
 function PLUGIN:BackendExecEnv(ctx)
 	local file = require("file")
 
