@@ -82,7 +82,7 @@ test("export-release-plan writes skip and publish outputs", async () => {
   assert.equal(await readFile(output, "utf8"), `action=publish\ntool=check-pins\n`);
 });
 
-test("publish-release creates, clobbers, and publishes a leftover draft", async () => {
+test("publish-release creates, leaves a public release, and publishes a leftover draft", async () => {
   const work = await mkdtemp(path.join(tmpdir(), "publish-release-"));
   const stage = path.join(work, "release");
   const record = path.join(work, "gh-record");
@@ -123,10 +123,7 @@ test("publish-release creates, clobbers, and publishes a leftover draft", async 
   await writeFile(record, "");
   const replaced = run("sh", [publishScript], { env: { ...env, GH_RELEASE_EXISTS: "1" } });
   assert.equal(replaced.status, 0, replaced.stderr);
-  assert.deepEqual(recordLines(await readFile(record, "utf8")), [
-    view,
-    ["release", "upload", "check-pins-v0.0.0", bundle, sums, "--clobber"],
-  ]);
+  assert.deepEqual(recordLines(await readFile(record, "utf8")), [view]);
 
   await writeFile(record, "");
   const drafted = run("sh", [publishScript], { env: { ...env, GH_RELEASE_DRAFT: "1" } });
