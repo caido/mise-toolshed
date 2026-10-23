@@ -2,7 +2,6 @@
 set -eu
 
 MANIFEST_NAME=.toolshed-get-skills
-STAGE_NAME=$MANIFEST_NAME.stage
 
 REPO_URL=""
 
@@ -127,8 +126,8 @@ cleanup() {
 	if [ -n "${_work:-}" ]; then
 		rm -rf "$_work"
 	fi
-	if [ "${_stage_ready:-0}" = 1 ]; then
-		rm -rf "$_install/$STAGE_NAME"
+	if [ "${_stage_ready:-0}" = 1 ] && [ -n "${_stage:-}" ]; then
+		rm -rf "$_stage"
 	fi
 }
 
@@ -136,6 +135,7 @@ install_skills() {
 	_src=$1
 	_install=$2
 	_work=$(mktemp -d)
+	_stage=''
 	_stage_ready=0
 	trap cleanup EXIT
 
@@ -170,15 +170,16 @@ install_skills() {
 
 	mkdir -p "$_install"
 	_install=$(CDPATH= cd -- "$_install" && pwd)
-	rm -rf "$_install/$STAGE_NAME"
+	_stage=$(mktemp -d "$_install/.toolshed-get-skills.XXXXXX")
 	_stage_ready=1
-	mkdir -p "$_install/$STAGE_NAME"
-	cp "$_work/owned" "$_work/claimed"
-
 	while IFS= read -r _name || [ -n "$_name" ]; do
 		[ -n "$_name" ] || continue
-		rm -rf "$_install/$STAGE_NAME/$_name"
-		cp -R "$_src/$_name" "$_install/$STAGE_NAME/$_name"
+		cp -R "$_src/$_name" "$_stage/$_name"
+	done < "$_work/desired"
+
+	cp "$_work/owned" "$_work/claimed"
+	while IFS= read -r _name || [ -n "$_name" ]; do
+		[ -n "$_name" ] || continue
 		if [ -e "$_install/$_name" ] || [ -L "$_install/$_name" ]; then
 			if grep -F -x -q "$_name" "$_work/owned"; then
 				rm -rf "$_install/$_name"
@@ -186,13 +187,15 @@ install_skills() {
 				printf '%s\n' "toolshed:get-skills: $_name already exists and is not owned" >&2
 				exit 1
 			fi
-		else
-			printf '%s\n' "$_name" >> "$_work/claimed"
-			LC_ALL=C sort -u "$_work/claimed" > "$_work/claimed.sorted"
-			mv "$_work/claimed.sorted" "$_work/claimed"
-			write_owned "$_install" "$_work/claimed"
 		fi
-		mv "$_install/$STAGE_NAME/$_name" "$_install/$_name"
+		mv "$_stage/$_name" "$_install/$_name"
+		if grep -F -x -q "$_name" "$_work/owned"; then
+			continue
+		fi
+		printf '%s\n' "$_name" >> "$_work/claimed"
+		LC_ALL=C sort -u "$_work/claimed" > "$_work/claimed.sorted"
+		mv "$_work/claimed.sorted" "$_work/claimed"
+		write_owned "$_install" "$_work/claimed"
 	done < "$_work/desired"
 
 	LC_ALL=C comm -23 "$_work/owned" "$_work/desired" > "$_work/remove"

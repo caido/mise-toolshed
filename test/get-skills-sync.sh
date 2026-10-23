@@ -5,7 +5,7 @@ REPO=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
 BIN="$REPO/bin/get-skills"
 
 base=$(mktemp -d)
-trap 'rm -rf "$base"' EXIT
+trap 'chmod -R u+rwx "$base" 2>/dev/null || true; rm -rf "$base"' EXIT
 home="$base/home dir"
 cache="$base/cache"
 fixture="$base/ai-ops"
@@ -309,3 +309,44 @@ if [ ! -L "$HOME/.cursor/skills/.toolshed-get-skills.new" ]; then
 	fail "manifest temp link was replaced"
 fi
 cmp_file "$base/manifest-v2" "$HOME/.cursor/skills/.toolshed-get-skills" "cursor manifest after temp link"
+
+mkdir -p "$HOME/.cursor/skills/.toolshed-get-skills.stage/keep"
+printf 'keep-stage\n' > "$base/keep-stage"
+cp "$base/keep-stage" "$HOME/.cursor/skills/.toolshed-get-skills.stage/keep/file"
+run_choice 1
+assert_status 0
+assert_stdout_empty
+cmp_file "$base/keep-stage" "$HOME/.cursor/skills/.toolshed-get-skills.stage/keep/file" "pre-existing stage entry was removed"
+kept_stage=$(find "$HOME/.cursor/skills" -name '.toolshed-get-skills.??????' -print)
+if [ -n "$kept_stage" ]; then
+	printf '%s\n' "$kept_stage" >&2
+	fail "unique stage directory remained"
+fi
+show_tree "after pre-existing stage entry"
+
+mkdir -p "$fixture/skills/early" "$fixture/skills/later"
+printf 'early\n' > "$fixture/skills/early/SKILL.md"
+printf 'later\n' > "$fixture/skills/later/SKILL.md"
+git -C "$fixture" add skills/early skills/later
+git -C "$fixture" commit -q -m 'add early and later'
+mkdir -p "$cache/.git/hooks"
+cat > "$cache/.git/hooks/post-checkout" <<'EOF'
+#!/bin/sh
+if [ -d skills/later ]; then
+	chmod 000 skills/later
+fi
+EOF
+chmod +x "$cache/.git/hooks/post-checkout"
+rm -rf "$base/cursor-before-later"
+cp -R "$HOME/.cursor/skills" "$base/cursor-before-later"
+run_choice 1
+assert_status 1
+if [ -d "$HOME/.cursor/skills/early" ] || [ -d "$HOME/.cursor/skills/later" ]; then
+	fail "failed copy published a skill"
+fi
+if ! diff -r "$base/cursor-before-later" "$HOME/.cursor/skills" >/dev/null; then
+	fail "failed copy changed the skills folder"
+fi
+cmp_file "$base/manifest-v2" "$HOME/.cursor/skills/.toolshed-get-skills" "failed copy rewrote the manifest"
+cmp_file "$base/keep-stage" "$HOME/.cursor/skills/.toolshed-get-skills.stage/keep/file" "failed copy removed the pre-existing stage entry"
+show_tree "after unreadable later skill"
