@@ -3,6 +3,7 @@ set -eu
 
 REPO=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
 BIN="$REPO/bin/get-skills"
+real_cp=$(command -v cp)
 
 base=$(mktemp -d)
 trap 'chmod -R u+rwx "$base" 2>/dev/null || true; rm -rf "$base"' EXIT
@@ -329,18 +330,26 @@ printf 'early\n' > "$fixture/skills/early/SKILL.md"
 printf 'later\n' > "$fixture/skills/later/SKILL.md"
 git -C "$fixture" add skills/early skills/later
 git -C "$fixture" commit -q -m 'add early and later'
-mkdir -p "$cache/.git/hooks"
-cat > "$cache/.git/hooks/post-checkout" <<'EOF'
+fail_cp="$base/fail-cp"
+mkdir -p "$fail_cp"
+cat > "$fail_cp/cp" <<'EOF'
 #!/bin/sh
-if [ -d skills/later ]; then
-	chmod 000 skills/later
+if [ "${1:-}" = "-R" ]; then
+	_base=${2##*/}
+	if [ "$_base" = "later" ]; then
+		echo "cp: cannot copy later" >&2
+		exit 1
+	fi
 fi
+exec "$GET_SKILLS_REAL_CP" "$@"
 EOF
-chmod +x "$cache/.git/hooks/post-checkout"
+chmod +x "$fail_cp/cp"
 rm -rf "$base/cursor-before-later"
 cp -R "$HOME/.cursor/skills" "$base/cursor-before-later"
-run_choice 1
+status=0
+printf '1\n' | PATH="$fail_cp:$PATH" GET_SKILLS_REAL_CP="$real_cp" "$BIN" --url "$fixture" >"$base/stdout" 2>"$base/stderr" || status=$?
 assert_status 1
+assert_stderr "cannot copy later"
 if [ -d "$HOME/.cursor/skills/early" ] || [ -d "$HOME/.cursor/skills/later" ]; then
 	fail "failed copy published a skill"
 fi
@@ -349,4 +358,4 @@ if ! diff -r "$base/cursor-before-later" "$HOME/.cursor/skills" >/dev/null; then
 fi
 cmp_file "$base/manifest-v2" "$HOME/.cursor/skills/.toolshed-get-skills" "failed copy rewrote the manifest"
 cmp_file "$base/keep-stage" "$HOME/.cursor/skills/.toolshed-get-skills.stage/keep/file" "failed copy removed the pre-existing stage entry"
-show_tree "after unreadable later skill"
+show_tree "after copy of later failed"
