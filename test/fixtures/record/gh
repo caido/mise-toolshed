@@ -18,9 +18,11 @@ if [ "$cmd1" = "release" ] && [ "$cmd2" = "view" ]; then
 		echo "api error" >&2
 		exit 1
 	fi
-	if [ "${GH_RELEASE_DRAFT:-}" = "1" ] || [ "${GH_RELEASE_EXISTS:-}" = "1" ]; then
+	if [ "${GH_RELEASE_DRAFT:-}" = "1" ] || [ "${GH_RELEASE_EXISTS:-}" = "1" ] || [ -n "${GH_IS_DRAFT:-}" ]; then
 		if [ "$asked_draft" = "1" ]; then
-			if [ "${GH_RELEASE_DRAFT:-}" = "1" ]; then
+			if [ -n "${GH_IS_DRAFT:-}" ]; then
+				printf '%s\n' "$GH_IS_DRAFT"
+			elif [ "${GH_RELEASE_DRAFT:-}" = "1" ]; then
 				printf 'true\n'
 			else
 				printf 'false\n'

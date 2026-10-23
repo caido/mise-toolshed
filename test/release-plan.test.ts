@@ -149,6 +149,12 @@ test("publish-release creates, clobbers, and publishes a leftover draft", async 
   ]);
 
   await writeFile(record, "");
+  const unexpected = run("sh", [publishScript], { env: { ...env, GH_IS_DRAFT: "maybe" } });
+  assert.notEqual(unexpected.status, 0);
+  assert.ok(unexpected.stderr.includes("unexpected isDraft: maybe"));
+  assert.deepEqual(recordLines(await readFile(record, "utf8")), [view]);
+
+  await writeFile(record, "");
   const failed = run("sh", [publishScript], { env: { ...env, GH_VIEW_ERROR: "1" } });
   assert.notEqual(failed.status, 0);
   assert.ok(failed.stderr.includes("api error"));
