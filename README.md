@@ -80,3 +80,16 @@ If the ai-ops repository is private, ensure your Git credential helper can clone
 **First clone looks stuck:** The first run does a **shallow** clone (`--depth 1`) with **`--progress`** so you should see `Receiving objects` / `Resolving deltas`. A large monorepo can still take several minutes. If it never advances past `0%`, check network, VPN, or auth (private repo). Remove a bad partial clone with `rm -rf "$AI_OPS_SKILLS_CACHE"` (default `~/.cache/mise-toolshed/ai-ops`) and retry.
 
 Install the plugin from a git URL so mise can clone and resolve the plugin source.
+
+## Repository layout
+
+Plugin files are at the repository root. Workspace packages are under `packages/`.
+
+- `metadata.lua` declares the mise plugin toolshed.
+- `hooks/` has the mise backend entry points `backend_install.lua`, `backend_list_versions.lua`, and `backend_exec_env.lua`.
+- `bin/get-skills` is the script mise installs.
+- `lib/get_skills_release.lua` lists and installs get-skills versions from this repo.
+- `packages/check-pins` is the only package today.
+- `packages/check-pins` is a private CLI that prints its version.
+- `scripts/build-package.mjs` bundles a package.
+- `test/get-skills-remote.sh` is the root test.
