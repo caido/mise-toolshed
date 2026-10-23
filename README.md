@@ -5,7 +5,6 @@
 Currently provided tools:
 
 - **`toolshed:get-skills`**: a `get-skills` command which syncs the [`skills/`](https://github.com/caido/ai-ops/tree/main/skills) tree from **[ai-ops](https://github.com/caido/ai-ops)** into `.claude/skills`, `.agents/skills`, and `.cursor/skills` under a chosen root directory.
-- **`toolshed:gh-aw`**: installs (or updates) the `gh aw` GitHub CLI extension from `github/gh-aw` via `gh extension install github/gh-aw@[version]`.
 
 `latest` installs the newest `get-skills-v*` tag. In a mise home that already has get-skills installed, `mise install` can keep that version. `mise exec toolshed:get-skills@latest -- get-skills` installs and runs the newest tag. Before any such tag exists, `latest` copies the checkout's `bin/get-skills`. A pin `x.y.z` installs `bin/get-skills` from tag `get-skills-vx.y.z` on `https://github.com/caido/mise-toolshed`. The default clone URL is **`https://github.com/caido/ai-ops`**; the destination root defaults to **`$PWD`** (override with **`SKILLS_DESTINATION`** or **`--destination`**). Run **`bin/get-skills`** from a checkout of this repo without mise.
 
@@ -21,7 +20,6 @@ toolshed = "https://github.com/caido/mise-toolshed"
 
 [tools]
 "toolshed:get-skills" = "latest"
-"toolshed:gh-aw" = "v0.2.0"
 ```
 
 A pinned release uses a bare version.
@@ -43,18 +41,6 @@ From the consumer project root:
 ```bash
 mise install
 mise exec toolshed:get-skills@latest -- get-skills
-```
-
-To install the `gh aw` extension (version required; `latest` is not supported):
-
-```bash
-mise install toolshed:gh-aw@v0.2.0
-```
-
-Then run it directly:
-
-```bash
-gh aw --help
 ```
 
 That **replaces** the three skill directories so they match the selected revision in ai-ops (`rsync` when available, otherwise a copy/remove pass so removed upstream skills disappear locally).
@@ -80,3 +66,16 @@ If the ai-ops repository is private, ensure your Git credential helper can clone
 **First clone looks stuck:** The first run does a **shallow** clone (`--depth 1`) with **`--progress`** so you should see `Receiving objects` / `Resolving deltas`. A large monorepo can still take several minutes. If it never advances past `0%`, check network, VPN, or auth (private repo). Remove a bad partial clone with `rm -rf "$AI_OPS_SKILLS_CACHE"` (default `~/.cache/mise-toolshed/ai-ops`) and retry.
 
 Install the plugin from a git URL so mise can clone and resolve the plugin source.
+
+## Repository layout
+
+Plugin files are at the repository root. Workspace packages are under `packages/`.
+
+- `metadata.lua` declares the mise plugin toolshed.
+- `hooks/` has the mise backend entry points `backend_install.lua`, `backend_list_versions.lua`, and `backend_exec_env.lua`.
+- `bin/get-skills` is the script mise installs.
+- `lib/get_skills_release.lua` lists and installs get-skills versions from this repo.
+- `packages/check-pins` is the only package under `packages/`.
+- `packages/check-pins` is a private CLI that prints its version.
+- `scripts/build-package.mjs` bundles a package.
+- `test/get-skills-remote.sh` is the root test.
