@@ -269,3 +269,43 @@ if ! diff -r "$base/cursor-before-illegal" "$HOME/.cursor/skills" >/dev/null; th
 	fail "illegal source name changed .cursor/skills"
 fi
 cmp_file "$base/keep-note" "$HOME/.cursor/skills/notes.txt" "notes.txt changed after illegal source name"
+
+rm -rf "$fixture/skills/.not-a-skill"
+git -C "$fixture" add -A
+git -C "$fixture" commit -q -m 'drop illegal skill name'
+run_choice 1
+assert_status 0
+assert_stdout_empty
+cmp_file "$base/manifest-v2" "$HOME/.cursor/skills/.toolshed-get-skills" "cursor manifest after dropping illegal name"
+cmp_file "$base/hand-v2" "$HOME/.cursor/skills/handoff/SKILL.md" "handoff after dropping illegal name"
+
+rm -rf "$fixture/skills/handoff"
+ln -s /tmp "$fixture/skills/handoff"
+git -C "$fixture" add -A
+git -C "$fixture" commit -q -m 'handoff becomes a symlink'
+cp "$HOME/.cursor/skills/.toolshed-get-skills" "$base/manifest-before-symlink"
+run_choice 1
+assert_status 1
+assert_stderr "handoff is not a skill directory"
+cmp_file "$base/manifest-before-symlink" "$HOME/.cursor/skills/.toolshed-get-skills" "symlink upstream rewrote the manifest"
+cmp_file "$base/hand-v2" "$HOME/.cursor/skills/handoff/SKILL.md" "symlink upstream removed handoff"
+cmp_file "$base/keep" "$HOME/.cursor/skills/verify-analytics/SKILL.md" "verify-analytics changed after symlink upstream"
+cmp_file "$base/keep-note" "$HOME/.cursor/skills/notes.txt" "notes.txt changed after symlink upstream"
+if [ -L "$HOME/.cursor/skills/handoff" ]; then
+	fail "handoff became a symlink"
+fi
+
+rm -rf "$fixture/skills/handoff"
+mkdir -p "$fixture/skills/handoff"
+printf 'hand-v2\n' > "$fixture/skills/handoff/SKILL.md"
+git -C "$fixture" add -A
+git -C "$fixture" commit -q -m 'restore handoff directory'
+ln -s "$HOME/.cursor/skills/notes.txt" "$HOME/.cursor/skills/.toolshed-get-skills.new"
+run_choice 1
+assert_status 0
+assert_stdout_empty
+cmp_file "$base/keep-note" "$HOME/.cursor/skills/notes.txt" "notes.txt changed through manifest temp link"
+if [ ! -L "$HOME/.cursor/skills/.toolshed-get-skills.new" ]; then
+	fail "manifest temp link was replaced"
+fi
+cmp_file "$base/manifest-v2" "$HOME/.cursor/skills/.toolshed-get-skills" "cursor manifest after temp link"

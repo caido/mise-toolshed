@@ -71,7 +71,7 @@ read_owned() {
 	if [ ! -e "$_manifest" ] && [ ! -L "$_manifest" ]; then
 		return 0
 	fi
-	if [ ! -f "$_manifest" ]; then
+	if [ -L "$_manifest" ] || [ ! -f "$_manifest" ]; then
 		echo "toolshed:get-skills: manifest is not a file" >&2
 		exit 1
 	fi
@@ -93,11 +93,11 @@ read_owned() {
 	LC_ALL=C sort "$_raw" > "$_out"
 }
 
-	write_owned() {
+write_owned() {
 	_dir=$1
 	_names=$2
-	_tmp="$_dir/$MANIFEST_NAME.new"
-	cp "$_names" "$_tmp"
+	_tmp=$(mktemp "$_dir/$MANIFEST_NAME.XXXXXX")
+	cat "$_names" > "$_tmp"
 	mv -f "$_tmp" "$_dir/$MANIFEST_NAME"
 }
 
@@ -141,6 +141,17 @@ install_skills() {
 
 	list_source_names "$_src" "$_work/desired"
 	read_owned "$_install" "$_work/owned"
+
+	while IFS= read -r _name || [ -n "$_name" ]; do
+		[ -n "$_name" ] || continue
+		if grep -F -x -q "$_name" "$_work/desired"; then
+			continue
+		fi
+		if [ -e "$_src/$_name" ] || [ -L "$_src/$_name" ]; then
+			printf '%s\n' "toolshed:get-skills: $_name is not a skill directory" >&2
+			exit 1
+		fi
+	done < "$_work/owned"
 
 	_hit=0
 	while IFS= read -r _name || [ -n "$_name" ]; do
