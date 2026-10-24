@@ -853,7 +853,7 @@ function parseWorkflow(relativePath: string, text: string): ParsedFile {
   let envIndent = -1;
   let envContentIndent = -1;
   let imageIndent = -1;
-  const runAnchors = new Map<string, string>();
+  const runAnchors = new Map<string, readonly string[]>();
 
   const activeEnv = (): Map<string, string> => {
     if (envTarget === "step" && currentStep >= 0) return steps[currentStep]?.env ?? workflowEnv;
@@ -947,7 +947,7 @@ function parseWorkflow(relativePath: string, text: string): ParsedFile {
         sites.push({ kind: "unreadable", format: "workflow", path: relativePath, line: lineNo });
         return;
       }
-      takeCommand(aliased, lineNo);
+      for (const script of aliased) takeCommand(script, lineNo);
       return;
     }
     if (header.block !== undefined) {
@@ -955,17 +955,17 @@ function parseWorkflow(relativePath: string, text: string): ParsedFile {
       const physical = readBlock(lines, cursor, indent, folded);
       if (folded) {
         const script = foldBlock(physical);
-        if (header.anchor !== undefined) runAnchors.set(header.anchor, script.text);
+        if (header.anchor !== undefined) runAnchors.set(header.anchor, script.text === "" ? [] : [script.text]);
         if (script.text !== "") takeCommand(script.text, script.line);
         return;
       }
       const scripts = joinContinuations(physical);
-      if (header.anchor !== undefined) runAnchors.set(header.anchor, scripts.map((script) => script.text).join("\n"));
+      if (header.anchor !== undefined) runAnchors.set(header.anchor, scripts.map((script) => script.text));
       for (const script of scripts) takeCommand(script.text, script.line);
       return;
     }
     const plain = unquoteYaml(header.plain);
-    if (header.anchor !== undefined) runAnchors.set(header.anchor, plain);
+    if (header.anchor !== undefined) runAnchors.set(header.anchor, [plain]);
     takeCommand(plain, lineNo);
   };
 

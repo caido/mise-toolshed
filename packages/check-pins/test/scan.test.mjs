@@ -1146,6 +1146,33 @@ test("a folded run keeps a blank line as a command break", async () => {
   );
 });
 
+test("a run alias replays each anchored script on its own", async () => {
+  await withFixture(
+    {
+      ".github/workflows/ci.yml": `jobs:
+  build:
+    steps:
+      - run: &locked >
+          export UV_LOCKED=1 &&
+          uv sync
+      - run: *locked
+      - run: &lines |
+          export UV_LOCKED=1
+          uv sync
+      - run: *lines
+`,
+    },
+    (dir) => {
+      expectFindings(
+        scan(dir),
+        `.github/workflows/ci.yml:10: uv command must set UV_LOCKED=1
+.github/workflows/ci.yml:11: uv command must set UV_LOCKED=1
+`,
+      );
+    },
+  );
+});
+
 test("a run anchor and its alias are both scanned", async () => {
   await withFixture(
     {
