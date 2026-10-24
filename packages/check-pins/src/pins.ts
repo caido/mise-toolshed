@@ -853,6 +853,7 @@ function parseWorkflow(relativePath: string, text: string): ParsedFile {
   let envIndent = -1;
   let envContentIndent = -1;
   let imageIndent = -1;
+  const runAnchors = new Map<string, string>();
 
   const activeEnv = (): Map<string, string> => {
     if (envTarget === "step" && currentStep >= 0) return steps[currentStep]?.env ?? workflowEnv;
@@ -939,17 +940,33 @@ function parseWorkflow(relativePath: string, text: string): ParsedFile {
       return;
     }
     if (key !== "run") return;
-    if (isBlockScalar(value)) {
-      const physical = readBlock(lines, cursor, indent);
-      if (value.trim().startsWith(">")) {
-        const text = physical.map((part) => part.text).join(" ").trim();
-        if (text !== "") takeCommand(text, physical[0]?.line ?? lineNo);
+    const header = runHeader(scalar.value);
+    if (header.alias !== undefined) {
+      const aliased = runAnchors.get(header.alias);
+      if (aliased === undefined) {
+        sites.push({ kind: "unreadable", format: "workflow", path: relativePath, line: lineNo });
         return;
       }
-      for (const script of joinContinuations(physical)) takeCommand(script.text, script.line);
+      takeCommand(aliased, lineNo);
       return;
     }
-    takeCommand(unquoteYaml(scalar.value), lineNo);
+    if (header.block !== undefined) {
+      const folded = header.block.startsWith(">");
+      const physical = readBlock(lines, cursor, indent, folded);
+      if (folded) {
+        const script = foldBlock(physical);
+        if (header.anchor !== undefined) runAnchors.set(header.anchor, script.text);
+        if (script.text !== "") takeCommand(script.text, script.line);
+        return;
+      }
+      const scripts = joinContinuations(physical);
+      if (header.anchor !== undefined) runAnchors.set(header.anchor, scripts.map((script) => script.text).join("\n"));
+      for (const script of scripts) takeCommand(script.text, script.line);
+      return;
+    }
+    const plain = unquoteYaml(header.plain);
+    if (header.anchor !== undefined) runAnchors.set(header.anchor, plain);
+    takeCommand(plain, lineNo);
   };
 
   for (let i = 0; i < lines.length; i += 1) {
@@ -1221,17 +1238,50 @@ function readBlock(
   lines: readonly string[],
   cursor: { i: number },
   indent: number,
+  keepBlank = false,
 ): { line: number; text: string }[] {
   const physical: { line: number; text: string }[] = [];
   let next = cursor.i + 1;
   for (; next < lines.length; next += 1) {
     const blockLine = lines[next] ?? "";
-    if (blockLine.trim() === "") continue;
+    if (blockLine.trim() === "") {
+      if (keepBlank) physical.push({ line: next + 1, text: "" });
+      continue;
+    }
     if (indentOf(blockLine) <= indent) break;
     physical.push({ line: next + 1, text: blockLine.trim() });
   }
   cursor.i = next - 1;
   return physical;
+}
+
+function foldBlock(parts: readonly { line: number; text: string }[]): { line: number; text: string } {
+  let text = "";
+  let line = 0;
+  for (const part of parts) {
+    if (part.text === "") {
+      if (text !== "" && !text.endsWith("\n")) text += "\n";
+      continue;
+    }
+    if (line === 0) line = part.line;
+    if (text === "" || text.endsWith("\n")) text += part.text;
+    else text += ` ${part.text}`;
+  }
+  return { line, text };
+}
+
+function runHeader(value: string): { anchor?: string; block?: string; alias?: string; plain: string } {
+  let rest = value.trim();
+  let anchor: string | undefined;
+  const anchored = /^&([A-Za-z_][A-Za-z0-9_-]*)(?:\s+([\s\S]*))?$/.exec(rest);
+  if (anchored) {
+    anchor = anchored[1];
+    rest = (anchored[2] ?? "").trim();
+  }
+  const alias = /^\*([A-Za-z_][A-Za-z0-9_-]*)$/.exec(rest);
+  if (alias) return { anchor, alias: alias[1], plain: rest };
+  if (rest.startsWith("|") || rest.startsWith(">")) return { anchor, block: rest, plain: rest };
+  return { anchor, plain: rest };
 }
 
 function joinContinuations(parts: readonly { line: number; text: string }[]): { line: number; text: string }[] {
@@ -1334,7 +1384,7 @@ function stripShellComment(command: string): string {
       out += ch;
       continue;
     }
-    if (ch === "#") {
+    if (ch === "#" && commentStartsWord(out)) {
       while (index + 1 < command.length && command[index + 1] !== "\n") index += 1;
       continue;
     }
@@ -1343,9 +1393,17 @@ function stripShellComment(command: string): string {
   return out;
 }
 
+function commentStartsWord(text: string): boolean {
+  if (text.length === 0) return true;
+  const prev = text[text.length - 1] ?? "";
+  return prev === " " || prev === "\t" || prev === "\n" || prev === ";" || prev === "&" || prev === "|";
+}
+
 function uvLockAssignment(tokens: readonly string[]): boolean | undefined {
-  const exported = tokens[0] === "export";
-  const args = exported ? tokens.slice(1) : tokens;
+  let args = tokens;
+  if (tokens[0] === "export") args = tokens.slice(1);
+  else if (tokens[0] === "declare" && tokens[1] === "-x") args = tokens.slice(2);
+  else return undefined;
   if (args.length === 0 || !args.every((token) => /^[A-Za-z_][A-Za-z0-9_]*=/.test(token))) return undefined;
   let assigned: boolean | undefined;
   for (const token of args) {

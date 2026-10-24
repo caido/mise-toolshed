@@ -936,7 +936,7 @@ test("an explicit negated frozen-lockfile flag overrides npmrc", async () => {
   );
 });
 
-test("UV_LOCKED carries across segments only as a standalone assignment", async () => {
+test("UV_LOCKED carries across segments only when it is exported", async () => {
   await withFixture(
     {
       ".github/workflows/ci.yml": `jobs:
@@ -945,12 +945,15 @@ test("UV_LOCKED carries across segments only as a standalone assignment", async 
       - run: UV_LOCKED=1 && uv sync
       - run: echo UV_LOCKED=1 && uv sync
       - run: UV_LOCKED=1 uv lock && uv sync
+      - run: export UV_LOCKED=1 && uv sync
+      - run: declare -x UV_LOCKED=1 && uv sync
 `,
     },
     (dir) => {
       expectFindings(
         scan(dir),
-        `.github/workflows/ci.yml:5: uv command must set UV_LOCKED=1
+        `.github/workflows/ci.yml:4: uv command must set UV_LOCKED=1
+.github/workflows/ci.yml:5: uv command must set UV_LOCKED=1
 .github/workflows/ci.yml:6: uv command must set UV_LOCKED=1
 `,
       );
@@ -1121,6 +1124,63 @@ test("a block scalar container is an image", async () => {
     },
     (dir) => {
       expectFindings(scan(dir), ".github/workflows/ci.yml:4: image node:22 must contain @sha256:\n");
+    },
+  );
+});
+
+test("a folded run keeps a blank line as a command break", async () => {
+  await withFixture(
+    {
+      ".github/workflows/ci.yml": `jobs:
+  build:
+    steps:
+      - run: >
+          pnpm install
+
+          pnpm install --frozen-lockfile
+`,
+    },
+    (dir) => {
+      expectFindings(scan(dir), ".github/workflows/ci.yml:5: pnpm install must pass --frozen-lockfile\n");
+    },
+  );
+});
+
+test("a run anchor and its alias are both scanned", async () => {
+  await withFixture(
+    {
+      ".github/workflows/ci.yml": `jobs:
+  build:
+    steps:
+      - run: &install |
+          pnpm install
+      - run: *install
+      - run: *missing
+`,
+    },
+    (dir) => {
+      expectFindings(
+        scan(dir),
+        `.github/workflows/ci.yml:5: pnpm install must pass --frozen-lockfile
+.github/workflows/ci.yml:6: pnpm install must pass --frozen-lockfile
+.github/workflows/ci.yml:7: workflow is not valid
+`,
+      );
+    },
+  );
+});
+
+test("a hash inside a shell word is not a comment", async () => {
+  await withFixture(
+    {
+      ".github/workflows/ci.yml": `jobs:
+  build:
+    steps:
+      - run: echo pkg#rev && pnpm install
+`,
+    },
+    (dir) => {
+      expectFindings(scan(dir), ".github/workflows/ci.yml:4: pnpm install must pass --frozen-lockfile\n");
     },
   );
 });
