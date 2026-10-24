@@ -89,8 +89,10 @@ function uvCommandLock(tokens: readonly string[]): boolean | undefined {
 
 function uvCarryUpdate(tokens: readonly string[]): boolean | undefined {
   if (tokens[0] === "unset" && tokens.slice(1).includes("UV_LOCKED")) return false;
-  if (tokens[0] === "export" && tokens[1] === "-n" && tokens.slice(2).includes("UV_LOCKED")) return false;
-  if (tokens[0] === "declare" && tokens[1] === "+x" && tokens.slice(2).includes("UV_LOCKED")) return false;
+  if (tokens[0] === "export" && tokens[1] === "-n" && tokens.slice(2).includes("UV_LOCKED"))
+    return false;
+  if (tokens[0] === "declare" && tokens[1] === "+x" && tokens.slice(2).includes("UV_LOCKED"))
+    return false;
   return uvLockAssignment(tokens);
 }
 
@@ -159,7 +161,8 @@ function uvLockAssignment(tokens: readonly string[]): boolean | undefined {
   if (tokens[0] === "export") args = tokens.slice(1);
   else if (tokens[0] === "declare" && tokens[1] === "-x") args = tokens.slice(2);
   else return undefined;
-  if (args.length === 0 || !args.every((token) => /^[A-Za-z_][A-Za-z0-9_]*=/.test(token))) return undefined;
+  if (args.length === 0 || !args.every((token) => /^[A-Za-z_][A-Za-z0-9_]*=/.test(token)))
+    return undefined;
   let assigned: boolean | undefined;
   for (const token of args) {
     if (!token.startsWith("UV_LOCKED=")) continue;
@@ -267,7 +270,15 @@ export function shellTokens(segment: string): string[] {
       }
       continue;
     }
-    if (ch === " " || ch === "\t" || ch === "(" || ch === ")" || ch === "{" || ch === "}" || ch === "`") {
+    if (
+      ch === " " ||
+      ch === "\t" ||
+      ch === "(" ||
+      ch === ")" ||
+      ch === "{" ||
+      ch === "}" ||
+      ch === "`"
+    ) {
       push();
       continue;
     }

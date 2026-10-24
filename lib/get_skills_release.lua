@@ -13,10 +13,7 @@ local function remote_url()
 	if remote == nil or remote == "" then
 		return DEFAULT_REMOTE
 	end
-	if string.find(remote, '"', 1, true)
-		or string.find(remote, "'", 1, true)
-		or string.find(remote, "\n", 1, true)
-	then
+	if string.find(remote, '"', 1, true) or string.find(remote, "'", 1, true) or string.find(remote, "\n", 1, true) then
 		error(REMOTE_ENV .. " contains a quote or newline")
 	end
 	return remote
@@ -111,20 +108,23 @@ local function install_tag(ctx, tag)
 	local dest = file.join_path(bin_dir, "get-skills")
 	local stage = file.join_path(fetch_dir, "get-skills.stage")
 	-- cmd.exec returns a Lua string and does not keep the blob bytes.
-	shell.exec([[
+	shell.exec(
+		[[
 mkdir -p "$TOOLSHED_BIN_DIR" "$TOOLSHED_FETCH_DIR"
 git init "$TOOLSHED_FETCH_DIR"
 git -C "$TOOLSHED_FETCH_DIR" fetch --depth 1 "$TOOLSHED_REMOTE" "refs/tags/${TOOLSHED_TAG}:refs/tags/${TOOLSHED_TAG}"
 git -C "$TOOLSHED_FETCH_DIR" show "${TOOLSHED_TAG}:bin/get-skills" > "$TOOLSHED_STAGE"
 mv -f "$TOOLSHED_STAGE" "$TOOLSHED_DEST"
-]], {
-		TOOLSHED_BIN_DIR = bin_dir,
-		TOOLSHED_FETCH_DIR = fetch_dir,
-		TOOLSHED_REMOTE = remote_url(),
-		TOOLSHED_TAG = tag,
-		TOOLSHED_STAGE = stage,
-		TOOLSHED_DEST = dest,
-	})
+]],
+		{
+			TOOLSHED_BIN_DIR = bin_dir,
+			TOOLSHED_FETCH_DIR = fetch_dir,
+			TOOLSHED_REMOTE = remote_url(),
+			TOOLSHED_TAG = tag,
+			TOOLSHED_STAGE = stage,
+			TOOLSHED_DEST = dest,
+		}
+	)
 	chmod_installed(dest)
 end
 

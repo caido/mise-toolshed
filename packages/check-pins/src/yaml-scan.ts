@@ -2,7 +2,9 @@ export function indentOf(line: string): number {
   return /^\s*/.exec(line)?.[0].length ?? 0;
 }
 
-export function parseYamlKey(line: string): { indent: number; key: string; value: string } | undefined {
+export function parseYamlKey(
+  line: string,
+): { indent: number; key: string; value: string } | undefined {
   const match = /^(\s*)([A-Za-z0-9_-]+):\s*(.*)$/.exec(line);
   if (match === null) return undefined;
   return { indent: match[1]?.length ?? 0, key: match[2] ?? "", value: match[3] ?? "" };
@@ -100,7 +102,10 @@ export function readBlock(
   return physical;
 }
 
-export function foldBlock(parts: readonly { line: number; text: string; indent: number }[]): { line: number; text: string } {
+export function foldBlock(parts: readonly { line: number; text: string; indent: number }[]): {
+  line: number;
+  text: string;
+} {
   let contentIndent = -1;
   for (const part of parts) {
     if (part.text === "") continue;
@@ -122,7 +127,12 @@ export function foldBlock(parts: readonly { line: number; text: string; indent: 
   return { line, text };
 }
 
-export function runHeader(value: string): { anchor?: string; block?: string; alias?: string; plain: string } {
+export function runHeader(value: string): {
+  anchor?: string;
+  block?: string;
+  alias?: string;
+  plain: string;
+} {
   let rest = value.trim();
   let anchor: string | undefined;
   const anchored = /^&([^\s[\]{},]+)(?:\s+([\s\S]*))?$/.exec(rest);
@@ -143,7 +153,9 @@ function stripYamlTag(value: string): string {
   return (tagged?.[1] ?? "").trim();
 }
 
-export function joinContinuations(parts: readonly { line: number; text: string }[]): { line: number; text: string }[] {
+export function joinContinuations(
+  parts: readonly { line: number; text: string }[],
+): { line: number; text: string }[] {
   const scripts: { line: number; text: string }[] = [];
   let text = "";
   let line = 0;

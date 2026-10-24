@@ -31,7 +31,11 @@ function skipJson(state: { i: number; line: number; text: string }): void {
   }
 }
 
-function parseJsonValue(state: { i: number; line: number; text: string }, lines: Map<string, number>, path: string): void {
+function parseJsonValue(
+  state: { i: number; line: number; text: string },
+  lines: Map<string, number>,
+  path: string,
+): void {
   const ch = state.text[state.i];
   if (ch === "{") {
     parseJsonObject(state, lines, path);
@@ -62,7 +66,11 @@ function parseJsonValue(state: { i: number; line: number; text: string }, lines:
   state.i += match[0].length;
 }
 
-function parseJsonObject(state: { i: number; line: number; text: string }, lines: Map<string, number>, path: string): void {
+function parseJsonObject(
+  state: { i: number; line: number; text: string },
+  lines: Map<string, number>,
+  path: string,
+): void {
   if (state.text[state.i] !== "{") throw new JsonStop("object");
   state.i += 1;
   skipJson(state);
@@ -93,7 +101,11 @@ function parseJsonObject(state: { i: number; line: number; text: string }, lines
   throw new JsonStop("end");
 }
 
-function parseJsonArray(state: { i: number; line: number; text: string }, lines: Map<string, number>, path: string): void {
+function parseJsonArray(
+  state: { i: number; line: number; text: string },
+  lines: Map<string, number>,
+  path: string,
+): void {
   if (state.text[state.i] !== "[") throw new JsonStop("array");
   state.i += 1;
   skipJson(state);

@@ -1,4 +1,10 @@
-import { braceDelta, readTomlString, tomlAssignment, tomlHeader, unquoteTomlKey } from "./toml-scan.js";
+import {
+  braceDelta,
+  readTomlString,
+  tomlAssignment,
+  tomlHeader,
+  unquoteTomlKey,
+} from "./toml-scan.js";
 import type { ParsedFile, PinSite, PluginSite, ToolSite } from "./types.js";
 
 export function parseMise(relativePath: string, text: string): ParsedFile {
@@ -25,7 +31,11 @@ export function parseMise(relativePath: string, text: string): ParsedFile {
       const parsed = miseHeader(header);
       section = parsed.section;
       subtable = parsed.name !== undefined;
-      if ((section === "tools" || section === "plugins") && parsed.name !== undefined && !tableNames.has(`${section}\0${parsed.name}`)) {
+      if (
+        (section === "tools" || section === "plugins") &&
+        parsed.name !== undefined &&
+        !tableNames.has(`${section}\0${parsed.name}`)
+      ) {
         tableNames.add(`${section}\0${parsed.name}`);
         sites.push(tableSite(section, parsed.name, relativePath, lineNo));
       }
@@ -91,7 +101,10 @@ function stringSite(
   return { kind: "plugin", name, value: { shape: "string", text }, path: relativePath, line };
 }
 
-function miseHeader(header: string): { section: "tools" | "plugins" | "env" | "other"; name?: string } {
+function miseHeader(header: string): {
+  section: "tools" | "plugins" | "env" | "other";
+  name?: string;
+} {
   for (const section of ["tools", "plugins", "env"] as const) {
     if (header === section) return { section };
     if (header.startsWith(`${section}.`)) {
@@ -108,7 +121,9 @@ function openMultiline(value: string): '"' | "'" | null {
   return null;
 }
 
-function classifyMiseValue(value: string): { shape: "string"; text: string } | { shape: "table"; depth: number } {
+function classifyMiseValue(
+  value: string,
+): { shape: "string"; text: string } | { shape: "table"; depth: number } {
   const trimmed = value.trimStart();
   if (trimmed.startsWith("{")) {
     const depth = braceDelta(value);

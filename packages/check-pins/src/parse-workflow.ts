@@ -85,7 +85,13 @@ export function parseWorkflow(relativePath: string, text: string): ParsedFile {
     });
   };
 
-  const takeKey = (key: string, value: string, indent: number, lineNo: number, cursor: { i: number }): void => {
+  const takeKey = (
+    key: string,
+    value: string,
+    indent: number,
+    lineNo: number,
+    cursor: { i: number },
+  ): void => {
     const scalar = yamlScalar(value);
     const opened = structuralValue(scalar.value);
     if (key === "jobs" && opened === "" && currentJob < 0 && currentStep < 0) {
@@ -109,7 +115,13 @@ export function parseWorkflow(relativePath: string, text: string): ParsedFile {
         pushImage(uses, lineNo, "docker-uses");
         return;
       }
-      sites.push({ kind: "action", uses, comment: scalar.comment, path: relativePath, line: lineNo });
+      sites.push({
+        kind: "action",
+        uses,
+        comment: scalar.comment,
+        path: relativePath,
+        line: lineNo,
+      });
       return;
     }
     if ((key === "container" || key === "services") && currentJob >= 0 && currentStep < 0) {
@@ -146,12 +158,17 @@ export function parseWorkflow(relativePath: string, text: string): ParsedFile {
       const physical = readBlock(lines, cursor, indent, true);
       if (folded) {
         const script = foldBlock(physical);
-        if (header.anchor !== undefined) runAnchors.set(header.anchor, script.text === "" ? [] : [script.text]);
+        if (header.anchor !== undefined)
+          runAnchors.set(header.anchor, script.text === "" ? [] : [script.text]);
         if (script.text !== "") takeCommand(script.text, script.line);
         return;
       }
       const scripts = joinContinuations(physical);
-      if (header.anchor !== undefined) runAnchors.set(header.anchor, scripts.map((script) => script.text));
+      if (header.anchor !== undefined)
+        runAnchors.set(
+          header.anchor,
+          scripts.map((script) => script.text),
+        );
       for (const script of scripts) takeCommand(script.text, script.line);
       return;
     }
@@ -210,13 +227,21 @@ export function parseWorkflow(relativePath: string, text: string): ParsedFile {
     }
     const kv = parseYamlKey(line);
     if (kv === undefined) continue;
-    if (expectingJob && structuralValue(yamlScalar(kv.value).value) === "" && kv.indent > jobsKeyIndent) {
+    if (
+      expectingJob &&
+      structuralValue(yamlScalar(kv.value).value) === "" &&
+      kv.indent > jobsKeyIndent
+    ) {
       expectingJob = false;
       jobIndent = kv.indent;
       startJob();
       continue;
     }
-    if (jobIndent >= 0 && kv.indent === jobIndent && structuralValue(yamlScalar(kv.value).value) === "") {
+    if (
+      jobIndent >= 0 &&
+      kv.indent === jobIndent &&
+      structuralValue(yamlScalar(kv.value).value) === ""
+    ) {
       startJob();
       continue;
     }
