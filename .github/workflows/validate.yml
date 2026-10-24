@@ -16,7 +16,7 @@ concurrency:
 jobs:
   validate:
     name: Validate
-    runs-on: warp-ubuntu-2204-x64-2x
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -39,7 +39,7 @@ jobs:
 
   zizmor:
     name: Zizmor
-    runs-on: warp-ubuntu-2204-x64-2x
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -56,7 +56,7 @@ jobs:
 
   plugin-smoke-test:
     name: Plugin smoke test
-    runs-on: warp-ubuntu-2204-x64-2x
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
