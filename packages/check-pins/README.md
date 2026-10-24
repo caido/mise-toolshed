@@ -183,55 +183,61 @@ The name match is the directory's own name, at any depth. `.gitignore` is not re
 
 ## Standards coverage
 
-The goals below are [STD-006 Exact versions](https://github.com/caido/engineering/blob/main/standards/STD-006-exact-versions.md), [STD-007 Lockfiles](https://github.com/caido/engineering/blob/main/standards/STD-007-lockfiles.md), and [STD-008 Minimum release age](https://github.com/caido/engineering/blob/main/standards/STD-008-minimum-release-age.md). This repository's own `[settings] minimum_release_age = "7d"` and `minimumReleaseAge: 10080` meet STD-008 for this repo. check-pins checks neither.
+Each Success Criteria below is mapped to the check that exists today. A criterion check-pins does not fully enforce is an open question.
 
-### STD-006 Exact versions
+### [STD-006](https://github.com/caido/engineering/blob/main/standards/STD-006-exact-versions.md) Exact versions
 
-Enforced, for the files in [Supported files](#supported-files):
+A dependency uses one exact version. It never uses a range, a major-only version or latest.
 
-- An npm dependency is an exact semver, an unresolved `workspace:` / `file:` / `link:` / `catalog:` spec, or a `git+`, `git:`, `github:`, `gitlab:`, or `bitbucket:` spec whose commit is 40 hex.
-- A Python requirement in the arrays above is `==` without a range operator or `*`, or a git direct URL whose revision is 40 hex.
-- `packageManager` is an exact `pnpm@x.y.z`.
-- A mise tool string is `major.minor` or `major.minor.patch`.
-- A mise plugin string ends in `#` plus 40 hex.
-- A GitHub Action `uses:` is a local `./` path, or a 40-hex SHA with a version comment.
-- A Dockerfile `FROM` is `scratch`, an earlier stage name, or a reference that contains `@sha256:`.
-- A workflow `container:`, `services:` / `image:`, or `docker://` `uses:` contains `@sha256:`.
+Enforced for string specs in the four `package.json` dependency maps: a range, a major-only version, and `latest` fail as `dependency <name> is not an exact version`. An exact `x.y.z` passes. A spec that starts with `git+`, `git:`, `github:`, `gitlab:`, or `bitbucket:` must be 40 hex after the last `#`. `packageManager` must be an exact `pnpm@x.y.z`. A Python requirement with a range operator fails. A Python git direct URL must use a 40-hex revision.
 
-Not covered:
+Not covered. `requests==2` passes, so a major-only Python equality is accepted. `workspace:`, `file:`, `link:`, and `catalog:` pass and are not resolved. `engines`, `overrides`, and `resolutions` are not read. `ssh:`, `gist:`, `https://….git#<sha>`, and `npm:` aliases fail as inexact even when the commit is 40 hex.
 
-- A mise tool may be `major.minor`. A `v` prefix and a 40-hex tool commit fail. Table form fails instead of being read as a version.
-- `@sha256:` is not required to be 64 hex.
-- `ssh:`, `gist:`, `https://…git#<sha>`, and `npm:` aliases are not treated as git pins.
-- `workspace:`, `file:`, `link:`, and `catalog:` are not resolved.
-- Only names that start with `Dockerfile` are images. `app.Dockerfile` is not scanned.
-- Only `.github/workflows/*.yml` and `*.yaml` are actions. `.github/actions/` is not scanned.
-- `package.json` `engines`, `overrides`, and `resolutions` are not read.
-- `.mise.toml`, `mise.local.toml`, and `.config/mise/config.toml` are not read.
+A tool or plugin uses one exact version. It never uses a range, a major-only version or latest.
 
-### STD-007 Lockfiles
+Enforced on a scanned mise file: a tool string of `22`, `latest`, or a range fails as `tool <name> is not an exact version`. A plugin string must end in `#` plus 40 hex, or it fails as `plugin <name> must end in a 40-hex pin`.
 
-Enforced:
+Not covered. `node = "22.1"` passes, so a major.minor tool version is accepted. A `v` prefix and a 40-hex tool commit fail. Table form, including `[tools.<name>] version = "…"`, fails as `tool <name> must be a string` and the version inside is not read. `.mise.toml`, `mise.local.toml`, and `.config/mise/config.toml` are not scanned.
 
-- A `uv` command in a judged script must not contain `--frozen` and must be locked with `UV_LOCKED=1` by a prefix, an `export` in that script, a workflow `env`, or mise `[env]` in the cases above.
-- `pnpm install` and `pnpm i` must pass `--frozen-lockfile`, or inherit `frozen-lockfile=true` from any scanned `.npmrc`.
+A pipeline step or shared pipeline uses one commit. It never uses a branch name or a movable tag.
 
-Not covered:
+Enforced for `uses:` in `.github/workflows/*.yml` and `*.yaml`: a branch or a tag fails as `action <uses> must be a 40-hex SHA with a version comment`. A 40-hex SHA with that comment passes. A `./` path passes.
 
-- `--locked` is not a lock.
-- mise `[env] UV_LOCKED = "1"` is not required, and the base mise config is not required to exist.
-- `uv.lock`, `pnpm-lock.yaml`, and `mise.lock` are not read, so a missing or stale lockfile is not a finding.
-- `.npmrc` `frozen-lockfile` is not scoped to the directory of the command.
-- uv and pnpm commands outside `package.json` scripts, Dockerfile `RUN` / `CMD` / `ENTRYPOINT`, and workflow `run:` are not judged. That includes shell scripts, Makefiles, and `.mise/tasks`.
+Not covered. Composite actions under `.github/actions/` and other YAML under `.github/` are not scanned.
 
-### STD-008 Minimum release age
+A container image is referenced by its content digest, not a tag.
 
-Not covered. check-pins does not read age settings and does not compare a pin to a release time.
+Enforced for a scanned Dockerfile `FROM` and for a scanned workflow `container:`, `services:` / `image:`, and `docker://` `uses:`: a tag with no `@sha256:` fails as `image <reference> must contain @sha256:`.
 
-- mise `[settings]`, including `minimum_release_age`, is ignored.
-- `pnpm-workspace.yaml` `minimumReleaseAge` is not read.
-- pyproject `[tool.uv]` is not read.
-- `.miserc.toml` is not read.
+Not covered. `@sha256:` is a substring, so `@sha256:abc` passes and the digest is not checked as content. `scratch` and an earlier stage name pass with no digest. A file is a Dockerfile only when its name starts with `Dockerfile`, so `app.Dockerfile` is not scanned.
+
+### [STD-007](https://github.com/caido/engineering/blob/main/standards/STD-007-lockfiles.md) Lockfiles
+
+The repository must commit the lockfile. The lockfile must not be ignored.
+
+Not covered. `uv.lock`, `pnpm-lock.yaml`, and `mise.lock` are not read. `.gitignore` is not read, so an ignored lockfile is not a finding.
+
+A clean install must fail when the lockfile is missing or out of date with the manifest.
+
+Partly enforced, and only as a flag on a judged command. A `uv` command must be locked with `UV_LOCKED=1`. `pnpm install` and `pnpm i` must pass `--frozen-lockfile`, or inherit `frozen-lockfile=true` from any scanned `.npmrc`. `--frozen` on `uv` is its own finding and is not that lock. The lockfile is not compared with the manifest, so a missing or stale lockfile with no such command is not a finding.
+
+A clean install must fail when a fetched artifact does not match the recorded checksum.
+
+Not covered. Checksums in a lockfile are not read.
+
+CI and release builds must install from the lockfile and must never change it.
+
+Partly enforced for a `uv` or `pnpm install` command in `package.json` scripts, Dockerfile `RUN`, `CMD`, and `ENTRYPOINT`, and workflow `run:` steps, by the same flags as above. `--locked` is not a lock. A `frozen-lockfile=true` line in any `.npmrc` covers every `pnpm install` in the scan. Shell scripts, Makefiles, and `.mise/tasks` are not judged. mise `[env] UV_LOCKED = "1"` is a lock source for some commands and is not required, and a mise file is not required to exist.
+
+### [STD-008](https://github.com/caido/engineering/blob/main/standards/STD-008-minimum-release-age.md) Minimum release age
+
+A newly added or upgraded dependency or tool must meet the age in the Goal.
+
+Not covered. No release time is read. mise `[settings] minimum_release_age` is ignored. `pnpm-workspace.yaml` `minimumReleaseAge` is not read. pyproject `[tool.uv]` and `.miserc.toml` are not read. This repository sets `minimum_release_age = "7d"` and `minimumReleaseAge: 10080`. check-pins checks neither.
+
+Packages that Caido publishes are exempt.
+
+Not covered. There is no exemption, because age is not checked.
 
 ## Open questions
 
@@ -239,19 +245,23 @@ Should `.mise/config.netlify.toml` reject every plugin and every toolshed tool, 
 
 Default if unanswered: keep the current behavior.
 
-Should a mise tool require `x.y.z`, and should a `v` prefix or a 40-hex commit pass? `major.minor` passes today. A `v` prefix and a 40-hex commit fail as `tool <name> is not an exact version`. Table form, including `[tools.<name>] version = "…"`, fails as `tool <name> must be a string`.
+STD-006 says a dependency uses one exact version and never uses a range, a major-only version, or latest. Should that apply to every dependency check-pins can see? A range, a major-only version, and `latest` already fail for string specs in the four `package.json` maps, and `packageManager` must be an exact `pnpm@x.y.z`. `requests==2` passes. `workspace:`, `file:`, `link:`, and `catalog:` pass without being resolved. `engines`, `overrides`, `resolutions`, and pnpm catalogs are not read.
 
 Default if unanswered: keep the current behavior.
 
-Should a Dockerfile `FROM` require `@sha256:` plus 64 hex characters? Any reference that contains `@sha256:` passes. `scratch` and an earlier stage name pass. A file is a Dockerfile only when its name starts with `Dockerfile`, so `app.Dockerfile` is not scanned.
+Should `ssh:`, `gist:`, `https://….git#<40 hex>`, and `npm:` aliases count as one exact dependency version when the commit is 40 hex? They fail as `dependency <name> is not an exact version`. Specs that start with `git+`, `git:`, `github:`, `gitlab:`, or `bitbucket:` need 40 hex after the last `#`.
 
 Default if unanswered: keep the current behavior.
 
-Should npm git pins accept `ssh:`, `gist:`, `https://….git#<40 hex>`, and `npm:` aliases, and reject other URL shapes? Specs that start with `git+`, `git:`, `github:`, `gitlab:`, or `bitbucket:` need 40 hex after the last `#`. The other shapes fail as `dependency <name> is not an exact version`. `workspace:`, `file:`, `link:`, and `catalog:` pass without being resolved.
+STD-006 says a tool or plugin uses one exact version and never uses a range, a major-only version, or latest. Should `major.minor` fail, and should a `v` prefix or a 40-hex commit pass? `22.1` passes. `22`, `latest`, and a range fail. A `v` prefix and a 40-hex tool commit fail as `tool <name> is not an exact version`. Table form, including `[tools.<name>] version = "…"`, fails as `tool <name> must be a string`. `.mise.toml`, `mise.local.toml`, and `.config/mise/config.toml` are not scanned. A scanned plugin string must end in `#` plus 40 hex.
 
 Default if unanswered: keep the current behavior.
 
-Should GitHub Actions outside `.github/workflows/*.yml` and `*.yaml` be scanned, including composite actions under `.github/actions/`? A scanned `uses:` still needs a 40-hex SHA and a version comment, and a `./` path still passes.
+STD-006 says a pipeline step or shared pipeline uses one commit and never uses a branch name or a movable tag. Should composite actions under `.github/actions/` and other YAML under `.github/` be scanned? In `.github/workflows/*.yml` and `*.yaml`, a `uses:` that is not a `./` path must be a 40-hex SHA with a version comment. A branch or a tag there fails.
+
+Default if unanswered: keep the current behavior.
+
+STD-006 says a container image is referenced by its content digest, not a tag. Should `@sha256:` have to be the content digest, and should `app.Dockerfile` be scanned? Any scanned reference that contains `@sha256:` passes, including `@sha256:abc`. `scratch` and an earlier stage name pass. A Dockerfile is only a file whose name starts with `Dockerfile`.
 
 Default if unanswered: keep the current behavior.
 
@@ -259,7 +269,19 @@ Should uv findings be limited to `uv sync` and `uv run`, and should `--locked` c
 
 Default if unanswered: keep the current behavior.
 
-Should uv and pnpm commands in shell scripts, Makefiles, and `.mise/tasks` be scanned? They are judged only in `package.json` scripts, Dockerfile `RUN`, `CMD`, and `ENTRYPOINT`, and workflow `run:` steps.
+STD-007 says the repository must commit the lockfile and the lockfile must not be ignored. Should a missing or gitignored `uv.lock`, `pnpm-lock.yaml`, or `mise.lock` be a finding? Those files are not read, and `.gitignore` is not read.
+
+Default if unanswered: keep the current behavior.
+
+STD-007 says a clean install must fail when the lockfile is missing or out of date with the manifest. Should check-pins compare the lockfile to the manifest? It does not. A judged `uv` command must be locked with `UV_LOCKED=1`, and a judged `pnpm install` or `pnpm i` must pass `--frozen-lockfile` or inherit `frozen-lockfile=true` from any scanned `.npmrc`. A tree with no such command and no lockfile passes.
+
+Default if unanswered: keep the current behavior.
+
+STD-007 says a clean install must fail when a fetched artifact does not match the recorded checksum. Should lockfile checksums be checked? They are not read.
+
+Default if unanswered: keep the current behavior.
+
+STD-007 says CI and release builds must install from the lockfile and must never change it. Should that include shell scripts, Makefiles, and `.mise/tasks`, and should `--locked` count? Those paths are not judged. Judged `uv` and `pnpm install` commands are the only check, in `package.json` scripts, Dockerfile `RUN`, `CMD`, and `ENTRYPOINT`, and workflow `run:` steps.
 
 Default if unanswered: keep the current behavior.
 
@@ -267,18 +289,18 @@ Should a mise config be required to exist, and should it be required to set `UV_
 
 Default if unanswered: keep the current behavior.
 
-Should the command take a path, read `.gitignore`, and skip more directories such as `.nuxt`, `.output`, and `coverage`? It takes no path, skips only `node_modules`, `.git`, and `dist`, and scans gitignored directories. `.mise.toml`, `mise.local.toml`, and `.config/mise/config.toml` are not scanned.
+Should the command take a path, read `.gitignore`, and skip more directories such as `.nuxt`, `.output`, and `coverage`? It takes no path, skips only `node_modules`, `.git`, and `dist`, and scans gitignored directories.
 
 Default if unanswered: keep the current behavior.
 
-Should lockfiles and the settings around them be read? `[settings]` in mise config is ignored, so `minimum_release_age` is not checked. `.miserc.toml`, `pnpm-workspace.yaml` (`minimumReleaseAge`, catalogs, overrides), `uv.lock`, `pnpm-lock.yaml`, `mise.lock`, `package.json` `engines`, `overrides`, and `resolutions`, and pyproject `[tool.uv]` are not read. `.npmrc` is read only for `frozen-lockfile`. `packageManager` must be an exact `pnpm@x.y.z`. STD-007's lockfile match and STD-008's release age are both in this gap.
+Should `frozen-lockfile=true` in `.npmrc` apply only in the directory of the `pnpm install`? Any scanned `.npmrc` whose last `frozen-lockfile` value is `true` covers every `pnpm install` and `pnpm i` in the tree. `.npmrc` is read only for that key. The command itself still needs `--frozen-lockfile` when no such line exists.
 
 Default if unanswered: keep the current behavior.
 
-Should `frozen-lockfile=true` in `.npmrc` apply only in the directory of the `pnpm install`? Any scanned `.npmrc` whose last `frozen-lockfile` value is `true` covers every `pnpm install` and `pnpm i` in the tree. The command itself still needs `--frozen-lockfile` when no such line exists.
+STD-008 says a newly added or upgraded dependency or tool must be at least 7 days old. Should check-pins enforce that age? No release time is read. mise `[settings] minimum_release_age`, `pnpm-workspace.yaml` `minimumReleaseAge`, pyproject `[tool.uv]`, and `.miserc.toml` are not read.
 
 Default if unanswered: keep the current behavior.
 
-Should check-pins fail a dependency or tool that was released less than 7 days ago, for every ecosystem STD-008 covers? No release time is read. mise `minimum_release_age` and pnpm `minimumReleaseAge` are not read.
+STD-008 says packages that Caido publishes are exempt from that age. Should check-pins carry that exemption? It has no exemption, because it does not check age.
 
 Default if unanswered: keep the current behavior.
