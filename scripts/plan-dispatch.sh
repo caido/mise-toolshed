@@ -8,7 +8,7 @@ fi
 
 tool=${TOOL:?}
 default_branch=${DEFAULT_BRANCH:?}
-ref_name=${GITHUB_REF_NAME:?}
+ref=${GITHUB_REF:?}
 repo=${GITHUB_REPOSITORY:?}
 root=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
 
@@ -34,8 +34,8 @@ case $version in
 esac
 
 tag="${tool}-v${version}"
-if [ "$ref_name" != "$default_branch" ]; then
-	echo "refusing dispatch from $ref_name; default branch is $default_branch" >&2
+if [ "$ref" != "refs/heads/${default_branch}" ]; then
+	echo "refusing dispatch from $ref; default branch is $default_branch" >&2
 	exit 1
 fi
 

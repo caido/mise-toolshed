@@ -172,7 +172,7 @@ function dispatchEnv(extra: NodeJS.ProcessEnv, output: string): NodeJS.ProcessEn
     GITHUB_OUTPUT: output,
     TOOL: "check-pins",
     DEFAULT_BRANCH: "main",
-    GITHUB_REF_NAME: "main",
+    GITHUB_REF: "refs/heads/main",
     GITHUB_REPOSITORY: "caido/mise-toolshed",
     GH_TOKEN: "test-token",
     ...extra,
@@ -240,7 +240,7 @@ test("plan-dispatch prints the tool and tag, and refuses unknown tools, other br
       GITHUB_OUTPUT: output,
       TOOL: "not-a-tool",
       DEFAULT_BRANCH: "main",
-      GITHUB_REF_NAME: "main",
+      GITHUB_REF: "refs/heads/main",
       GITHUB_REPOSITORY: "caido/mise-toolshed",
     }),
   });
@@ -255,14 +255,30 @@ test("plan-dispatch prints the tool and tag, and refuses unknown tools, other br
       GITHUB_OUTPUT: output,
       TOOL: "check-pins",
       DEFAULT_BRANCH: "main",
-      GITHUB_REF_NAME: "feature",
+      GITHUB_REF: "refs/heads/feature",
       GITHUB_REPOSITORY: "caido/mise-toolshed",
     }),
   });
   assert.notEqual(otherRef.status, 0);
   assert.equal(otherRef.stdout, "");
-  assert.match(otherRef.stderr, /refusing dispatch from feature; default branch is main/);
+  assert.match(otherRef.stderr, /refusing dispatch from refs\/heads\/feature; default branch is main/);
   assert.doesNotMatch(otherRef.stderr, /gh invoked/);
+
+  const tagRef = run("sh", [dispatchScript], {
+    env: refuseEnv({
+      ...process.env,
+      GITHUB_OUTPUT: output,
+      TOOL: "check-pins",
+      DEFAULT_BRANCH: "main",
+      GITHUB_REF_NAME: "main",
+      GITHUB_REF: "refs/tags/main",
+      GITHUB_REPOSITORY: "caido/mise-toolshed",
+    }),
+  });
+  assert.notEqual(tagRef.status, 0);
+  assert.equal(tagRef.stdout, "");
+  assert.match(tagRef.stderr, /refusing dispatch from refs\/tags\/main; default branch is main/);
+  assert.doesNotMatch(tagRef.stderr, /gh invoked/);
 });
 
 test("create-release-tag posts the ref and does not update an existing tag", async () => {
