@@ -1,3 +1,5 @@
+local released = require("released_tool")
+
 local function process_get_skills(ctx)
 	local release = require("get_skills_release")
 	release.install(ctx)
@@ -9,6 +11,10 @@ function PLUGIN:BackendInstall(ctx)
 	if tool == "get-skills" then
 		return process_get_skills(ctx)
 	end
+	if released.is_released(tool) then
+		released.install(ctx)
+		return {}
+	end
 
-	error("unknown tool: " .. tostring(tool) .. " (only 'get-skills' is supported)")
+	error("unknown tool: " .. tostring(tool))
 end
