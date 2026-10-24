@@ -5,7 +5,7 @@
 Provided tools:
 
 - **`toolshed:check-pins`**: a released `check-pins` command. Pushing `check-pins-v<semver>` publishes `check-pins.mjs` and `SHA256SUMS`. The plugin downloads that release and refuses the install when the SHA-256 does not match.
-- **`toolshed:get-skills`**: a `get-skills` command which syncs the [`skills/`](https://github.com/caido/ai-ops/tree/main/skills) tree from **[ai-ops](https://github.com/caido/ai-ops)** into `.claude/skills`, `.agents/skills`, and `.cursor/skills` under a chosen root directory.
+- **`toolshed:get-skills`**: a `get-skills` command which installs the [`skills/`](https://github.com/caido/ai-ops/tree/main/skills) tree from **[ai-ops](https://github.com/caido/ai-ops)** into one personal folder you choose.
 
 ## check-pins
 
@@ -23,9 +23,9 @@ toolshed = "https://github.com/caido/mise-toolshed#<40-hex sha>"
 
 ## get-skills
 
-`latest` installs the newest `get-skills-v*` tag. In a mise home that already has get-skills installed, `mise install` can keep that version. `mise exec toolshed:get-skills@latest -- get-skills` installs and runs the newest tag. Before any such tag exists, `latest` copies the checkout's `bin/get-skills`. A pin `x.y.z` installs `bin/get-skills` from tag `get-skills-vx.y.z` on `https://github.com/caido/mise-toolshed`. The default clone URL is **`https://github.com/caido/ai-ops`**; the destination root defaults to **`$PWD`** (override with **`SKILLS_DESTINATION`** or **`--destination`**). Run **`bin/get-skills`** from a checkout of this repo without mise.
+`latest` installs the newest `get-skills-v*` tag. In a mise home that already has get-skills installed, `mise install` can keep that version. `mise exec toolshed:get-skills@latest -- get-skills` installs and runs the newest tag. Before any such tag exists, `latest` copies the checkout's `bin/get-skills`. A pin `x.y.z` installs `bin/get-skills` from tag `get-skills-vx.y.z` on `https://github.com/caido/mise-toolshed`. The default clone URL is **`https://github.com/caido/ai-ops`**. Run **`bin/get-skills`** from a checkout of this repo without mise.
 
-On each run, the tool **clones or updates** a cache of that repo (default: `~/.cache/mise-toolshed/ai-ops`), checks out a ref (default branch, or overrides below), then copies `skills/` into the three agent paths under the destination root.
+On each run, the tool asks which personal folder to use. It then **clones or updates** a cache of that repo (default: `~/.cache/mise-toolshed/ai-ops`), checks out a ref (default branch, or overrides below), and copies skill directories into the folder you chose.
 
 ## Register the plugin and tool
 
@@ -60,7 +60,17 @@ mise install
 mise exec toolshed:get-skills@latest -- get-skills
 ```
 
-That **replaces** the three skill directories so they match the selected revision in ai-ops (`rsync` when available, otherwise a copy/remove pass so removed upstream skills disappear locally).
+`get-skills` reads one line from stdin. The line chooses the install folder.
+
+1. `$HOME/.cursor/skills`
+2. `$HOME/.claude/skills`
+3. `$HOME/.agents/skills`
+
+The prompt prints those absolute paths. `1`, `2`, and `3` are the only accepted answers. An empty line, end of input, or any other answer exits with status 1. There is no default folder. No flag and no environment variable skips the prompt. Any argument other than `--url` is an unknown argument and exits with status 1.
+
+The tool writes `.toolshed-get-skills` in the chosen folder, one owned skill name per line. A later run replaces those owned directories from upstream and removes an owned name that upstream removed. Every other file and directory in the chosen folder stays. The tool does not create or read the two folders you did not choose.
+
+If a skill name from upstream is already in the folder and is not listed in `.toolshed-get-skills`, the run exits with status 1. It does not create, replace, or remove any skill directory. Move that personal directory aside and run `get-skills` again.
 
 `mise ls-remote toolshed:get-skills` lists bare versions from `get-skills-v*` tags, oldest first. With no such tags it lists `latest`. The ai-ops revision is still the default branch or `AI_OPS_SKILLS_REF`.
 
@@ -68,7 +78,6 @@ That **replaces** the three skill directories so they match the selected revisio
 
 | Variable | Purpose |
 | -------- | ------- |
-| `SKILLS_DESTINATION` | Root directory for `.claude/skills`, etc. (default: `$PWD` when `get-skills` runs) |
 | `AI_OPS_SKILLS_REF` | Force ref to checkout in ai-ops (e.g. `main`, `v1.0.0`) |
 | `AI_OPS_SKILLS_CACHE` | Local clone cache path (default `$XDG_CACHE_HOME/mise-toolshed/ai-ops`) |
 
@@ -98,4 +107,5 @@ Plugin files are at the repository root. Workspace packages are under `packages/
 - `packages/check-pins` is a private CLI that prints its version.
 - `scripts/build-package.mjs` bundles a package.
 - `test/get-skills-remote.sh` covers get-skills tag listing.
+- `test/get-skills-sync.sh` covers the personal-folder install.
 - `test/release-plan.test.ts` and `test/released-tool.test.ts` cover release planning and checksummed installs.

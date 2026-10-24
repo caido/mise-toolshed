@@ -4,7 +4,7 @@
 PLUGIN = { -- luacheck: ignore
 	name = "toolshed",
 	version = "1.0.0",
-	description = "Install toolshed tools: get-skills from git tags, and released tools from checksummed GitHub releases",
+	description = "Install toolshed tools: get-skills from git tags into one personal skills folder, and released tools from checksummed GitHub releases",
 	author = "Caido",
 	homepage = "https://github.com/caido/mise-toolshed",
 	notes = {
