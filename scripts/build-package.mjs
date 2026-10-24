@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { realpathSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
 import { chmod, mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { builtinModules } from "node:module";
 import path from "node:path";
@@ -72,29 +72,94 @@ async function readManifest(packageRoot) {
   return { name: raw.name, version: raw.version };
 }
 
+const compilerFlagTable = [
+  ["target", "string"],
+  ["module", "string"],
+  ["moduleResolution", "string"],
+  ["lib", "list"],
+  ["strict", "boolean"],
+  ["noEmit", "true"],
+  ["types", "list"],
+  ["typeRoots", "paths"],
+  ["resolveJsonModule", "boolean"],
+  ["verbatimModuleSyntax", "boolean"],
+  ["allowImportingTsExtensions", "boolean"],
+  ["skipLibCheck", "boolean"],
+];
+
+function readCompilerOptions(root) {
+  const parsed = JSON.parse(readFileSync(path.join(root, "tsconfig.json"), "utf8"));
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new BuildPackageError("tsconfig.json must be an object");
+  }
+  for (const key of Object.keys(parsed)) {
+    if (key !== "compilerOptions" && key !== "include") {
+      throw new BuildPackageError(`tsconfig key ${key} is not mapped`);
+    }
+  }
+  if (!Object.hasOwn(parsed, "compilerOptions") || !Object.hasOwn(parsed, "include")) {
+    throw new BuildPackageError("tsconfig.json must set compilerOptions and include");
+  }
+  return parsed.compilerOptions;
+}
+
+export function compilerArgs(options, root) {
+  if (options === null || typeof options !== "object" || Array.isArray(options)) {
+    throw new BuildPackageError("compilerOptions must be an object");
+  }
+  const expected = new Set(compilerFlagTable.map(([key]) => key));
+  for (const key of Object.keys(options)) {
+    if (!expected.has(key)) {
+      throw new BuildPackageError(`unknown compilerOption ${key}`);
+    }
+  }
+  const args = [];
+  for (const [key, kind] of compilerFlagTable) {
+    if (!Object.hasOwn(options, key)) {
+      throw new BuildPackageError(`missing compilerOption ${key}`);
+    }
+    const value = options[key];
+    if (kind === "string") {
+      if (typeof value !== "string" || value === "") {
+        throw new BuildPackageError(`compilerOption ${key} must be a string`);
+      }
+      args.push(`--${key}`, value);
+      continue;
+    }
+    if (kind === "list" || kind === "paths") {
+      if (
+        !Array.isArray(value) ||
+        value.length === 0 ||
+        value.some((item) => typeof item !== "string" || item === "")
+      ) {
+        throw new BuildPackageError(`compilerOption ${key} must be a non-empty list`);
+      }
+      const items = kind === "paths" ? value.map((item) => path.resolve(root, item)) : value;
+      args.push(`--${key}`, items.join(","));
+      continue;
+    }
+    if (typeof value !== "boolean") {
+      throw new BuildPackageError(`compilerOption ${key} must be a boolean`);
+    }
+    if (kind === "true" && value !== true) {
+      throw new BuildPackageError(`compilerOption ${key} must be true`);
+    }
+    if (value) {
+      args.push(`--${key}`);
+    } else {
+      args.push(`--${key}`, "false");
+    }
+  }
+  return args;
+}
+
 function typecheck(packageRoot) {
   const tsc = path.join(repoRoot, "node_modules/typescript/lib/tsc.js");
   const result = spawnSync(
     process.execPath,
     [
       tsc,
-      "--noEmit",
-      "--strict",
-      "--target",
-      "es2024",
-      "--module",
-      "nodenext",
-      "--moduleResolution",
-      "nodenext",
-      "--lib",
-      "es2024",
-      "--types",
-      "node",
-      "--typeRoots",
-      path.join(repoRoot, "node_modules/@types"),
-      "--resolveJsonModule",
-      "--verbatimModuleSyntax",
-      "--skipLibCheck",
+      ...compilerArgs(readCompilerOptions(repoRoot), repoRoot),
       "--ignoreConfig",
       path.join(packageRoot, "src/main.ts"),
       path.join(repoRoot, "scripts/tool-version.d.ts"),

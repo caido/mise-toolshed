@@ -10,7 +10,7 @@ tool=${TOOL:?}
 default_branch=${DEFAULT_BRANCH:?}
 ref=${GITHUB_REF:?}
 repo=${GITHUB_REPOSITORY:?}
-root=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
+root=$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)
 
 case $tool in
 '' | *[!a-z0-9-]*)
@@ -83,4 +83,4 @@ printf '%s\n' "$plan" "$tag"
 	echo "action=publish"
 	echo "tool=${tool}"
 	echo "tag=${tag}"
-} >> "$GITHUB_OUTPUT"
+} >>"$GITHUB_OUTPUT"

@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-REPO=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
+REPO=$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)
 BIN="$REPO/bin/get-skills"
 real_cp=$(command -v cp)
 
@@ -23,7 +23,7 @@ export HOME="$home"
 export AI_OPS_SKILLS_CACHE="$cache"
 unset AI_OPS_SKILLS_REF
 unset SKILLS_DESTINATION
-: > "$GIT_CONFIG_GLOBAL"
+: >"$GIT_CONFIG_GLOBAL"
 mkdir -p "$home" "$sentinel"
 
 fail() {
@@ -78,13 +78,13 @@ only_home() {
 
 show_tree() {
 	printf '%s\n' "$1"
-	(CDPATH= cd -- "$HOME" && find .cursor/skills -print | LC_ALL=C sort)
+	(CDPATH='' cd -- "$HOME" && find .cursor/skills -print | LC_ALL=C sort)
 }
 
 mkdir -p "$fixture/skills/grilling" "$fixture/skills/handoff"
-printf 'grill-v1\n' > "$fixture/skills/grilling/SKILL.md"
-printf 'hand-v1\n' > "$fixture/skills/handoff/SKILL.md"
-printf 'not-a-skill\n' > "$fixture/skills/README.txt"
+printf 'grill-v1\n' >"$fixture/skills/grilling/SKILL.md"
+printf 'hand-v1\n' >"$fixture/skills/handoff/SKILL.md"
+printf 'not-a-skill\n' >"$fixture/skills/README.txt"
 git -C "$fixture" init -q -b main
 git -C "$fixture" add skills
 git -C "$fixture" commit -q -m 'skills-v1'
@@ -112,9 +112,9 @@ if [ -e "$cache" ]; then
 fi
 
 mkdir -p "$HOME/.cursor/skills/verify-analytics" "$HOME/.cursor/skills/handoff"
-printf 'keep\n' > "$HOME/.cursor/skills/verify-analytics/SKILL.md"
-printf 'mine\n' > "$HOME/.cursor/skills/handoff/SKILL.md"
-printf 'keep-note\n' > "$HOME/.cursor/skills/notes.txt"
+printf 'keep\n' >"$HOME/.cursor/skills/verify-analytics/SKILL.md"
+printf 'mine\n' >"$HOME/.cursor/skills/handoff/SKILL.md"
+printf 'keep-note\n' >"$HOME/.cursor/skills/notes.txt"
 cp "$HOME/.cursor/skills/verify-analytics/SKILL.md" "$base/keep"
 cp "$HOME/.cursor/skills/handoff/SKILL.md" "$base/mine"
 cp "$HOME/.cursor/skills/notes.txt" "$base/keep-note"
@@ -140,12 +140,12 @@ mv "$HOME/.cursor/skills/handoff" "$HOME/aside/handoff"
 run_choice 1
 assert_status 0
 assert_stdout_empty
-canon=$(CDPATH= cd -- "$HOME/.cursor/skills" && pwd)
+canon=$(CDPATH='' cd -- "$HOME/.cursor/skills" && pwd)
 assert_stderr "toolshed:get-skills: synced $cache/skills to $canon"
-printf 'grilling\nhandoff\n' > "$base/manifest-v1"
+printf 'grilling\nhandoff\n' >"$base/manifest-v1"
 cmp_file "$base/manifest-v1" "$HOME/.cursor/skills/.toolshed-get-skills" "cursor manifest after skills-v1"
-printf 'grill-v1\n' > "$base/grill-v1"
-printf 'hand-v1\n' > "$base/hand-v1"
+printf 'grill-v1\n' >"$base/grill-v1"
+printf 'hand-v1\n' >"$base/hand-v1"
 cmp_file "$base/grill-v1" "$HOME/.cursor/skills/grilling/SKILL.md" "grilling body"
 cmp_file "$base/hand-v1" "$HOME/.cursor/skills/handoff/SKILL.md" "handoff body"
 cmp_file "$base/keep" "$HOME/.cursor/skills/verify-analytics/SKILL.md" "verify-analytics after install"
@@ -170,7 +170,7 @@ show_tree "before .cursor/skills"
 run_choice 2
 assert_status 0
 assert_stdout_empty
-canon_claude=$(CDPATH= cd -- "$HOME/.claude/skills" && pwd)
+canon_claude=$(CDPATH='' cd -- "$HOME/.claude/skills" && pwd)
 assert_stderr "toolshed:get-skills: synced $cache/skills to $canon_claude"
 cmp_file "$base/manifest-v1" "$HOME/.claude/skills/.toolshed-get-skills" "claude manifest"
 cmp_file "$base/grill-v1" "$HOME/.claude/skills/grilling/SKILL.md" "claude grilling"
@@ -188,9 +188,9 @@ rm -rf "$base/claude-v1"
 cp -R "$HOME/.claude/skills" "$base/claude-v1"
 
 rm -rf "$fixture/skills/grilling"
-printf 'hand-v2\n' > "$fixture/skills/handoff/SKILL.md"
+printf 'hand-v2\n' >"$fixture/skills/handoff/SKILL.md"
 mkdir -p "$fixture/skills/to-rca"
-printf 'rca-v1\n' > "$fixture/skills/to-rca/SKILL.md"
+printf 'rca-v1\n' >"$fixture/skills/to-rca/SKILL.md"
 git -C "$fixture" add -A
 git -C "$fixture" commit -q -m 'skills-v2'
 
@@ -198,10 +198,10 @@ run_choice 1
 assert_status 0
 assert_stdout_empty
 assert_stderr "toolshed:get-skills: synced $cache/skills to $canon"
-printf 'handoff\nto-rca\n' > "$base/manifest-v2"
+printf 'handoff\nto-rca\n' >"$base/manifest-v2"
 cmp_file "$base/manifest-v2" "$HOME/.cursor/skills/.toolshed-get-skills" "cursor manifest after skills-v2"
-printf 'hand-v2\n' > "$base/hand-v2"
-printf 'rca-v1\n' > "$base/rca-v1"
+printf 'hand-v2\n' >"$base/hand-v2"
+printf 'rca-v1\n' >"$base/rca-v1"
 cmp_file "$base/hand-v2" "$HOME/.cursor/skills/handoff/SKILL.md" "handoff was not updated"
 cmp_file "$base/rca-v1" "$HOME/.cursor/skills/to-rca/SKILL.md" "to-rca body"
 cmp_file "$base/keep" "$HOME/.cursor/skills/verify-analytics/SKILL.md" "verify-analytics after removal"
@@ -228,7 +228,7 @@ fi
 cmp_file "$base/hand-v2" "$HOME/.cursor/skills/handoff/SKILL.md" "handoff changed on repeat"
 cmp_file "$base/keep-note" "$HOME/.cursor/skills/notes.txt" "notes.txt changed on repeat"
 
-printf '%s\n' handoff '../verify-analytics' to-rca > "$HOME/.cursor/skills/.toolshed-get-skills"
+printf '%s\n' handoff '../verify-analytics' to-rca >"$HOME/.cursor/skills/.toolshed-get-skills"
 cp "$HOME/.cursor/skills/.toolshed-get-skills" "$base/planted"
 run_choice 1
 assert_status 1
@@ -237,7 +237,7 @@ cmp_file "$base/keep" "$HOME/.cursor/skills/verify-analytics/SKILL.md" "verify-a
 cmp_file "$base/rca-v1" "$HOME/.cursor/skills/to-rca/SKILL.md" "to-rca missing after bad manifest"
 cmp_file "$base/keep-note" "$HOME/.cursor/skills/notes.txt" "notes.txt changed after bad manifest"
 
-printf 'handoff\nto-rca\n' > "$HOME/.cursor/skills/.toolshed-get-skills"
+printf 'handoff\nto-rca\n' >"$HOME/.cursor/skills/.toolshed-get-skills"
 run_choice_dest() {
 	status=0
 	printf '1\n' | env SKILLS_DESTINATION="$sentinel" "$BIN" --url "$fixture" >"$base/stdout" 2>"$base/stderr" || status=$?
@@ -255,7 +255,7 @@ if [ "$sentinel_found" != "$sentinel" ]; then
 fi
 
 mkdir -p "$fixture/skills/.not-a-skill"
-printf 'no\n' > "$fixture/skills/.not-a-skill/SKILL.md"
+printf 'no\n' >"$fixture/skills/.not-a-skill/SKILL.md"
 git -C "$fixture" add -A
 git -C "$fixture" commit -q -m 'illegal skill name'
 rm -rf "$base/cursor-before-illegal"
@@ -298,7 +298,7 @@ fi
 
 rm -rf "$fixture/skills/handoff"
 mkdir -p "$fixture/skills/handoff"
-printf 'hand-v2\n' > "$fixture/skills/handoff/SKILL.md"
+printf 'hand-v2\n' >"$fixture/skills/handoff/SKILL.md"
 git -C "$fixture" add -A
 git -C "$fixture" commit -q -m 'restore handoff directory'
 ln -s "$HOME/.cursor/skills/notes.txt" "$HOME/.cursor/skills/.toolshed-get-skills.new"
@@ -312,7 +312,7 @@ fi
 cmp_file "$base/manifest-v2" "$HOME/.cursor/skills/.toolshed-get-skills" "cursor manifest after temp link"
 
 mkdir -p "$HOME/.cursor/skills/.toolshed-get-skills.stage/keep"
-printf 'keep-stage\n' > "$base/keep-stage"
+printf 'keep-stage\n' >"$base/keep-stage"
 cp "$base/keep-stage" "$HOME/.cursor/skills/.toolshed-get-skills.stage/keep/file"
 run_choice 1
 assert_status 0
@@ -326,13 +326,13 @@ fi
 show_tree "after pre-existing stage entry"
 
 mkdir -p "$fixture/skills/early" "$fixture/skills/later"
-printf 'early\n' > "$fixture/skills/early/SKILL.md"
-printf 'later\n' > "$fixture/skills/later/SKILL.md"
+printf 'early\n' >"$fixture/skills/early/SKILL.md"
+printf 'later\n' >"$fixture/skills/later/SKILL.md"
 git -C "$fixture" add skills/early skills/later
 git -C "$fixture" commit -q -m 'add early and later'
 fail_cp="$base/fail-cp"
 mkdir -p "$fail_cp"
-cat > "$fail_cp/cp" <<'EOF'
+cat >"$fail_cp/cp" <<'EOF'
 #!/bin/sh
 if [ "${1:-}" = "-R" ]; then
 	_base=${2##*/}

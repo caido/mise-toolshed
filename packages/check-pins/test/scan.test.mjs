@@ -57,15 +57,25 @@ test("empty directory prints nothing", async () => {
 });
 
 test("npm ranges are rejected in every dependency map", async () => {
-  const specs = ["^1.0.0", "~1.0.0", ">1.0.0", "<1.0.0", ">=1", "<=1", "*", "latest", "1.x", "1.2", "abc", "^1.2.3"];
+  const specs = [
+    "^1.0.0",
+    "~1.0.0",
+    ">1.0.0",
+    "<1.0.0",
+    ">=1",
+    "<=1",
+    "*",
+    "latest",
+    "1.x",
+    "1.2",
+    "abc",
+    "^1.2.3",
+  ];
   const sections = ["dependencies", "devDependencies", "optionalDependencies", "peerDependencies"];
   for (const section of sections) {
     for (const spec of specs) {
       await withFixture({ "package.json": packageJson(section, spec) }, (dir) => {
-        expectFindings(
-          scan(dir),
-          `package.json:3: dependency left-pad is not an exact version\n`,
-        );
+        expectFindings(scan(dir), `package.json:3: dependency left-pad is not an exact version\n`);
       });
     }
   }
@@ -93,7 +103,9 @@ test("exact npm specs and local protocols pass", async () => {
     "catalog:foo",
     `git+https://github.com/org/repo.git#${sha}`,
   ];
-  const entries = specs.map((spec, index) => `    "pkg${index}": ${JSON.stringify(spec)}`).join(",\n");
+  const entries = specs
+    .map((spec, index) => `    "pkg${index}": ${JSON.stringify(spec)}`)
+    .join(",\n");
   await withFixture(
     {
       "package.json": `{
@@ -263,22 +275,16 @@ toolshed = "https://github.com/caido/mise-toolshed#${sha}"
 
 test("mise tool versions that are not major.minor or major.minor.patch fail", async () => {
   for (const spec of ["22", "latest", "v22.0.0", "prefix:22.1.0"]) {
-    await withFixture(
-      { "mise.toml": `[tools]\nnode = ${JSON.stringify(spec)}\n` },
-      (dir) => {
-        expectFindings(scan(dir), "mise.toml:2: tool node is not an exact version\n");
-      },
-    );
+    await withFixture({ "mise.toml": `[tools]\nnode = ${JSON.stringify(spec)}\n` }, (dir) => {
+      expectFindings(scan(dir), "mise.toml:2: tool node is not an exact version\n");
+    });
   }
 });
 
 test("a mise tool table must be a string", async () => {
-  await withFixture(
-    { "mise.toml": `[tools]\nnode = { version = "24.22.0" }\n` },
-    (dir) => {
-      expectFindings(scan(dir), "mise.toml:2: tool node must be a string\n");
-    },
-  );
+  await withFixture({ "mise.toml": `[tools]\nnode = { version = "24.22.0" }\n` }, (dir) => {
+    expectFindings(scan(dir), "mise.toml:2: tool node must be a string\n");
+  });
 });
 
 test("a mise plugin must end in a 40-hex pin", async () => {
@@ -421,7 +427,10 @@ test("uv --frozen is its own finding and still requires a lock", async () => {
 `,
     },
     (dir) => {
-      expectFindings(scan(dir), ".github/workflows/ci.yml:4: uv command must not contain --frozen\n");
+      expectFindings(
+        scan(dir),
+        ".github/workflows/ci.yml:4: uv command must not contain --frozen\n",
+      );
     },
   );
   await withFixture(
@@ -962,7 +971,9 @@ test("UV_LOCKED carries across segments only when it is exported", async () => {
 });
 
 test("a piped scan returns every finding line", async () => {
-  const deps = Array.from({ length: 2000 }, (_, index) => `    "pkg${index}": "^1.0.0"`).join(",\n");
+  const deps = Array.from({ length: 2000 }, (_, index) => `    "pkg${index}": "^1.0.0"`).join(
+    ",\n",
+  );
   await withFixture(
     {
       "package.json": `{
@@ -1078,7 +1089,7 @@ test("UV_LOCKED after the uv token does not lock the command", async () => {
   );
 });
 
-test("a direct python url is not an exact pin when it contains ==" , async () => {
+test("a direct python url is not an exact pin when it contains ==", async () => {
   await withFixture(
     {
       "pyproject.toml": `[project]
@@ -1123,7 +1134,10 @@ test("a block scalar container is an image", async () => {
 `,
     },
     (dir) => {
-      expectFindings(scan(dir), ".github/workflows/ci.yml:4: image node:22 must contain @sha256:\n");
+      expectFindings(
+        scan(dir),
+        ".github/workflows/ci.yml:4: image node:22 must contain @sha256:\n",
+      );
     },
   );
 });
@@ -1141,7 +1155,10 @@ test("a folded run keeps a blank line as a command break", async () => {
 `,
     },
     (dir) => {
-      expectFindings(scan(dir), ".github/workflows/ci.yml:5: pnpm install must pass --frozen-lockfile\n");
+      expectFindings(
+        scan(dir),
+        ".github/workflows/ci.yml:5: pnpm install must pass --frozen-lockfile\n",
+      );
     },
   );
 });
@@ -1207,7 +1224,10 @@ test("a hash inside a shell word is not a comment", async () => {
 `,
     },
     (dir) => {
-      expectFindings(scan(dir), ".github/workflows/ci.yml:4: pnpm install must pass --frozen-lockfile\n");
+      expectFindings(
+        scan(dir),
+        ".github/workflows/ci.yml:4: pnpm install must pass --frozen-lockfile\n",
+      );
     },
   );
 });
@@ -1222,7 +1242,10 @@ test("an escaped pnpm token is still pnpm", async () => {
 `,
     },
     (dir) => {
-      expectFindings(scan(dir), ".github/workflows/ci.yml:4: pnpm install must pass --frozen-lockfile\n");
+      expectFindings(
+        scan(dir),
+        ".github/workflows/ci.yml:4: pnpm install must pass --frozen-lockfile\n",
+      );
     },
   );
 });
@@ -1237,7 +1260,10 @@ test("a background pnpm install is still an install", async () => {
 `,
     },
     (dir) => {
-      expectFindings(scan(dir), ".github/workflows/ci.yml:4: pnpm install must pass --frozen-lockfile\n");
+      expectFindings(
+        scan(dir),
+        ".github/workflows/ci.yml:4: pnpm install must pass --frozen-lockfile\n",
+      );
     },
   );
 });
@@ -1398,8 +1424,8 @@ test("quotes, parameter text, and grouping still expose the install", async () =
       - run: ': \${x= #}; uv sync'
       - run: "(pnpm install)"
       - run: "(uv sync)"
-      - run: "\$(pnpm install)"
-      - run: "\$(uv sync)"
+      - run: "$(pnpm install)"
+      - run: "$(uv sync)"
       - run: "\`pnpm install\`"
       - run: "\`uv sync\`"
       - run: |

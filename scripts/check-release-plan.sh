@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-root=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
+root=$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)
 version=$(node "$root/scripts/read-package-version.ts" "$root/packages/check-pins/package.json")
 tag="check-pins-v${version}"
 plan=$(sh "$root/scripts/plan-release.sh" "$tag")

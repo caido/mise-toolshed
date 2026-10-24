@@ -7,7 +7,7 @@ if [ "$#" -ne 1 ]; then
 fi
 
 tag=$1
-root=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
+root=$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)
 
 case $tag in
 *-v*) ;;

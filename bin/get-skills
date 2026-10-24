@@ -66,7 +66,7 @@ read_owned() {
 	_install=$1
 	_out=$2
 	_manifest="$_install/$MANIFEST_NAME"
-	: > "$_out"
+	: >"$_out"
 	if [ ! -e "$_manifest" ] && [ ! -L "$_manifest" ]; then
 		return 0
 	fi
@@ -75,28 +75,28 @@ read_owned() {
 		exit 1
 	fi
 	_raw="$_out.raw"
-	: > "$_raw"
+	: >"$_raw"
 	while IFS= read -r _line || [ -n "$_line" ]; do
 		if ! valid_skill_name "$_line"; then
 			printf '%s\n' "toolshed:get-skills: illegal manifest name: $_line" >&2
 			exit 1
 		fi
-		printf '%s\n' "$_line" >> "$_raw"
-	done < "$_manifest"
+		printf '%s\n' "$_line" >>"$_raw"
+	done <"$_manifest"
 	_dups=$(LC_ALL=C sort "$_raw" | LC_ALL=C uniq -d)
 	if [ -n "$_dups" ]; then
 		echo "toolshed:get-skills: duplicate manifest name" >&2
 		printf '%s\n' "$_dups" >&2
 		exit 1
 	fi
-	LC_ALL=C sort "$_raw" > "$_out"
+	LC_ALL=C sort "$_raw" >"$_out"
 }
 
 write_owned() {
 	_dir=$1
 	_names=$2
 	_tmp=$(mktemp "$_dir/$MANIFEST_NAME.XXXXXX")
-	cat "$_names" > "$_tmp"
+	cat "$_names" >"$_tmp"
 	mv -f "$_tmp" "$_dir/$MANIFEST_NAME"
 }
 
@@ -104,7 +104,7 @@ list_source_names() {
 	_src=$1
 	_out=$2
 	_raw="$_out.raw"
-	: > "$_raw"
+	: >"$_raw"
 	for _path in "$_src"/.[!.]* "$_src"/..?* "$_src"/*; do
 		if [ ! -e "$_path" ] && [ ! -L "$_path" ]; then
 			continue
@@ -117,9 +117,9 @@ list_source_names() {
 			printf '%s\n' "toolshed:get-skills: illegal skill name: $_name" >&2
 			exit 1
 		fi
-		printf '%s\n' "$_name" >> "$_raw"
+		printf '%s\n' "$_name" >>"$_raw"
 	done
-	LC_ALL=C sort -u "$_raw" > "$_out"
+	LC_ALL=C sort -u "$_raw" >"$_out"
 }
 
 cleanup() {
@@ -151,7 +151,7 @@ install_skills() {
 			printf '%s\n' "toolshed:get-skills: $_name is not a skill directory" >&2
 			exit 1
 		fi
-	done < "$_work/owned"
+	done <"$_work/owned"
 
 	_hit=0
 	while IFS= read -r _name || [ -n "$_name" ]; do
@@ -163,26 +163,26 @@ install_skills() {
 			printf '%s\n' "toolshed:get-skills: $_name already exists and is not owned" >&2
 			_hit=1
 		fi
-	done < "$_work/desired"
+	done <"$_work/desired"
 	if [ "$_hit" != 0 ]; then
 		exit 1
 	fi
 
 	mkdir -p "$_install"
-	_install=$(CDPATH= cd -- "$_install" && pwd)
+	_install=$(CDPATH='' cd -- "$_install" && pwd)
 	_stage=$(mktemp -d "$_install/.toolshed-get-skills.XXXXXX")
 	_stage_ready=1
 	while IFS= read -r _name || [ -n "$_name" ]; do
 		[ -n "$_name" ] || continue
 		cp -R "$_src/$_name" "$_stage/$_name"
-	done < "$_work/desired"
+	done <"$_work/desired"
 
 	cp "$_work/owned" "$_work/claimed"
 	while IFS= read -r _name || [ -n "$_name" ]; do
 		[ -n "$_name" ] || continue
 		if [ -e "$_install/$_name" ] || [ -L "$_install/$_name" ]; then
 			if grep -F -x -q "$_name" "$_work/owned"; then
-				rm -rf "$_install/$_name"
+				rm -rf "${_install:?}/${_name:?}"
 			else
 				printf '%s\n' "toolshed:get-skills: $_name already exists and is not owned" >&2
 				exit 1
@@ -192,17 +192,17 @@ install_skills() {
 		if grep -F -x -q "$_name" "$_work/owned"; then
 			continue
 		fi
-		printf '%s\n' "$_name" >> "$_work/claimed"
-		LC_ALL=C sort -u "$_work/claimed" > "$_work/claimed.sorted"
+		printf '%s\n' "$_name" >>"$_work/claimed"
+		LC_ALL=C sort -u "$_work/claimed" >"$_work/claimed.sorted"
 		mv "$_work/claimed.sorted" "$_work/claimed"
 		write_owned "$_install" "$_work/claimed"
-	done < "$_work/desired"
+	done <"$_work/desired"
 
-	LC_ALL=C comm -23 "$_work/owned" "$_work/desired" > "$_work/remove"
+	LC_ALL=C comm -23 "$_work/owned" "$_work/desired" >"$_work/remove"
 	while IFS= read -r _name || [ -n "$_name" ]; do
 		[ -n "$_name" ] || continue
-		rm -rf "$_install/$_name"
-	done < "$_work/remove"
+		rm -rf "${_install:?}/${_name:?}"
+	done <"$_work/remove"
 
 	write_owned "$_install" "$_work/desired"
 	printf '%s\n' "toolshed:get-skills: synced $_src to $_install" >&2
