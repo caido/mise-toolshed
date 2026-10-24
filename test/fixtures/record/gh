@@ -1,6 +1,14 @@
 #!/bin/sh
 cmd1=$1
 cmd2=${2-}
+is_post=0
+prev=
+for arg in "$@"; do
+	if [ "$prev" = "--method" ] && [ "$arg" = "POST" ]; then
+		is_post=1
+	fi
+	prev=$arg
+done
 asked_draft=0
 for arg in "$@"; do
 	if [ "$arg" = "isDraft" ]; then
@@ -35,6 +43,24 @@ if [ "$cmd1" = "release" ] && [ "$cmd2" = "view" ]; then
 fi
 if [ "$cmd1" = "release" ] && [ "$cmd2" = "upload" ] && [ "${GH_UPLOAD_FAIL:-}" = "1" ]; then
 	echo "upload failed" >&2
+	exit 1
+fi
+if [ "$cmd1" = "api" ]; then
+	if [ "$is_post" = "1" ]; then
+		if [ "${GH_TAG_EXISTS:-}" = "1" ]; then
+			echo "Reference already exists" >&2
+			exit 1
+		fi
+		exit 0
+	fi
+	if [ "${GH_TAG_ERROR:-}" = "1" ]; then
+		echo "api error" >&2
+		exit 1
+	fi
+	if [ "${GH_TAG_EXISTS:-}" = "1" ]; then
+		exit 0
+	fi
+	echo "gh: Not Found (HTTP 404)" >&2
 	exit 1
 fi
 exit 0

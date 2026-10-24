@@ -23,6 +23,24 @@ toolshed = "https://github.com/caido/mise-toolshed#<40-hex sha>"
 
 Running `check-pins` with no arguments scans the current directory. Each finding is a stdout line `file:line: message`. The command exits 1 on any finding. `--version` still prints the version.
 
+## Publish a release
+
+Publish a workspace package from the Release workflow on the default branch. Set `tool` to the directory name under `packages/`. The workflow reads `version` from that package's `package.json`, creates the tag `<tool>-v<version>` on the selected commit, and uploads `<tool>.mjs` and `SHA256SUMS` in the same run.
+
+```bash
+gh workflow run release.yml --ref main -f tool=check-pins
+```
+
+The run stops when that tag already exists or a published release already exists. It does not move an existing tag.
+
+You can still publish by pushing the tag.
+
+```bash
+git tag check-pins-v1.0.0 && git push origin check-pins-v1.0.0
+```
+
+`get-skills` stays a git tag. Push `get-skills-v<version>` yourself. The Release workflow does not upload assets for that tag.
+
 ## get-skills
 
 `latest` installs the newest `get-skills-v*` tag. In a mise home that already has get-skills installed, `mise install` can keep that version. `mise exec toolshed:get-skills@latest -- get-skills` installs and runs the newest tag. Before any such tag exists, `latest` copies the checkout's `bin/get-skills`. A pin `x.y.z` installs `bin/get-skills` from tag `get-skills-vx.y.z` on `https://github.com/caido/mise-toolshed`. The default clone URL is **`https://github.com/caido/ai-ops`**. Run **`bin/get-skills`** from a checkout of this repo without mise.
