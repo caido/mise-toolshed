@@ -304,3 +304,7 @@ Default if unanswered: keep the current behavior.
 STD-008 says packages that Caido publishes are exempt from that age. Should check-pins carry that exemption? It has no exemption, because it does not check age.
 
 Default if unanswered: keep the current behavior.
+
+Should a `[[...]]` array-of-tables header in `pyproject.toml` be its own table? `tomlHeader` matches only a single pair of brackets, and both `parsePyproject` and `parseMise` leave the previous section in place when it does not match. `[[tool.mypy.overrides]]` is skipped until the next single-bracket header. After `[dependency-groups]` or `[project.optional-dependencies]`, every key is still a requirement list, so `module = ["foo.*"]` is reported as `dependency foo is not an exact version`. After `[project]`, only a key named `dependencies` is still judged. A mise `[tools]`, `[plugins]`, or `[env]` section stays current across that same skipped header.
+
+Default if unanswered: keep the current behavior.
