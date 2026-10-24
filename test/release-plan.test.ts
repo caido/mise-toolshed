@@ -63,7 +63,7 @@ test("export-release-plan writes skip and publish outputs", async () => {
   });
   assert.equal(skip.status, 0, skip.stderr);
   assert.ok(skip.stdout.includes("::notice::tag get-skills-v1.2 has no workspace package; publishing nothing"));
-  assert.equal(await readFile(output, "utf8"), "action=skip\n");
+  assert.equal(await readFile(output, "utf8"), "action=skip\ntag=get-skills-v1.2\n");
   assert.doesNotMatch(skip.stderr, /gh invoked/);
 
   const version = run("node", [path.join(repoRoot, "scripts/read-package-version.ts"), path.join(repoRoot, "packages/check-pins/package.json")], {
@@ -79,7 +79,7 @@ test("export-release-plan writes skip and publish outputs", async () => {
     }),
   });
   assert.equal(publish.status, 0, publish.stderr);
-  assert.equal(await readFile(output, "utf8"), `action=publish\ntool=check-pins\n`);
+  assert.equal(await readFile(output, "utf8"), `action=publish\ntool=check-pins\ntag=check-pins-v${version.stdout}\n`);
 });
 
 test("publish-release creates, leaves a public release, and publishes a leftover draft", async () => {
@@ -97,7 +97,7 @@ test("publish-release creates, leaves a public release, and publishes a leftover
     ...process.env,
     PATH: `${recordDir}${path.delimiter}${process.env.PATH ?? ""}`,
     GH_RECORD: record,
-    GITHUB_REF_NAME: "check-pins-v0.0.0",
+    RELEASE_TAG: "check-pins-v0.0.0",
     TOOL: "check-pins",
     RUNNER_TEMP: work,
   };
@@ -161,6 +161,150 @@ test("publish-release creates, leaves a public release, and publishes a leftover
 function recordLines(text: string): string[][] {
   return text.trimEnd().split("\n").map((line) => line.split("\t"));
 }
+
+const dispatchScript = path.join(repoRoot, "scripts/plan-dispatch.sh");
+const createTagScript = path.join(repoRoot, "scripts/create-release-tag.sh");
+
+function dispatchEnv(extra: NodeJS.ProcessEnv, output: string): NodeJS.ProcessEnv {
+  return {
+    ...process.env,
+    PATH: `${recordDir}${path.delimiter}${process.env.PATH ?? ""}`,
+    GITHUB_OUTPUT: output,
+    TOOL: "check-pins",
+    DEFAULT_BRANCH: "main",
+    GITHUB_REF_NAME: "main",
+    GITHUB_REPOSITORY: "caido/mise-toolshed",
+    GH_TOKEN: "test-token",
+    ...extra,
+  };
+}
+
+test("plan-dispatch prints the tool and tag, and refuses unknown tools, other branches, and existing tags", async () => {
+  const version = run("node", [path.join(repoRoot, "scripts/read-package-version.ts"), path.join(repoRoot, "packages/check-pins/package.json")], {
+    env: process.env,
+  });
+  assert.equal(version.status, 0);
+  const packageVersion = version.stdout;
+  const tag = `check-pins-v${packageVersion}`;
+  const work = await mkdtemp(path.join(tmpdir(), "plan-dispatch-"));
+  const output = path.join(work, "github-output");
+  const record = path.join(work, "gh-record");
+
+  await writeFile(output, "");
+  await writeFile(record, "");
+  const published = run("sh", [dispatchScript], {
+    env: dispatchEnv({ GH_RECORD: record, GH_TAG_EXISTS: "1" }, output),
+  });
+  assert.notEqual(published.status, 0);
+  assert.equal(published.stdout, "");
+  assert.match(published.stderr, /tag check-pins-v.+ already exists/);
+  const tagGet = ["api", `repos/caido/mise-toolshed/git/ref/tags/${tag}`];
+  assert.deepEqual(recordLines(await readFile(record, "utf8")), [tagGet]);
+
+  await writeFile(output, "");
+  await writeFile(record, "");
+  const released = run("sh", [dispatchScript], {
+    env: dispatchEnv({ GH_RECORD: record, GH_RELEASE_EXISTS: "1" }, output),
+  });
+  assert.notEqual(released.status, 0);
+  assert.equal(released.stdout, "");
+  assert.match(released.stderr, new RegExp(`published release ${tag} already exists`));
+  assert.deepEqual(recordLines(await readFile(record, "utf8")), [
+    tagGet,
+    ["release", "view", tag, "--json", "isDraft", "--jq", ".isDraft"],
+  ]);
+
+  await writeFile(output, "");
+  await writeFile(record, "");
+  const drafted = run("sh", [dispatchScript], {
+    env: dispatchEnv({ GH_RECORD: record, GH_RELEASE_DRAFT: "1" }, output),
+  });
+  assert.equal(drafted.status, 0, drafted.stderr);
+  assert.equal(drafted.stdout, `publish check-pins ${packageVersion}\n${tag}\n`);
+  assert.equal(await readFile(output, "utf8"), `action=publish\ntool=check-pins\ntag=${tag}\n`);
+
+  await writeFile(output, "");
+  await writeFile(record, "");
+  const ready = run("sh", [dispatchScript], { env: dispatchEnv({ GH_RECORD: record }, output) });
+  assert.equal(ready.status, 0, ready.stderr);
+  assert.equal(ready.stdout, `publish check-pins ${packageVersion}\n${tag}\n`);
+  assert.equal(await readFile(output, "utf8"), `action=publish\ntool=check-pins\ntag=${tag}\n`);
+  assert.deepEqual(recordLines(await readFile(record, "utf8")), [
+    tagGet,
+    ["release", "view", tag, "--json", "isDraft", "--jq", ".isDraft"],
+  ]);
+
+  const unknown = run("sh", [dispatchScript], {
+    env: refuseEnv({
+      ...process.env,
+      GITHUB_OUTPUT: output,
+      TOOL: "not-a-tool",
+      DEFAULT_BRANCH: "main",
+      GITHUB_REF_NAME: "main",
+      GITHUB_REPOSITORY: "caido/mise-toolshed",
+    }),
+  });
+  assert.notEqual(unknown.status, 0);
+  assert.equal(unknown.stdout, "");
+  assert.match(unknown.stderr, /unknown tool: not-a-tool/);
+  assert.doesNotMatch(unknown.stderr, /gh invoked/);
+
+  const otherRef = run("sh", [dispatchScript], {
+    env: refuseEnv({
+      ...process.env,
+      GITHUB_OUTPUT: output,
+      TOOL: "check-pins",
+      DEFAULT_BRANCH: "main",
+      GITHUB_REF_NAME: "feature",
+      GITHUB_REPOSITORY: "caido/mise-toolshed",
+    }),
+  });
+  assert.notEqual(otherRef.status, 0);
+  assert.equal(otherRef.stdout, "");
+  assert.match(otherRef.stderr, /refusing dispatch from feature; default branch is main/);
+  assert.doesNotMatch(otherRef.stderr, /gh invoked/);
+});
+
+test("create-release-tag posts the ref and does not update an existing tag", async () => {
+  const work = await mkdtemp(path.join(tmpdir(), "create-release-tag-"));
+  const record = path.join(work, "gh-record");
+  await writeFile(record, "");
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    PATH: `${recordDir}${path.delimiter}${process.env.PATH ?? ""}`,
+    GH_RECORD: record,
+    GH_TOKEN: "test-token",
+    RELEASE_TAG: "check-pins-v1.0.0",
+    GITHUB_SHA: "abc123",
+    GITHUB_REPOSITORY: "caido/mise-toolshed",
+  };
+  const created = run("sh", [createTagScript], { env });
+  assert.equal(created.status, 0, created.stderr);
+  assert.deepEqual(recordLines(await readFile(record, "utf8")), [
+    ["api", "--method", "POST", "repos/caido/mise-toolshed/git/refs", "-f", "ref=refs/tags/check-pins-v1.0.0", "-f", "sha=abc123"],
+  ]);
+
+  await writeFile(record, "");
+  const exists = run("sh", [createTagScript], { env: { ...env, GH_TAG_EXISTS: "1" } });
+  assert.notEqual(exists.status, 0);
+  assert.match(exists.stderr, /Reference already exists/);
+  const lines = recordLines(await readFile(record, "utf8"));
+  assert.equal(lines.length, 1);
+  assert.ok(!lines[0]?.includes("PATCH"));
+});
+
+test("publish-release requires the planned tag", () => {
+  const result = run("sh", [publishScript], {
+    env: refuseEnv({
+      ...process.env,
+      GITHUB_REF_NAME: "check-pins-v0.0.0",
+      TOOL: "check-pins",
+      RUNNER_TEMP: "/tmp",
+    }),
+  });
+  assert.notEqual(result.status, 0);
+  assert.doesNotMatch(result.stderr, /gh invoked/);
+});
 
 test("check-release-plan accepts the package version", () => {
   const result = run("sh", [path.join(repoRoot, "scripts/check-release-plan.sh")], { env: refuseEnv() });

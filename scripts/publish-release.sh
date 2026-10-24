@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-tag=${GITHUB_REF_NAME:?}
+tag=${RELEASE_TAG:?}
 tool=${TOOL:?}
 stage=${RUNNER_TEMP:?}/release
 view_err=$(mktemp)

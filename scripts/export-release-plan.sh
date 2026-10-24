@@ -13,6 +13,7 @@ plan=$(sh "$root/scripts/plan-release.sh" "$tag")
 case "$plan" in
 skip)
 	echo "action=skip" >> "$GITHUB_OUTPUT"
+	echo "tag=${tag}" >> "$GITHUB_OUTPUT"
 	echo "::notice::tag ${tag} has no workspace package; publishing nothing"
 	;;
 publish\ *)
@@ -20,6 +21,7 @@ publish\ *)
 	tool=${rest%% *}
 	echo "action=publish" >> "$GITHUB_OUTPUT"
 	echo "tool=${tool}" >> "$GITHUB_OUTPUT"
+	echo "tag=${tag}" >> "$GITHUB_OUTPUT"
 	;;
 *)
 	echo "unexpected plan: $plan" >&2
