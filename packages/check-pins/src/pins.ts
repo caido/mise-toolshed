@@ -46,6 +46,8 @@ export type InstallSite = Site & {
   readonly tool: "uv" | "pnpm";
   readonly command: string;
   readonly scopedEnv: readonly EnvPair[];
+  readonly scriptLocked: boolean;
+  readonly honorMiseEnv: boolean;
 };
 
 export type UnreadableSite = Site & {
@@ -92,7 +94,7 @@ const packageManagerExact = new RegExp(`^pnpm@${SEMVER}$`);
 const toolExact = /^(0|[1-9]\d*)\.(0|[1-9]\d*)(\.(0|[1-9]\d*))?$/;
 const hex40 = /^[0-9a-fA-F]{40}$/;
 const versionComment = /(?:^|\s)v?\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?(?:\s|$)/;
-const uvLockedInCommand = /(?:^|[\s;&|])UV_LOCKED=1(?:\s|$)/;
+const uvLockedInCommand = /(?:^|[\s;&|])UV_LOCKED=(?:"1"|'1'|1)(?:\s|$)/;
 
 export function skipDirectory(name: string): boolean {
   return name === "node_modules" || name === ".git" || name === "dist";
@@ -252,13 +254,14 @@ function decideInstall(site: InstallSite, facts: ScanFacts): readonly Finding[] 
     }
     const locked =
       uvLockedInCommand.test(site.command) ||
+      site.scriptLocked ||
       site.scopedEnv.some((pair) => pair.name === "UV_LOCKED" && pair.value === "1") ||
-      facts.miseUvLocked;
+      (site.honorMiseEnv && facts.miseUvLocked);
     if (!locked) findings.push(finding(site, "uv command must set UV_LOCKED=1"));
     return findings;
   }
   if (!pnpmInstall(site.command)) return [];
-  if (site.command.includes("--frozen-lockfile") || facts.npmrcFrozen) return [];
+  if (pnpmFrozen(site.command) || facts.npmrcFrozen) return [];
   return [finding(site, "pnpm install must pass --frozen-lockfile")];
 }
 
@@ -291,8 +294,7 @@ function pythonGitRevision(requirement: string): string | undefined {
     url.startsWith("git:") ||
     url.startsWith("github:") ||
     url.startsWith("gitlab:") ||
-    url.startsWith("bitbucket:") ||
-    url.includes("://");
+    url.startsWith("bitbucket:");
   if (!direct) return undefined;
   const last = requirement.lastIndexOf("@");
   const after = requirement.slice(last + 1);
@@ -306,7 +308,7 @@ function pythonExact(requirement: string): boolean {
   if (eq === -1) return false;
   const token = requirement.slice(eq + 2).trim();
   const version = token.split(/[\s,]/, 1)[0] ?? "";
-  return version.length > 0;
+  return version.length > 0 && !version.includes("*");
 }
 
 function pythonPackageName(spec: string): string {
@@ -373,7 +375,7 @@ function parsePackageJson(relativePath: string, text: string): ParsedFile {
     for (const [name, command] of Object.entries(scripts)) {
       if (typeof command !== "string") continue;
       const line = lines.get(`scripts\0${name}`) ?? 1;
-      sites.push(...installSites(relativePath, line, command, []));
+      sites.push(...installSites(relativePath, line, command, [], true));
     }
   }
   return { sites, miseUvLocked: false, npmrcFrozen: false };
@@ -602,10 +604,15 @@ function parseMise(relativePath: string, text: string): ParsedFile {
   let section: "tools" | "plugins" | "env" | "other" = "other";
   let subtable = false;
   let braceDepth = 0;
+  let multiline: '"' | "'" | null = null;
   let miseUvLocked = false;
   const tableNames = new Set<string>();
   for (const [index, line] of text.split(/\r?\n/).entries()) {
     const lineNo = index + 1;
+    if (multiline) {
+      if (line.includes(multiline === '"' ? '"""' : "'''")) multiline = null;
+      continue;
+    }
     if (braceDepth > 0) {
       braceDepth += braceDelta(line);
       if (braceDepth < 0) braceDepth = 0;
@@ -638,6 +645,12 @@ function parseMise(relativePath: string, text: string): ParsedFile {
         tableNames.add(`${section}\0${name}`);
         sites.push(tableSite(section, name, relativePath, lineNo));
       }
+      continue;
+    }
+    const opened = openMultiline(assignment.value);
+    if (opened) {
+      sites.push(stringSite(section, assignment.key, "", relativePath, lineNo));
+      multiline = opened;
       continue;
     }
     const value = classifyMiseValue(assignment.value);
@@ -686,6 +699,13 @@ function miseHeader(header: string): { section: "tools" | "plugins" | "env" | "o
   return { section: "other" };
 }
 
+function openMultiline(value: string): '"' | "'" | null {
+  const trimmed = value.trimStart();
+  if (trimmed.startsWith('"""')) return trimmed.slice(3).includes('"""') ? null : '"';
+  if (trimmed.startsWith("'''")) return trimmed.slice(3).includes("'''") ? null : "'";
+  return null;
+}
+
 function classifyMiseValue(value: string): { shape: "string"; text: string } | { shape: "table"; depth: number } {
   const trimmed = value.trimStart();
   if (trimmed.startsWith("{")) {
@@ -731,7 +751,7 @@ function parseDockerfile(relativePath: string, text: string): ParsedFile {
     if (word !== "RUN" && word !== "CMD" && word !== "ENTRYPOINT") continue;
     const exec = rest.trimStart().startsWith("[") ? execForm(rest.trim()) : undefined;
     const command = exec ?? rest;
-    for (const site of installSites(relativePath, instruction.line, command, [])) {
+    for (const site of installSites(relativePath, instruction.line, command, [], false)) {
       const line = lineWithToken(instruction.parts, site.tool) ?? instruction.line;
       sites.push({ ...site, line });
     }
@@ -810,6 +830,8 @@ type WorkflowRun = {
   readonly tool: "uv" | "pnpm";
   readonly job: number;
   readonly step: number;
+  readonly scriptLocked: boolean;
+  readonly honorMiseEnv: boolean;
 };
 
 function parseWorkflow(relativePath: string, text: string): ParsedFile {
@@ -829,6 +851,7 @@ function parseWorkflow(relativePath: string, text: string): ParsedFile {
   let envTarget: "workflow" | "job" | "step" | null = null;
   let envIndent = -1;
   let envContentIndent = -1;
+  let imageIndent = -1;
 
   const activeEnv = (): Map<string, string> => {
     if (envTarget === "step" && currentStep >= 0) return steps[currentStep]?.env ?? workflowEnv;
@@ -845,75 +868,90 @@ function parseWorkflow(relativePath: string, text: string): ParsedFile {
   };
 
   const takeCommand = (command: string, line: number): void => {
-    for (const site of installSites(relativePath, line, command, [])) {
-      runs.push({ line: site.line, command: site.command, tool: site.tool, job: currentJob, step: currentStep });
+    for (const site of installSites(relativePath, line, command, [], false)) {
+      runs.push({
+        line: site.line,
+        command: site.command,
+        tool: site.tool,
+        job: currentJob,
+        step: currentStep,
+        scriptLocked: site.scriptLocked,
+        honorMiseEnv: site.honorMiseEnv,
+      });
     }
   };
 
+  const pushImage = (reference: string, lineNo: number, origin: ImageSite["origin"]): void => {
+    sites.push({
+      kind: "image",
+      origin,
+      reference,
+      priorStageNames: [],
+      path: relativePath,
+      line: lineNo,
+    });
+  };
+
   const takeKey = (key: string, value: string, indent: number, lineNo: number, cursor: { i: number }): void => {
-    if (key === "jobs" && value.trim() === "" && currentJob < 0 && currentStep < 0) {
+    const scalar = yamlScalar(value);
+    if (key === "jobs" && scalar.value === "" && currentJob < 0 && currentStep < 0) {
       expectingJob = true;
       jobsKeyIndent = indent;
       return;
     }
-    if (key === "steps" && value.trim() === "" && currentJob >= 0) {
+    if (key === "steps" && scalar.value === "" && currentJob >= 0) {
       stepsIndent = indent;
       return;
     }
-    if (key === "env" && value.trim() === "") {
+    if (key === "env" && scalar.value === "" && !(imageIndent >= 0 && indent > imageIndent)) {
       envTarget = currentStep >= 0 ? "step" : currentJob >= 0 ? "job" : "workflow";
       envIndent = indent;
       envContentIndent = -1;
       return;
     }
     if (key === "uses") {
-      const split = splitYamlComment(value);
-      const uses = unquoteYaml(split.value);
+      const uses = unquoteYaml(scalar.value);
       if (uses.startsWith("docker://")) {
-        sites.push({
-          kind: "image",
-          origin: "docker-uses",
-          reference: uses,
-          priorStageNames: [],
-          path: relativePath,
-          line: lineNo,
-        });
+        pushImage(uses, lineNo, "docker-uses");
         return;
       }
-      sites.push({ kind: "action", uses, comment: split.comment, path: relativePath, line: lineNo });
+      sites.push({ kind: "action", uses, comment: scalar.comment, path: relativePath, line: lineNo });
       return;
     }
-    if (key === "image") {
-      const reference = unquoteYaml(splitYamlComment(value).value);
-      sites.push({
-        kind: "image",
-        origin: "workflow",
-        reference,
-        priorStageNames: [],
-        path: relativePath,
-        line: lineNo,
-      });
+    if (key === "container" || key === "services") {
+      if (key === "container" && scalar.value !== "" && !isBlockScalar(value)) {
+        pushImage(unquoteYaml(scalar.value), lineNo, "workflow");
+        return;
+      }
+      if (scalar.value === "") imageIndent = indent;
+      return;
+    }
+    if (key === "image" && imageIndent >= 0 && indent > imageIndent) {
+      pushImage(unquoteYaml(scalar.value), lineNo, "workflow");
       return;
     }
     if (key !== "run") return;
     if (isBlockScalar(value)) {
+      const physical: { line: number; text: string }[] = [];
       let next = cursor.i + 1;
       for (; next < lines.length; next += 1) {
         const blockLine = lines[next] ?? "";
         if (blockLine.trim() === "") continue;
         if (indentOf(blockLine) <= indent) break;
-        takeCommand(blockLine.trim(), next + 1);
+        physical.push({ line: next + 1, text: blockLine.trim() });
       }
       cursor.i = next - 1;
+      for (const script of joinContinuations(physical)) takeCommand(script.text, script.line);
       return;
     }
-    takeCommand(unquoteYaml(splitYamlComment(value).value), lineNo);
+    takeCommand(unquoteYaml(scalar.value), lineNo);
   };
 
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i] ?? "";
     if (line.trim() === "" || line.trimStart().startsWith("#")) continue;
     const indent = indentOf(line);
+    if (imageIndent >= 0 && indent <= imageIndent) imageIndent = -1;
     if (envTarget !== null) {
       if (envContentIndent < 0) {
         if (indent > envIndent) envContentIndent = indent;
@@ -959,13 +997,13 @@ function parseWorkflow(relativePath: string, text: string): ParsedFile {
     }
     const kv = parseYamlKey(line);
     if (kv === undefined) continue;
-    if (expectingJob && kv.value.trim() === "" && kv.indent > jobsKeyIndent) {
+    if (expectingJob && yamlScalar(kv.value).value === "" && kv.indent > jobsKeyIndent) {
       expectingJob = false;
       jobIndent = kv.indent;
       startJob();
       continue;
     }
-    if (jobIndent >= 0 && kv.indent === jobIndent && kv.value.trim() === "") {
+    if (jobIndent >= 0 && kv.indent === jobIndent && yamlScalar(kv.value).value === "") {
       startJob();
       continue;
     }
@@ -989,6 +1027,8 @@ function parseWorkflow(relativePath: string, text: string): ParsedFile {
       tool: run.tool,
       command: run.command,
       scopedEnv,
+      scriptLocked: run.scriptLocked,
+      honorMiseEnv: run.honorMiseEnv,
       path: relativePath,
       line: run.line,
     });
@@ -1138,6 +1178,14 @@ function parseYamlKey(line: string): { indent: number; key: string; value: strin
   return { indent: match[1]?.length ?? 0, key: match[2] ?? "", value: match[3] ?? "" };
 }
 
+function yamlScalar(text: string): { value: string; comment: string } {
+  const trimmed = text.trim();
+  if (trimmed === "" || trimmed.startsWith("#")) {
+    return { value: "", comment: trimmed.startsWith("#") ? trimmed.slice(1).trim() : "" };
+  }
+  return splitYamlComment(text);
+}
+
 function splitYamlComment(text: string): { value: string; comment: string } {
   const index = text.indexOf(" #");
   if (index === -1) return { value: text.trim(), comment: "" };
@@ -1159,25 +1207,80 @@ function isBlockScalar(value: string): boolean {
   return flag.startsWith("|") || flag.startsWith(">");
 }
 
+function joinContinuations(parts: readonly { line: number; text: string }[]): { line: number; text: string }[] {
+  const scripts: { line: number; text: string }[] = [];
+  let text = "";
+  let line = 0;
+  let open = false;
+  for (const part of parts) {
+    const continued = part.text.endsWith("\\");
+    const piece = continued ? part.text.slice(0, -1).trimEnd() : part.text;
+    if (!open) {
+      text = piece;
+      line = part.line;
+      open = true;
+    } else {
+      text = `${text} ${piece}`.trim();
+    }
+    if (continued) continue;
+    scripts.push({ line, text });
+    open = false;
+  }
+  if (open) scripts.push({ line, text });
+  return scripts;
+}
+
 function installSites(
   relativePath: string,
   line: number,
   command: string,
   scopedEnv: readonly EnvPair[],
+  honorMiseEnv: boolean,
 ): InstallSite[] {
   const sites: InstallSite[] = [];
+  let priorLocked = false;
   for (const segment of splitShell(command)) {
     const trimmed = segment.trim();
     if (trimmed === "") continue;
     const tokens = shellTokens(trimmed);
+    const invokesMise = tokens.includes("mise");
     if (tokens.includes("uv")) {
-      sites.push({ kind: "install-command", tool: "uv", command: trimmed, scopedEnv, path: relativePath, line });
+      sites.push({
+        kind: "install-command",
+        tool: "uv",
+        command: trimmed,
+        scopedEnv,
+        scriptLocked: priorLocked,
+        honorMiseEnv: honorMiseEnv || invokesMise,
+        path: relativePath,
+        line,
+      });
     }
     if (tokens.some((token) => token === "pnpm" || token.endsWith("/pnpm"))) {
-      sites.push({ kind: "install-command", tool: "pnpm", command: trimmed, scopedEnv, path: relativePath, line });
+      sites.push({
+        kind: "install-command",
+        tool: "pnpm",
+        command: trimmed,
+        scopedEnv,
+        scriptLocked: false,
+        honorMiseEnv: false,
+        path: relativePath,
+        line,
+      });
     }
+    const assigned = uvLockAssignment(tokens);
+    if (assigned !== undefined) priorLocked = assigned;
   }
   return sites;
+}
+
+function uvLockAssignment(tokens: readonly string[]): boolean | undefined {
+  let assigned: boolean | undefined;
+  for (const token of tokens) {
+    if (!token.startsWith("UV_LOCKED=")) continue;
+    assigned = token === "UV_LOCKED=1";
+  }
+  return assigned;
 }
 
 function splitShell(command: string): string[] {
@@ -1269,6 +1372,22 @@ function shellTokens(segment: string): string[] {
 
 function pnpmInstall(command: string): boolean {
   const tokens = shellTokens(command);
-  const invokes = tokens.some((token) => token === "pnpm" || token.endsWith("/pnpm"));
-  return invokes && tokens.includes("install");
+  let seenPnpm = false;
+  for (const token of tokens) {
+    if (token === "pnpm" || token.endsWith("/pnpm")) {
+      seenPnpm = true;
+      continue;
+    }
+    if (seenPnpm && token === "install") return true;
+  }
+  return false;
+}
+
+function pnpmFrozen(command: string): boolean {
+  let frozen = false;
+  for (const token of shellTokens(command)) {
+    if (token === "--frozen-lockfile" || token === "--frozen-lockfile=true") frozen = true;
+    else if (token === "--no-frozen-lockfile" || token === "--frozen-lockfile=false") frozen = false;
+  }
+  return frozen;
 }

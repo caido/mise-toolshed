@@ -346,7 +346,7 @@ test("workflow actions, local actions, and digested images pass", async () => {
       - uses: actions/checkout@${sha} # v6.0.3
       - uses: ./.github/actions/local
       - uses: docker://alpine@sha256:abc
-      - image: node:22@sha256:abc
+      - container: node:22@sha256:abc
       - run: echo "uv sync"
 `,
     },
@@ -366,7 +366,7 @@ test("workflow actions and images without pins fail", async () => {
       - uses: actions/checkout@${sha}
         # v6.0.3
       - uses: docker://alpine:3
-      - image: node:22
+      - container: node:22
 `,
     },
     (dir) => {
@@ -640,6 +640,230 @@ test("the last frozen-lockfile assignment in a file wins, and another file does 
     },
     (dir) => {
       expectClean(scan(dir));
+    },
+  );
+});
+
+test("a python equality pin cannot contain a wildcard", async () => {
+  await withFixture(
+    {
+      "pyproject.toml": `[project]
+dependencies = [
+  "requests==2.32.*",
+]
+`,
+    },
+    (dir) => {
+      expectFindings(scan(dir), "pyproject.toml:3: dependency requests is not an exact version\n");
+    },
+  );
+});
+
+test("a python wheel URL is not a git pin", async () => {
+  await withFixture(
+    {
+      "pyproject.toml": `[project]
+dependencies = [
+  "pkg @ https://files.pythonhosted.org/packages/a/b/requests-2.32.3-py3-none-any.whl",
+]
+`,
+    },
+    (dir) => {
+      expectFindings(scan(dir), "pyproject.toml:3: dependency pkg is not an exact version\n");
+    },
+  );
+});
+
+test("a multiline mise string does not change the section", async () => {
+  await withFixture(
+    {
+      "mise.toml": `[tools]
+note = """
+[env]
+UV_LOCKED = "1"
+"""
+pnpm = "latest"
+`,
+    },
+    (dir) => {
+      expectFindings(
+        scan(dir),
+        `mise.toml:2: tool note is not an exact version
+mise.toml:6: tool pnpm is not an exact version
+`,
+      );
+    },
+  );
+});
+
+test("comment-only workflow keys still open jobs, steps, and env", async () => {
+  await withFixture(
+    {
+      ".github/workflows/ci.yml": `jobs: # release
+  build: # typecheck
+    steps: # install
+      - uses: actions/checkout@v6.0.3
+`,
+    },
+    (dir) => {
+      expectFindings(
+        scan(dir),
+        ".github/workflows/ci.yml:4: action actions/checkout@v6.0.3 must be a 40-hex SHA with a version comment\n",
+      );
+    },
+  );
+});
+
+test("a workflow run joins backslash continuations before judging the command", async () => {
+  await withFixture(
+    {
+      ".github/workflows/ci.yml": `jobs:
+  build:
+    steps:
+      - run: |
+          pnpm \\
+            install
+`,
+    },
+    (dir) => {
+      expectFindings(
+        scan(dir),
+        ".github/workflows/ci.yml:5: pnpm install must pass --frozen-lockfile\n",
+      );
+    },
+  );
+  await withFixture(
+    {
+      ".github/workflows/ci.yml": `jobs:
+  build:
+    steps:
+      - run: |
+          pnpm install \\
+            --frozen-lockfile
+`,
+    },
+    (dir) => {
+      expectClean(scan(dir));
+    },
+  );
+});
+
+test("workflow images are container and service references", async () => {
+  await withFixture(
+    {
+      ".github/workflows/ci.yml": `on:
+  workflow_call:
+    inputs:
+      image:
+        default: node:22
+jobs:
+  build:
+    container:
+      image: node:22
+    services:
+      db:
+        image: postgres:16
+    steps:
+      - uses: actions/checkout@${sha} # v6.0.3
+        with:
+          image: node:22
+`,
+    },
+    (dir) => {
+      expectFindings(
+        scan(dir),
+        `.github/workflows/ci.yml:9: image node:22 must contain @sha256:
+.github/workflows/ci.yml:12: image postgres:16 must contain @sha256:
+`,
+      );
+    },
+  );
+});
+
+test("service and container env do not lock a job step", async () => {
+  await withFixture(
+    {
+      ".github/workflows/ci.yml": `jobs:
+  build:
+    services:
+      db:
+        image: postgres:16@sha256:abc
+        env:
+          UV_LOCKED: "1"
+    container:
+      env:
+        UV_LOCKED: "1"
+      image: node:22@sha256:abc
+    steps:
+      - run: uv sync
+`,
+    },
+    (dir) => {
+      expectFindings(scan(dir), ".github/workflows/ci.yml:13: uv command must set UV_LOCKED=1\n");
+    },
+  );
+});
+
+test("UV_LOCKED quotes and an earlier export in the same script count", async () => {
+  await withFixture(
+    {
+      ".github/workflows/ci.yml": `jobs:
+  build:
+    steps:
+      - run: UV_LOCKED="1" uv sync
+      - run: export UV_LOCKED=1 && uv sync
+`,
+    },
+    (dir) => {
+      expectClean(scan(dir));
+    },
+  );
+});
+
+test("mise UV_LOCKED covers package scripts and mise commands only", async () => {
+  await withFixture(
+    {
+      "mise.toml": `[env]
+UV_LOCKED = "1"
+`,
+      Dockerfile: "FROM scratch\nRUN uv sync\n",
+      ".github/workflows/ci.yml": `jobs:
+  build:
+    steps:
+      - run: uv sync
+      - run: mise exec -- uv sync
+`,
+    },
+    (dir) => {
+      expectFindings(
+        scan(dir),
+        `.github/workflows/ci.yml:4: uv command must set UV_LOCKED=1
+Dockerfile:2: uv command must set UV_LOCKED=1
+`,
+      );
+    },
+  );
+});
+
+test("pnpm install is the pnpm token followed by install", async () => {
+  await withFixture(
+    {
+      ".github/workflows/ci.yml": `jobs:
+  build:
+    steps:
+      - run: apt-get install -y pnpm
+      - run: pnpm install --frozen-lockfile=false
+      - run: pnpm install --frozen-lockfile --no-frozen-lockfile
+      - run: pnpm install --no-frozen-lockfile --frozen-lockfile
+`,
+    },
+    (dir) => {
+      expectFindings(
+        scan(dir),
+        `.github/workflows/ci.yml:5: pnpm install must pass --frozen-lockfile
+.github/workflows/ci.yml:6: pnpm install must pass --frozen-lockfile
+`,
+      );
     },
   );
 });
