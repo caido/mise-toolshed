@@ -1,8 +1,10 @@
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { TOOL_NAME, TOOL_VERSION } from "#tool-version";
-import { classify, decide, parseFile, scanFacts, skipDirectory } from "./pins.js";
-import type { Finding, ParsedFile } from "./pins.js";
+import { classify, skipDirectory } from "./classify-path.js";
+import { decide } from "./decide-pins.js";
+import { parseFile, scanFacts } from "./parse-file.js";
+import type { Finding, ParsedFile } from "./types.js";
 
 type Io = {
   readonly stdout: { write(chunk: string): void };
