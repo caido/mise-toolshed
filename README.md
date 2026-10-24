@@ -21,7 +21,7 @@ toolshed = "https://github.com/caido/mise-toolshed#<40-hex sha>"
 
 `mise ls-remote toolshed:check-pins` lists bare versions from `check-pins-v*` tags, oldest first. It does not list `latest`. `mise install` downloads `check-pins.mjs` and `SHA256SUMS` from `https://github.com/caido/mise-toolshed/releases/download/check-pins-v<version>/`, checks the digest, and installs the file as `check-pins` on `PATH`.
 
-Running `check-pins` with no arguments scans the current directory. Each finding is a stdout line `file:line: message`. The command exits 1 on any finding. `--version` still prints the version.
+What the scan checks is in [packages/check-pins/README.md](packages/check-pins/README.md).
 
 ## Publish a release
 
@@ -124,7 +124,7 @@ Plugin files are at the repository root. Workspace packages are under `packages/
 - `lib/version_order.lua` orders version strings for get-skills and released tools.
 - `lib/released_tool.lua` lists and installs released tools from checksummed GitHub releases.
 - `packages/check-pins` is the only package under `packages/`.
-- `packages/check-pins` is a private CLI. Running it with no arguments scans the current directory. Each finding is a stdout line `file:line: message`. The command exits 1 on any finding. `--version` still prints the version.
+- `packages/check-pins` is a private CLI. What the scan checks is in [packages/check-pins/README.md](packages/check-pins/README.md).
 - `scripts/build-package.mjs` bundles a package.
 - `test/get-skills-remote.sh` covers get-skills tag listing.
 - `test/get-skills-sync.sh` covers the personal-folder install.
