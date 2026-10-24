@@ -94,7 +94,6 @@ const packageManagerExact = new RegExp(`^pnpm@${SEMVER}$`);
 const toolExact = /^(0|[1-9]\d*)\.(0|[1-9]\d*)(\.(0|[1-9]\d*))?$/;
 const hex40 = /^[0-9a-fA-F]{40}$/;
 const versionComment = /(?:^|\s)v?\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?(?:\s|$)/;
-const uvLockedInCommand = /(?:^|[\s;&|])UV_LOCKED=(?:"1"|'1'|1)(?:\s|$)/;
 
 export function skipDirectory(name: string): boolean {
   return name === "node_modules" || name === ".git" || name === "dist";
@@ -216,6 +215,7 @@ function decidePython(site: DependencySite): readonly Finding[] {
     if (hex40.test(revision)) return [];
     return [finding(site, `dependency ${site.name} git pin is not 40 hex`)];
   }
+  if (requirement.includes(" @ ")) return [finding(site, `dependency ${site.name} is not an exact version`)];
   if (pythonExact(requirement)) return [];
   return [finding(site, `dependency ${site.name} is not an exact version`)];
 }
@@ -253,7 +253,7 @@ function decideInstall(site: InstallSite, facts: ScanFacts): readonly Finding[] 
       findings.push(finding(site, "uv command must not contain --frozen"));
     }
     const locked =
-      uvLockedInCommand.test(site.command) ||
+      uvPrefixLocked(site.command) ||
       site.scriptLocked ||
       site.scopedEnv.some((pair) => pair.name === "UV_LOCKED" && pair.value === "1") ||
       (site.honorMiseEnv && facts.miseUvLocked);
@@ -801,7 +801,7 @@ function dockerfileInstructions(text: string): { line: number; text: string; par
     if (continued) continue;
     instructions.push({
       line: parts[0]?.line ?? index + 1,
-      text: parts.map((part) => part.text).join("\n"),
+      text: parts.map((part) => part.text.trim()).join(" "),
       parts,
     });
     parts = [];
@@ -809,7 +809,7 @@ function dockerfileInstructions(text: string): { line: number; text: string; par
   if (parts.length > 0) {
     instructions.push({
       line: parts[0]?.line ?? 1,
-      text: parts.map((part) => part.text).join("\n"),
+      text: parts.map((part) => part.text.trim()).join(" "),
       parts,
     });
   }
@@ -895,16 +895,17 @@ function parseWorkflow(relativePath: string, text: string): ParsedFile {
 
   const takeKey = (key: string, value: string, indent: number, lineNo: number, cursor: { i: number }): void => {
     const scalar = yamlScalar(value);
-    if (key === "jobs" && scalar.value === "" && currentJob < 0 && currentStep < 0) {
+    const opened = structuralValue(scalar.value);
+    if (key === "jobs" && opened === "" && currentJob < 0 && currentStep < 0) {
       expectingJob = true;
       jobsKeyIndent = indent;
       return;
     }
-    if (key === "steps" && scalar.value === "" && currentJob >= 0) {
+    if (key === "steps" && opened === "" && currentJob >= 0) {
       stepsIndent = indent;
       return;
     }
-    if (key === "env" && scalar.value === "" && !(imageIndent >= 0 && indent > imageIndent)) {
+    if (key === "env" && opened === "" && !(imageIndent >= 0 && indent > imageIndent)) {
       envTarget = currentStep >= 0 ? "step" : currentJob >= 0 ? "job" : "workflow";
       envIndent = indent;
       envContentIndent = -1;
@@ -920,11 +921,17 @@ function parseWorkflow(relativePath: string, text: string): ParsedFile {
       return;
     }
     if ((key === "container" || key === "services") && currentJob >= 0 && currentStep < 0) {
-      if (key === "container" && scalar.value !== "" && !isBlockScalar(value)) {
-        pushImage(unquoteYaml(scalar.value), lineNo, "workflow");
+      if (key === "container" && isBlockScalar(value)) {
+        const physical = readBlock(lines, cursor, indent);
+        const reference = (physical[0]?.text ?? "").trim();
+        if (reference !== "") pushImage(reference, physical[0]?.line ?? lineNo, "workflow");
         return;
       }
-      if (scalar.value === "") imageIndent = indent;
+      if (key === "container" && opened !== "" && !isBlockScalar(value)) {
+        pushImage(unquoteYaml(opened), lineNo, "workflow");
+        return;
+      }
+      if (opened === "") imageIndent = indent;
       return;
     }
     if (key === "image" && imageIndent >= 0 && indent > imageIndent) {
@@ -933,15 +940,12 @@ function parseWorkflow(relativePath: string, text: string): ParsedFile {
     }
     if (key !== "run") return;
     if (isBlockScalar(value)) {
-      const physical: { line: number; text: string }[] = [];
-      let next = cursor.i + 1;
-      for (; next < lines.length; next += 1) {
-        const blockLine = lines[next] ?? "";
-        if (blockLine.trim() === "") continue;
-        if (indentOf(blockLine) <= indent) break;
-        physical.push({ line: next + 1, text: blockLine.trim() });
+      const physical = readBlock(lines, cursor, indent);
+      if (value.trim().startsWith(">")) {
+        const text = physical.map((part) => part.text).join(" ").trim();
+        if (text !== "") takeCommand(text, physical[0]?.line ?? lineNo);
+        return;
       }
-      cursor.i = next - 1;
       for (const script of joinContinuations(physical)) takeCommand(script.text, script.line);
       return;
     }
@@ -998,13 +1002,13 @@ function parseWorkflow(relativePath: string, text: string): ParsedFile {
     }
     const kv = parseYamlKey(line);
     if (kv === undefined) continue;
-    if (expectingJob && yamlScalar(kv.value).value === "" && kv.indent > jobsKeyIndent) {
+    if (expectingJob && structuralValue(yamlScalar(kv.value).value) === "" && kv.indent > jobsKeyIndent) {
       expectingJob = false;
       jobIndent = kv.indent;
       startJob();
       continue;
     }
-    if (jobIndent >= 0 && kv.indent === jobIndent && yamlScalar(kv.value).value === "") {
+    if (jobIndent >= 0 && kv.indent === jobIndent && structuralValue(yamlScalar(kv.value).value) === "") {
       startJob();
       continue;
     }
@@ -1208,6 +1212,28 @@ function isBlockScalar(value: string): boolean {
   return flag.startsWith("|") || flag.startsWith(">");
 }
 
+function structuralValue(value: string): string {
+  if (/^&[A-Za-z_][A-Za-z0-9_-]*$/.test(value)) return "";
+  return value;
+}
+
+function readBlock(
+  lines: readonly string[],
+  cursor: { i: number },
+  indent: number,
+): { line: number; text: string }[] {
+  const physical: { line: number; text: string }[] = [];
+  let next = cursor.i + 1;
+  for (; next < lines.length; next += 1) {
+    const blockLine = lines[next] ?? "";
+    if (blockLine.trim() === "") continue;
+    if (indentOf(blockLine) <= indent) break;
+    physical.push({ line: next + 1, text: blockLine.trim() });
+  }
+  cursor.i = next - 1;
+  return physical;
+}
+
 function joinContinuations(parts: readonly { line: number; text: string }[]): { line: number; text: string }[] {
   const scripts: { line: number; text: string }[] = [];
   let text = "";
@@ -1240,7 +1266,7 @@ function installSites(
 ): InstallSite[] {
   const sites: InstallSite[] = [];
   let priorLocked = false;
-  for (const segment of splitShell(command)) {
+  for (const segment of splitShell(stripShellComment(command))) {
     const trimmed = segment.trim();
     if (trimmed === "") continue;
     const tokens = shellTokens(trimmed);
@@ -1273,6 +1299,48 @@ function installSites(
     if (assigned !== undefined) priorLocked = assigned;
   }
   return sites;
+}
+
+function uvPrefixLocked(command: string): boolean {
+  const tokens = shellTokens(command);
+  const uvAt = tokens.indexOf("uv");
+  if (uvAt === -1) return false;
+  for (let index = 0; index < uvAt; index += 1) {
+    if (tokens[index] === "UV_LOCKED=1") return true;
+  }
+  return false;
+}
+
+function stripShellComment(command: string): string {
+  let out = "";
+  let quote: '"' | "'" | null = null;
+  for (let index = 0; index < command.length; index += 1) {
+    const ch = command[index] ?? "";
+    if (quote) {
+      out += ch;
+      if (ch === "\\" && quote === '"') {
+        const next = command[index + 1];
+        if (next !== undefined) {
+          out += next;
+          index += 1;
+        }
+        continue;
+      }
+      if (ch === quote) quote = null;
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+      out += ch;
+      continue;
+    }
+    if (ch === "#") {
+      while (index + 1 < command.length && command[index + 1] !== "\n") index += 1;
+      continue;
+    }
+    out += ch;
+  }
+  return out;
 }
 
 function uvLockAssignment(tokens: readonly string[]): boolean | undefined {
@@ -1322,7 +1390,7 @@ function splitShell(command: string): string[] {
       index += 1;
       continue;
     }
-    if (ch === "|" || ch === ";") {
+    if (ch === "&" || ch === "|" || ch === ";") {
       segments.push(current);
       current = "";
       continue;
@@ -1364,6 +1432,14 @@ function shellTokens(segment: string): string[] {
       quote = ch;
       continue;
     }
+    if (ch === "\\") {
+      const next = segment[index + 1];
+      if (next !== undefined) {
+        current += next;
+        index += 1;
+      }
+      continue;
+    }
     if (ch === " " || ch === "\t") {
       push();
       continue;
@@ -1391,7 +1467,13 @@ function pnpmFrozen(command: string): boolean | undefined {
   let frozen: boolean | undefined;
   for (const token of shellTokens(command)) {
     if (token === "--frozen-lockfile" || token === "--frozen-lockfile=true") frozen = true;
-    else if (token === "--no-frozen-lockfile" || token === "--frozen-lockfile=false") frozen = false;
+    else if (
+      token === "--no-frozen-lockfile" ||
+      token === "--no-frozen-lockfile=true" ||
+      token === "--frozen-lockfile=false"
+    ) {
+      frozen = false;
+    }
   }
   return frozen;
 }

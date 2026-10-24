@@ -980,6 +980,181 @@ ${deps}
   );
 });
 
+test("a continued dockerfile command is one command", async () => {
+  await withFixture(
+    {
+      Dockerfile: `FROM scratch
+RUN pnpm \\
+  install
+RUN UV_LOCKED=1 uv sync \\
+  --frozen
+`,
+    },
+    (dir) => {
+      expectFindings(
+        scan(dir),
+        `Dockerfile:2: pnpm install must pass --frozen-lockfile
+Dockerfile:4: uv command must not contain --frozen
+`,
+      );
+    },
+  );
+  await withFixture(
+    {
+      ".npmrc": "frozen-lockfile=true\n",
+      Dockerfile: `FROM scratch
+RUN pnpm install \\
+  --no-frozen-lockfile
+`,
+    },
+    (dir) => {
+      expectFindings(scan(dir), "Dockerfile:2: pnpm install must pass --frozen-lockfile\n");
+    },
+  );
+});
+
+test("a folded workflow run is one command", async () => {
+  await withFixture(
+    {
+      ".github/workflows/ci.yml": `jobs:
+  build:
+    steps:
+      - run: >
+          pnpm
+          install
+      - run: >
+          UV_LOCKED=1 uv sync
+          --frozen
+`,
+    },
+    (dir) => {
+      expectFindings(
+        scan(dir),
+        `.github/workflows/ci.yml:5: pnpm install must pass --frozen-lockfile
+.github/workflows/ci.yml:8: uv command must not contain --frozen
+`,
+      );
+    },
+  );
+});
+
+test("a shell comment is not a pin", async () => {
+  await withFixture(
+    {
+      ".github/workflows/ci.yml": `jobs:
+  build:
+    steps:
+      - run: uv sync # UV_LOCKED=1
+      - run: UV_LOCKED=1 uv sync # --frozen
+      - run: pnpm install # --frozen-lockfile
+`,
+    },
+    (dir) => {
+      expectFindings(
+        scan(dir),
+        `.github/workflows/ci.yml:4: uv command must set UV_LOCKED=1
+.github/workflows/ci.yml:6: pnpm install must pass --frozen-lockfile
+`,
+      );
+    },
+  );
+});
+
+test("UV_LOCKED after the uv token does not lock the command", async () => {
+  await withFixture(
+    {
+      ".github/workflows/ci.yml": `jobs:
+  build:
+    steps:
+      - run: uv sync UV_LOCKED=1
+`,
+    },
+    (dir) => {
+      expectFindings(scan(dir), ".github/workflows/ci.yml:4: uv command must set UV_LOCKED=1\n");
+    },
+  );
+});
+
+test("a direct python url is not an exact pin when it contains ==" , async () => {
+  await withFixture(
+    {
+      "pyproject.toml": `[project]
+dependencies = [
+  "pkg @ https://example.com/foo==1.2.3.whl",
+]
+`,
+    },
+    (dir) => {
+      expectFindings(scan(dir), "pyproject.toml:3: dependency pkg is not an exact version\n");
+    },
+  );
+});
+
+test("an anchor on steps or a job still opens the block", async () => {
+  await withFixture(
+    {
+      ".github/workflows/ci.yml": `jobs: &all
+  build: &job
+    steps: &steps
+      - uses: actions/checkout@v6.0.3
+`,
+    },
+    (dir) => {
+      expectFindings(
+        scan(dir),
+        ".github/workflows/ci.yml:4: action actions/checkout@v6.0.3 must be a 40-hex SHA with a version comment\n",
+      );
+    },
+  );
+});
+
+test("a block scalar container is an image", async () => {
+  await withFixture(
+    {
+      ".github/workflows/ci.yml": `jobs:
+  build:
+    container: |
+      node:22
+    steps:
+      - run: echo hi
+`,
+    },
+    (dir) => {
+      expectFindings(scan(dir), ".github/workflows/ci.yml:4: image node:22 must contain @sha256:\n");
+    },
+  );
+});
+
+test("an escaped pnpm token is still pnpm", async () => {
+  await withFixture(
+    {
+      ".github/workflows/ci.yml": `jobs:
+  build:
+    steps:
+      - run: \\pnpm install
+`,
+    },
+    (dir) => {
+      expectFindings(scan(dir), ".github/workflows/ci.yml:4: pnpm install must pass --frozen-lockfile\n");
+    },
+  );
+});
+
+test("a background pnpm install is still an install", async () => {
+  await withFixture(
+    {
+      ".github/workflows/ci.yml": `jobs:
+  build:
+    steps:
+      - run: pnpm install&
+`,
+    },
+    (dir) => {
+      expectFindings(scan(dir), ".github/workflows/ci.yml:4: pnpm install must pass --frozen-lockfile\n");
+    },
+  );
+});
+
 test("skipped directories and non-target files are not scanned", async () => {
   const bad = packageJson("dependencies", "^1.0.0");
   await withFixture(
