@@ -65,4 +65,7 @@ function walk(cwd: string, directory: string): readonly ParsedFile[] {
   });
 }
 
-process.exit(run(process.argv.slice(2), process.cwd(), { stdout: process.stdout, stderr: process.stderr }));
+process.exitCode = run(process.argv.slice(2), process.cwd(), {
+  stdout: process.stdout,
+  stderr: process.stderr,
+});

@@ -261,7 +261,8 @@ function decideInstall(site: InstallSite, facts: ScanFacts): readonly Finding[] 
     return findings;
   }
   if (!pnpmInstall(site.command)) return [];
-  if (pnpmFrozen(site.command) || facts.npmrcFrozen) return [];
+  const frozen = pnpmFrozen(site.command);
+  if (frozen === true || (frozen === undefined && facts.npmrcFrozen)) return [];
   return [finding(site, "pnpm install must pass --frozen-lockfile")];
 }
 
@@ -793,7 +794,7 @@ function dockerfileInstructions(text: string): { line: number; text: string; par
   const lines = text.split(/\r?\n/);
   for (let index = 0; index < lines.length; index += 1) {
     const raw = lines[index] ?? "";
-    if (parts.length === 0 && (raw.trim() === "" || raw.trimStart().startsWith("#"))) continue;
+    if (raw.trim() === "" || raw.trimStart().startsWith("#")) continue;
     const continued = raw.trimEnd().endsWith("\\");
     const piece = continued ? raw.trimEnd().slice(0, -1) : raw;
     parts.push({ line: index + 1, text: piece });
@@ -918,7 +919,7 @@ function parseWorkflow(relativePath: string, text: string): ParsedFile {
       sites.push({ kind: "action", uses, comment: scalar.comment, path: relativePath, line: lineNo });
       return;
     }
-    if (key === "container" || key === "services") {
+    if ((key === "container" || key === "services") && currentJob >= 0 && currentStep < 0) {
       if (key === "container" && scalar.value !== "" && !isBlockScalar(value)) {
         pushImage(unquoteYaml(scalar.value), lineNo, "workflow");
         return;
@@ -980,7 +981,7 @@ function parseWorkflow(relativePath: string, text: string): ParsedFile {
       stepDashIndent = -1;
     }
     const dash = /^(\s*)-\s*(.*)$/.exec(line);
-    if (dash && stepsIndent >= 0 && indent > stepsIndent) {
+    if (dash && stepsIndent >= 0 && indent >= stepsIndent) {
       currentStep = steps.length;
       steps.push({ env: new Map() });
       stepDashIndent = indent;
@@ -1275,8 +1276,11 @@ function installSites(
 }
 
 function uvLockAssignment(tokens: readonly string[]): boolean | undefined {
+  const exported = tokens[0] === "export";
+  const args = exported ? tokens.slice(1) : tokens;
+  if (args.length === 0 || !args.every((token) => /^[A-Za-z_][A-Za-z0-9_]*=/.test(token))) return undefined;
   let assigned: boolean | undefined;
-  for (const token of tokens) {
+  for (const token of args) {
     if (!token.startsWith("UV_LOCKED=")) continue;
     assigned = token === "UV_LOCKED=1";
   }
@@ -1378,13 +1382,13 @@ function pnpmInstall(command: string): boolean {
       seenPnpm = true;
       continue;
     }
-    if (seenPnpm && token === "install") return true;
+    if (seenPnpm && (token === "install" || token === "i")) return true;
   }
   return false;
 }
 
-function pnpmFrozen(command: string): boolean {
-  let frozen = false;
+function pnpmFrozen(command: string): boolean | undefined {
+  let frozen: boolean | undefined;
   for (const token of shellTokens(command)) {
     if (token === "--frozen-lockfile" || token === "--frozen-lockfile=true") frozen = true;
     else if (token === "--no-frozen-lockfile" || token === "--frozen-lockfile=false") frozen = false;

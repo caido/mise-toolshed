@@ -342,12 +342,14 @@ test("workflow actions, local actions, and digested images pass", async () => {
     {
       ".github/workflows/ci.yml": `jobs:
   build:
+    container: node:22@sha256:abc
     steps:
       - uses: actions/checkout@${sha} # v6.0.3
       - uses: ./.github/actions/local
       - uses: docker://alpine@sha256:abc
-      - container: node:22@sha256:abc
       - run: echo "uv sync"
+        with:
+          container: my-name
 `,
     },
     (dir) => {
@@ -361,21 +363,21 @@ test("workflow actions and images without pins fail", async () => {
     {
       ".github/workflows/ci.yml": `jobs:
   build:
+    container: node:22
     steps:
       - uses: actions/checkout@${sha}
       - uses: actions/checkout@${sha}
         # v6.0.3
       - uses: docker://alpine:3
-      - container: node:22
 `,
     },
     (dir) => {
       expectFindings(
         scan(dir),
-        `.github/workflows/ci.yml:4: action actions/checkout@${sha} must be a 40-hex SHA with a version comment
+        `.github/workflows/ci.yml:3: image node:22 must contain @sha256:
 .github/workflows/ci.yml:5: action actions/checkout@${sha} must be a 40-hex SHA with a version comment
-.github/workflows/ci.yml:7: image docker://alpine:3 must contain @sha256:
-.github/workflows/ci.yml:8: image node:22 must contain @sha256:
+.github/workflows/ci.yml:6: action actions/checkout@${sha} must be a 40-hex SHA with a version comment
+.github/workflows/ci.yml:8: image docker://alpine:3 must contain @sha256:
 `,
       );
     },
@@ -603,18 +605,24 @@ test("pnpm install needs a frozen lockfile on the command or in some npmrc", asy
   );
 });
 
-test("pnpm i and pnpm build are not install findings", async () => {
+test("pnpm i is an install and pnpm build is not", async () => {
   await withFixture(
     {
       ".github/workflows/ci.yml": `jobs:
   build:
     steps:
       - run: pnpm i
+      - run: pnpm -r i
       - run: pnpm -r --if-present build
 `,
     },
     (dir) => {
-      expectClean(scan(dir));
+      expectFindings(
+        scan(dir),
+        `.github/workflows/ci.yml:4: pnpm install must pass --frozen-lockfile
+.github/workflows/ci.yml:5: pnpm install must pass --frozen-lockfile
+`,
+      );
     },
   );
 });
@@ -864,6 +872,110 @@ test("pnpm install is the pnpm token followed by install", async () => {
 .github/workflows/ci.yml:6: pnpm install must pass --frozen-lockfile
 `,
       );
+    },
+  );
+});
+
+test("a dockerfile comment inside a continuation stays in the same instruction", async () => {
+  await withFixture(
+    {
+      Dockerfile: `FROM scratch
+RUN apt-get update && \\
+    # install deps
+    pnpm install
+RUN echo hi && \\
+
+    # uv sync
+    echo done
+`,
+    },
+    (dir) => {
+      expectFindings(scan(dir), "Dockerfile:4: pnpm install must pass --frozen-lockfile\n");
+    },
+  );
+});
+
+test("steps at the same indent as the steps key are scanned", async () => {
+  await withFixture(
+    {
+      ".github/workflows/ci.yml": `jobs:
+  build:
+    steps:
+    - uses: actions/checkout@v6.0.3
+`,
+    },
+    (dir) => {
+      expectFindings(
+        scan(dir),
+        ".github/workflows/ci.yml:4: action actions/checkout@v6.0.3 must be a 40-hex SHA with a version comment\n",
+      );
+    },
+  );
+});
+
+test("an explicit negated frozen-lockfile flag overrides npmrc", async () => {
+  await withFixture(
+    {
+      ".npmrc": "frozen-lockfile=true\n",
+      ".github/workflows/ci.yml": `jobs:
+  build:
+    steps:
+      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm install --frozen-lockfile=false
+      - run: pnpm install
+`,
+    },
+    (dir) => {
+      expectFindings(
+        scan(dir),
+        `.github/workflows/ci.yml:4: pnpm install must pass --frozen-lockfile
+.github/workflows/ci.yml:5: pnpm install must pass --frozen-lockfile
+`,
+      );
+    },
+  );
+});
+
+test("UV_LOCKED carries across segments only as a standalone assignment", async () => {
+  await withFixture(
+    {
+      ".github/workflows/ci.yml": `jobs:
+  build:
+    steps:
+      - run: UV_LOCKED=1 && uv sync
+      - run: echo UV_LOCKED=1 && uv sync
+      - run: UV_LOCKED=1 uv lock && uv sync
+`,
+    },
+    (dir) => {
+      expectFindings(
+        scan(dir),
+        `.github/workflows/ci.yml:5: uv command must set UV_LOCKED=1
+.github/workflows/ci.yml:6: uv command must set UV_LOCKED=1
+`,
+      );
+    },
+  );
+});
+
+test("a piped scan returns every finding line", async () => {
+  const deps = Array.from({ length: 2000 }, (_, index) => `    "pkg${index}": "^1.0.0"`).join(",\n");
+  await withFixture(
+    {
+      "package.json": `{
+  "dependencies": {
+${deps}
+  }
+}
+`,
+    },
+    (dir) => {
+      const result = scan(dir);
+      const lines = result.stdout.split("\n").filter((line) => line.length > 0);
+      assert.equal(result.status, 1);
+      assert.equal(lines.length, 2000);
+      assert.equal(lines[0], "package.json:3: dependency pkg0 is not an exact version");
+      assert.equal(lines[1999], "package.json:2002: dependency pkg1999 is not an exact version");
     },
   );
 });
