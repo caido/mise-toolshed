@@ -1242,6 +1242,193 @@ test("a background pnpm install is still an install", async () => {
   );
 });
 
+test("an exported lock does not cross a pipe, a background command, or a skipped branch", async () => {
+  await withFixture(
+    {
+      ".github/workflows/ci.yml": `jobs:
+  build:
+    steps:
+      - run: export UV_LOCKED=1 | uv sync
+      - run: declare -x UV_LOCKED=1 | uv sync
+      - run: export UV_LOCKED=1 & uv sync
+      - run: false && export UV_LOCKED=1; uv sync
+      - run: true || export UV_LOCKED=1; uv sync
+      - run: export UV_LOCKED=1; uv sync | cat
+      - run: export UV_LOCKED=1 && uv sync
+`,
+    },
+    (dir) => {
+      expectFindings(
+        scan(dir),
+        `.github/workflows/ci.yml:4: uv command must set UV_LOCKED=1
+.github/workflows/ci.yml:5: uv command must set UV_LOCKED=1
+.github/workflows/ci.yml:6: uv command must set UV_LOCKED=1
+.github/workflows/ci.yml:7: uv command must set UV_LOCKED=1
+.github/workflows/ci.yml:8: uv command must set UV_LOCKED=1
+`,
+      );
+    },
+  );
+});
+
+test("a later command can drop UV_LOCKED for one command or for the rest of the script", async () => {
+  await withFixture(
+    {
+      ".github/workflows/ci.yml": `jobs:
+  build:
+    steps:
+      - run: export UV_LOCKED=1; unset UV_LOCKED; uv sync
+      - run: export UV_LOCKED=1; export -n UV_LOCKED; uv sync
+      - run: export UV_LOCKED=1; declare +x UV_LOCKED; uv sync
+      - run: export UV_LOCKED=1; UV_LOCKED=0 uv sync
+      - run: export UV_LOCKED=1; UV_LOCKED= uv sync
+      - run: export UV_LOCKED=1; env -u UV_LOCKED uv sync
+      - run: export UV_LOCKED=1; env UV_LOCKED=0 uv sync
+      - run: export UV_LOCKED=1; uv sync
+`,
+    },
+    (dir) => {
+      expectFindings(
+        scan(dir),
+        `.github/workflows/ci.yml:4: uv command must set UV_LOCKED=1
+.github/workflows/ci.yml:5: uv command must set UV_LOCKED=1
+.github/workflows/ci.yml:6: uv command must set UV_LOCKED=1
+.github/workflows/ci.yml:7: uv command must set UV_LOCKED=1
+.github/workflows/ci.yml:8: uv command must set UV_LOCKED=1
+.github/workflows/ci.yml:9: uv command must set UV_LOCKED=1
+.github/workflows/ci.yml:10: uv command must set UV_LOCKED=1
+`,
+      );
+    },
+  );
+});
+
+test("a digit anchor and a yaml tag still open a run block", async () => {
+  await withFixture(
+    {
+      ".github/workflows/ci.yml": `jobs:
+  build:
+    steps:
+      - run: &1 |
+          pnpm install
+          uv sync
+      - run: *1
+      - run: !!str |
+          pnpm install
+      - run: &a !!str |
+          uv sync
+`,
+    },
+    (dir) => {
+      expectFindings(
+        scan(dir),
+        `.github/workflows/ci.yml:5: pnpm install must pass --frozen-lockfile
+.github/workflows/ci.yml:6: uv command must set UV_LOCKED=1
+.github/workflows/ci.yml:7: pnpm install must pass --frozen-lockfile
+.github/workflows/ci.yml:7: uv command must set UV_LOCKED=1
+.github/workflows/ci.yml:9: pnpm install must pass --frozen-lockfile
+.github/workflows/ci.yml:11: uv command must set UV_LOCKED=1
+`,
+      );
+    },
+  );
+});
+
+test("a more-indented folded line is its own command", async () => {
+  await withFixture(
+    {
+      ".github/workflows/ci.yml": `jobs:
+  build:
+    steps:
+      - run: >
+          pnpm install
+            --frozen-lockfile
+      - run: >
+          UV_LOCKED=1 uv sync
+            uv sync
+`,
+    },
+    (dir) => {
+      expectFindings(
+        scan(dir),
+        `.github/workflows/ci.yml:5: pnpm install must pass --frozen-lockfile
+.github/workflows/ci.yml:8: uv command must set UV_LOCKED=1
+`,
+      );
+    },
+  );
+});
+
+test("a blank line ends a literal backslash continuation", async () => {
+  await withFixture(
+    {
+      ".github/workflows/ci.yml": `jobs:
+  build:
+    steps:
+      - run: |
+          pnpm install --frozen-lockfile \\
+
+          pnpm install
+      - run: |
+          UV_LOCKED=1 uv sync \\
+
+          uv sync
+`,
+    },
+    (dir) => {
+      expectFindings(
+        scan(dir),
+        `.github/workflows/ci.yml:7: pnpm install must pass --frozen-lockfile
+.github/workflows/ci.yml:11: uv command must set UV_LOCKED=1
+`,
+      );
+    },
+  );
+});
+
+test("quotes, parameter text, and grouping still expose the install", async () => {
+  await withFixture(
+    {
+      ".github/workflows/ci.yml": `jobs:
+  build:
+    steps:
+      - run: 'uv sync # UV_LOCKED=1'
+      - run: "pnpm install # --frozen-lockfile"
+      - run: ': \${x= #}; pnpm install'
+      - run: ': \${x= #}; uv sync'
+      - run: "(pnpm install)"
+      - run: "(uv sync)"
+      - run: "\$(pnpm install)"
+      - run: "\$(uv sync)"
+      - run: "\`pnpm install\`"
+      - run: "\`uv sync\`"
+      - run: |
+          (#--frozen-lockfile
+          pnpm install)
+      - run: "UV_LOCKED=1 uv sync\\nuv sync"
+`,
+    },
+    (dir) => {
+      expectFindings(
+        scan(dir),
+        `.github/workflows/ci.yml:4: uv command must set UV_LOCKED=1
+.github/workflows/ci.yml:5: pnpm install must pass --frozen-lockfile
+.github/workflows/ci.yml:6: pnpm install must pass --frozen-lockfile
+.github/workflows/ci.yml:7: uv command must set UV_LOCKED=1
+.github/workflows/ci.yml:8: pnpm install must pass --frozen-lockfile
+.github/workflows/ci.yml:9: uv command must set UV_LOCKED=1
+.github/workflows/ci.yml:10: pnpm install must pass --frozen-lockfile
+.github/workflows/ci.yml:11: uv command must set UV_LOCKED=1
+.github/workflows/ci.yml:12: pnpm install must pass --frozen-lockfile
+.github/workflows/ci.yml:13: uv command must set UV_LOCKED=1
+.github/workflows/ci.yml:16: pnpm install must pass --frozen-lockfile
+.github/workflows/ci.yml:17: uv command must set UV_LOCKED=1
+`,
+      );
+    },
+  );
+});
+
 test("skipped directories and non-target files are not scanned", async () => {
   const bad = packageJson("dependencies", "^1.0.0");
   await withFixture(

@@ -47,6 +47,7 @@ export type InstallSite = Site & {
   readonly command: string;
   readonly scopedEnv: readonly EnvPair[];
   readonly scriptLocked: boolean;
+  readonly commandLock: boolean | undefined;
   readonly honorMiseEnv: boolean;
 };
 
@@ -253,10 +254,10 @@ function decideInstall(site: InstallSite, facts: ScanFacts): readonly Finding[] 
       findings.push(finding(site, "uv command must not contain --frozen"));
     }
     const locked =
-      uvPrefixLocked(site.command) ||
-      site.scriptLocked ||
-      site.scopedEnv.some((pair) => pair.name === "UV_LOCKED" && pair.value === "1") ||
-      (site.honorMiseEnv && facts.miseUvLocked);
+      site.commandLock ??
+      (site.scriptLocked ||
+        site.scopedEnv.some((pair) => pair.name === "UV_LOCKED" && pair.value === "1") ||
+        (site.honorMiseEnv && facts.miseUvLocked));
     if (!locked) findings.push(finding(site, "uv command must set UV_LOCKED=1"));
     return findings;
   }
@@ -832,6 +833,7 @@ type WorkflowRun = {
   readonly job: number;
   readonly step: number;
   readonly scriptLocked: boolean;
+  readonly commandLock: boolean | undefined;
   readonly honorMiseEnv: boolean;
 };
 
@@ -878,6 +880,7 @@ function parseWorkflow(relativePath: string, text: string): ParsedFile {
         job: currentJob,
         step: currentStep,
         scriptLocked: site.scriptLocked,
+        commandLock: site.commandLock,
         honorMiseEnv: site.honorMiseEnv,
       });
     }
@@ -952,7 +955,7 @@ function parseWorkflow(relativePath: string, text: string): ParsedFile {
     }
     if (header.block !== undefined) {
       const folded = header.block.startsWith(">");
-      const physical = readBlock(lines, cursor, indent, folded);
+      const physical = readBlock(lines, cursor, indent, true);
       if (folded) {
         const script = foldBlock(physical);
         if (header.anchor !== undefined) runAnchors.set(header.anchor, script.text === "" ? [] : [script.text]);
@@ -1050,6 +1053,7 @@ function parseWorkflow(relativePath: string, text: string): ParsedFile {
       command: run.command,
       scopedEnv,
       scriptLocked: run.scriptLocked,
+      commandLock: run.commandLock,
       honorMiseEnv: run.honorMiseEnv,
       path: relativePath,
       line: run.line,
@@ -1209,19 +1213,56 @@ function yamlScalar(text: string): { value: string; comment: string } {
 }
 
 function splitYamlComment(text: string): { value: string; comment: string } {
-  const index = text.indexOf(" #");
-  if (index === -1) return { value: text.trim(), comment: "" };
-  return { value: text.slice(0, index).trim(), comment: text.slice(index + 2).trim() };
+  let quote: '"' | "'" | null = null;
+  for (let index = 0; index < text.length; index += 1) {
+    const ch = text[index] ?? "";
+    if (quote) {
+      if (quote === "'" && ch === "'" && text[index + 1] === "'") {
+        index += 1;
+        continue;
+      }
+      if (ch === quote) quote = null;
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+      continue;
+    }
+    if (ch === " " && text[index + 1] === "#") {
+      return { value: text.slice(0, index).trim(), comment: text.slice(index + 2).trim() };
+    }
+  }
+  return { value: text.trim(), comment: "" };
 }
 
 function unquoteYaml(value: string): string {
-  if (
-    (value.startsWith('"') && value.endsWith('"') && value.length >= 2) ||
-    (value.startsWith("'") && value.endsWith("'") && value.length >= 2)
-  ) {
-    return value.slice(1, -1);
+  if (value.startsWith("'") && value.endsWith("'") && value.length >= 2) {
+    return value.slice(1, -1).replaceAll("''", "'");
+  }
+  if (value.startsWith('"') && value.endsWith('"') && value.length >= 2) {
+    return unescapeYamlDouble(value.slice(1, -1));
   }
   return value;
+}
+
+function unescapeYamlDouble(value: string): string {
+  let out = "";
+  for (let index = 0; index < value.length; index += 1) {
+    const ch = value[index] ?? "";
+    if (ch !== "\\") {
+      out += ch;
+      continue;
+    }
+    const next = value[index + 1] ?? "";
+    index += 1;
+    if (next === "n") out += "\n";
+    else if (next === "t") out += "\t";
+    else if (next === "r") out += "\r";
+    else if (next === "\\") out += "\\";
+    else if (next === '"') out += '"';
+    else out += next;
+  }
+  return out;
 }
 
 function isBlockScalar(value: string): boolean {
@@ -1239,23 +1280,28 @@ function readBlock(
   cursor: { i: number },
   indent: number,
   keepBlank = false,
-): { line: number; text: string }[] {
-  const physical: { line: number; text: string }[] = [];
+): { line: number; text: string; indent: number }[] {
+  const physical: { line: number; text: string; indent: number }[] = [];
   let next = cursor.i + 1;
   for (; next < lines.length; next += 1) {
     const blockLine = lines[next] ?? "";
     if (blockLine.trim() === "") {
-      if (keepBlank) physical.push({ line: next + 1, text: "" });
+      if (keepBlank) physical.push({ line: next + 1, text: "", indent: 0 });
       continue;
     }
     if (indentOf(blockLine) <= indent) break;
-    physical.push({ line: next + 1, text: blockLine.trim() });
+    physical.push({ line: next + 1, text: blockLine.trim(), indent: indentOf(blockLine) });
   }
   cursor.i = next - 1;
   return physical;
 }
 
-function foldBlock(parts: readonly { line: number; text: string }[]): { line: number; text: string } {
+function foldBlock(parts: readonly { line: number; text: string; indent: number }[]): { line: number; text: string } {
+  let contentIndent = -1;
+  for (const part of parts) {
+    if (part.text === "") continue;
+    if (contentIndent === -1 || part.indent < contentIndent) contentIndent = part.indent;
+  }
   let text = "";
   let line = 0;
   for (const part of parts) {
@@ -1264,6 +1310,8 @@ function foldBlock(parts: readonly { line: number; text: string }[]): { line: nu
       continue;
     }
     if (line === 0) line = part.line;
+    const moreIndented = part.indent > contentIndent;
+    if (moreIndented && text !== "" && !text.endsWith("\n")) text += "\n";
     if (text === "" || text.endsWith("\n")) text += part.text;
     else text += ` ${part.text}`;
   }
@@ -1273,15 +1321,22 @@ function foldBlock(parts: readonly { line: number; text: string }[]): { line: nu
 function runHeader(value: string): { anchor?: string; block?: string; alias?: string; plain: string } {
   let rest = value.trim();
   let anchor: string | undefined;
-  const anchored = /^&([A-Za-z_][A-Za-z0-9_-]*)(?:\s+([\s\S]*))?$/.exec(rest);
+  const anchored = /^&([^\s[\]{},]+)(?:\s+([\s\S]*))?$/.exec(rest);
   if (anchored) {
     anchor = anchored[1];
     rest = (anchored[2] ?? "").trim();
   }
-  const alias = /^\*([A-Za-z_][A-Za-z0-9_-]*)$/.exec(rest);
-  if (alias) return { anchor, alias: alias[1], plain: rest };
+  rest = stripYamlTag(rest);
+  const alias = /^\*([^\s[\]{},]+)$/.exec(rest);
+  if (alias?.[1] !== undefined) return { anchor, alias: alias[1], plain: rest };
   if (rest.startsWith("|") || rest.startsWith(">")) return { anchor, block: rest, plain: rest };
   return { anchor, plain: rest };
+}
+
+function stripYamlTag(value: string): string {
+  if (!value.startsWith("!")) return value;
+  const tagged = /^!(?:<[^>]*>|\S*)\s*([\s\S]*)$/.exec(value);
+  return (tagged?.[1] ?? "").trim();
 }
 
 function joinContinuations(parts: readonly { line: number; text: string }[]): { line: number; text: string }[] {
@@ -1290,6 +1345,13 @@ function joinContinuations(parts: readonly { line: number; text: string }[]): { 
   let line = 0;
   let open = false;
   for (const part of parts) {
+    if (part.text === "") {
+      if (open) {
+        scripts.push({ line, text });
+        open = false;
+      }
+      continue;
+    }
     const continued = part.text.endsWith("\\");
     const piece = continued ? part.text.slice(0, -1).trimEnd() : part.text;
     if (!open) {
@@ -1307,6 +1369,8 @@ function joinContinuations(parts: readonly { line: number; text: string }[]): { 
   return scripts;
 }
 
+type ShellGap = "seq" | "and" | "or" | "pipe" | "bg";
+
 function installSites(
   relativePath: string,
   line: number,
@@ -1315,55 +1379,94 @@ function installSites(
   honorMiseEnv: boolean,
 ): InstallSite[] {
   const sites: InstallSite[] = [];
-  let priorLocked = false;
+  let carried = false;
+  let conditional = false;
+  let inPipe = false;
+  let pipeBase = false;
   for (const segment of splitShell(stripShellComment(command))) {
-    const trimmed = segment.trim();
-    if (trimmed === "") continue;
-    const tokens = shellTokens(trimmed);
-    const invokesMise = tokens.includes("mise");
-    if (tokens.includes("uv")) {
-      sites.push({
-        kind: "install-command",
-        tool: "uv",
-        command: trimmed,
-        scopedEnv,
-        scriptLocked: priorLocked,
-        honorMiseEnv: honorMiseEnv || invokesMise,
-        path: relativePath,
-        line,
-      });
+    const trimmed = segment.text.trim();
+    if (trimmed !== "") {
+      const tokens = shellTokens(trimmed);
+      const inherited = inPipe ? pipeBase : carried;
+      const invokesMise = tokens.includes("mise");
+      if (tokens.includes("uv")) {
+        sites.push({
+          kind: "install-command",
+          tool: "uv",
+          command: trimmed,
+          scopedEnv,
+          scriptLocked: inherited,
+          commandLock: uvCommandLock(tokens),
+          honorMiseEnv: honorMiseEnv || invokesMise,
+          path: relativePath,
+          line,
+        });
+      }
+      if (tokens.some((token) => token === "pnpm" || token.endsWith("/pnpm"))) {
+        sites.push({
+          kind: "install-command",
+          tool: "pnpm",
+          command: trimmed,
+          scopedEnv,
+          scriptLocked: false,
+          commandLock: undefined,
+          honorMiseEnv: false,
+          path: relativePath,
+          line,
+        });
+      }
+      const publishes = !inPipe && !conditional && segment.gap !== "pipe" && segment.gap !== "bg";
+      if (publishes) {
+        const next = uvCarryUpdate(tokens);
+        if (next !== undefined) carried = next;
+      }
     }
-    if (tokens.some((token) => token === "pnpm" || token.endsWith("/pnpm"))) {
-      sites.push({
-        kind: "install-command",
-        tool: "pnpm",
-        command: trimmed,
-        scopedEnv,
-        scriptLocked: false,
-        honorMiseEnv: false,
-        path: relativePath,
-        line,
-      });
+    if (segment.gap === "pipe") {
+      if (!inPipe) pipeBase = carried;
+      inPipe = true;
+    } else if (segment.gap === "and" || segment.gap === "or") {
+      inPipe = false;
+      conditional = true;
+    } else {
+      inPipe = false;
+      conditional = false;
     }
-    const assigned = uvLockAssignment(tokens);
-    if (assigned !== undefined) priorLocked = assigned;
   }
   return sites;
 }
 
-function uvPrefixLocked(command: string): boolean {
-  const tokens = shellTokens(command);
+function uvCommandLock(tokens: readonly string[]): boolean | undefined {
   const uvAt = tokens.indexOf("uv");
-  if (uvAt === -1) return false;
+  if (uvAt === -1) return undefined;
+  let assignment: boolean | undefined;
+  let unset = false;
   for (let index = 0; index < uvAt; index += 1) {
-    if (tokens[index] === "UV_LOCKED=1") return true;
+    const token = tokens[index] ?? "";
+    if (token.startsWith("UV_LOCKED=")) {
+      assignment = token === "UV_LOCKED=1";
+      unset = false;
+      continue;
+    }
+    if (token === "UV_LOCKED" && tokens[index - 1] === "-u") {
+      assignment = undefined;
+      unset = true;
+    }
   }
-  return false;
+  if (unset) return false;
+  return assignment;
+}
+
+function uvCarryUpdate(tokens: readonly string[]): boolean | undefined {
+  if (tokens[0] === "unset" && tokens.slice(1).includes("UV_LOCKED")) return false;
+  if (tokens[0] === "export" && tokens[1] === "-n" && tokens.slice(2).includes("UV_LOCKED")) return false;
+  if (tokens[0] === "declare" && tokens[1] === "+x" && tokens.slice(2).includes("UV_LOCKED")) return false;
+  return uvLockAssignment(tokens);
 }
 
 function stripShellComment(command: string): string {
   let out = "";
   let quote: '"' | "'" | null = null;
+  let brace = 0;
   for (let index = 0; index < command.length; index += 1) {
     const ch = command[index] ?? "";
     if (quote) {
@@ -1384,7 +1487,18 @@ function stripShellComment(command: string): string {
       out += ch;
       continue;
     }
-    if (ch === "#" && commentStartsWord(out)) {
+    if (ch === "$" && command[index + 1] === "{") {
+      out += "${";
+      index += 1;
+      brace += 1;
+      continue;
+    }
+    if (ch === "}" && brace > 0) {
+      brace -= 1;
+      out += ch;
+      continue;
+    }
+    if (ch === "#" && brace === 0 && commentStartsWord(out)) {
       while (index + 1 < command.length && command[index + 1] !== "\n") index += 1;
       continue;
     }
@@ -1396,7 +1510,17 @@ function stripShellComment(command: string): string {
 function commentStartsWord(text: string): boolean {
   if (text.length === 0) return true;
   const prev = text[text.length - 1] ?? "";
-  return prev === " " || prev === "\t" || prev === "\n" || prev === ";" || prev === "&" || prev === "|";
+  return (
+    prev === " " ||
+    prev === "\t" ||
+    prev === "\n" ||
+    prev === ";" ||
+    prev === "&" ||
+    prev === "|" ||
+    prev === "(" ||
+    prev === "{" ||
+    prev === "`"
+  );
 }
 
 function uvLockAssignment(tokens: readonly string[]): boolean | undefined {
@@ -1413,10 +1537,14 @@ function uvLockAssignment(tokens: readonly string[]): boolean | undefined {
   return assigned;
 }
 
-function splitShell(command: string): string[] {
-  const segments: string[] = [];
+function splitShell(command: string): { text: string; gap: ShellGap }[] {
+  const segments: { text: string; gap: ShellGap }[] = [];
   let current = "";
   let quote: '"' | "'" | null = null;
+  const push = (gap: ShellGap): void => {
+    segments.push({ text: current, gap });
+    current = "";
+  };
   for (let index = 0; index < command.length; index += 1) {
     const ch = command[index] ?? "";
     if (quote) {
@@ -1438,24 +1566,34 @@ function splitShell(command: string): string[] {
       continue;
     }
     if (ch === "\n") {
-      segments.push(current);
-      current = "";
+      push("seq");
       continue;
     }
-    if ((ch === "&" && command[index + 1] === "&") || (ch === "|" && command[index + 1] === "|")) {
-      segments.push(current);
-      current = "";
+    if (ch === "&" && command[index + 1] === "&") {
+      push("and");
       index += 1;
       continue;
     }
-    if (ch === "&" || ch === "|" || ch === ";") {
-      segments.push(current);
-      current = "";
+    if (ch === "|" && command[index + 1] === "|") {
+      push("or");
+      index += 1;
+      continue;
+    }
+    if (ch === "&") {
+      push("bg");
+      continue;
+    }
+    if (ch === "|") {
+      push("pipe");
+      continue;
+    }
+    if (ch === ";") {
+      push("seq");
       continue;
     }
     current += ch;
   }
-  segments.push(current);
+  push("seq");
   return segments;
 }
 
@@ -1498,7 +1636,7 @@ function shellTokens(segment: string): string[] {
       }
       continue;
     }
-    if (ch === " " || ch === "\t") {
+    if (ch === " " || ch === "\t" || ch === "(" || ch === ")" || ch === "{" || ch === "}" || ch === "`") {
       push();
       continue;
     }
