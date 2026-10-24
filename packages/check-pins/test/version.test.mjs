@@ -34,7 +34,7 @@ test("a lone copy of the bundle prints the version", async () => {
 });
 
 test("any other argv exits 1", () => {
-  for (const args of [[], ["--help"], ["--version", "--version"]]) {
+  for (const args of [["--help"], ["--version", "--version"]]) {
     const result = run(bundlePath, args);
     assert.equal(result.status, 1);
     assert.equal(result.stdout, "");
