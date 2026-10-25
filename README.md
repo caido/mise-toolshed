@@ -142,3 +142,4 @@ Plugin files are at the repository root. Workspace packages are under `packages/
 - `test/get-skills-remote.sh` covers get-skills tag listing.
 - `test/get-skills-sync.sh` covers the personal-folder install.
 - `test/release-plan.test.ts` and `test/released-tool.test.ts` cover release planning and checksummed installs.
+- `test/stage-release.test.ts` drives `scripts/stage-release.sh`, and `.cursor/skills/verify-toolshed/SKILL.md` drives check-pins, get-skills, and that script.
