@@ -1,0 +1,222 @@
+[
+  {
+    "name": "pass: an empty directory has no sites",
+    "files": {},
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pass: --version prints the driver version",
+    "args": ["--version"],
+    "files": {},
+    "status": 0,
+    "stdout": "0.0.0\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: other arguments print usage and do not scan",
+    "args": ["--help"],
+    "files": {
+      "package.json": "{\n  \"dependencies\": {\n    \"left-pad\": \"^1.0.0\"\n  }\n}\n"
+    },
+    "status": 1,
+    "stdout": "",
+    "stderr": "usage: shared-sites --version\n"
+  },
+  {
+    "name": "fail: a package.json dependency is a site",
+    "files": {
+      "package.json": "{\n  \"dependencies\": {\n    \"left-pad\": \"^1.0.0\"\n  }\n}\n"
+    },
+    "status": 1,
+    "stdout": "package.json:3: dependency npm left-pad ^1.0.0\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: invalid package.json is an unreadable site",
+    "files": {
+      "package.json": "{\n"
+    },
+    "status": 1,
+    "stdout": "package.json:1: unreadable package-json\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a python requirement is a site",
+    "files": {
+      "pyproject.toml": "[project]\ndependencies = [\n  \"requests==2.32.3\",\n]\n"
+    },
+    "status": 1,
+    "stdout": "pyproject.toml:3: dependency python requests requests==2.32.3\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a broken python array is an unreadable site",
+    "files": {
+      "pyproject.toml": "[project]\ndependencies = [\n  \"unterminated\n]\n"
+    },
+    "status": 1,
+    "stdout": "pyproject.toml:1: unreadable pyproject\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a mise tool string is a site",
+    "files": {
+      "mise.toml": "[tools]\nnode = \"24.22.0\"\n"
+    },
+    "status": 1,
+    "stdout": "mise.toml:2: tool node 24.22.0\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a plugin string is a plugin site",
+    "files": {
+      "mise.toml": "[plugins]\ntoolshed = \"https://github.com/caido/mise-toolshed#0123456789abcdef0123456789abcdef01234567\"\n"
+    },
+    "status": 1,
+    "stdout": "mise.toml:2: plugin toolshed https://github.com/caido/mise-toolshed#0123456789abcdef0123456789abcdef01234567\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a plugin table is a plugin site",
+    "files": {
+      "mise.toml": "[plugins.toolshed]\nurl = \"https://example.com\"\n"
+    },
+    "status": 1,
+    "stdout": "mise.toml:1: plugin toolshed table\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a toml file under .mise is a mise site",
+    "files": {
+      ".mise/config.toml": "[tools]\nnode = \"24.22.0\"\n"
+    },
+    "status": 1,
+    "stdout": ".mise/config.toml:2: tool node 24.22.0\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: an unreadable mise file is an unreadable site",
+    "mode": {
+      "mise.toml": 0
+    },
+    "files": {
+      "mise.toml": "[tools]\n"
+    },
+    "status": 1,
+    "stdout": "mise.toml:1: unreadable mise\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a Dockerfile FROM is an image site",
+    "files": {
+      "Dockerfile": "FROM scratch\n"
+    },
+    "status": 1,
+    "stdout": "Dockerfile:1: image dockerfile scratch\n",
+    "stderr": ""
+  },
+  {
+    "name": "pass: app.Dockerfile is not classified",
+    "files": {
+      "app.Dockerfile": "FROM node:22\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "fail: an unreadable Dockerfile is an unreadable site",
+    "mode": {
+      "Dockerfile": 0
+    },
+    "files": {
+      "Dockerfile": "FROM scratch\n"
+    },
+    "status": 1,
+    "stdout": "Dockerfile:1: unreadable dockerfile\n",
+    "stderr": ""
+  },
+  {
+    "name": "pass: a readable .npmrc has no sites",
+    "files": {
+      ".npmrc": "frozen-lockfile=false\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "fail: an unreadable .npmrc is an unreadable site",
+    "mode": {
+      ".npmrc": 0
+    },
+    "files": {
+      ".npmrc": "secret\n"
+    },
+    "status": 1,
+    "stdout": ".npmrc:1: unreadable npmrc\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a workflow image and action are sites",
+    "files": {
+      ".github/workflows/ci.yml": "jobs:\n  build:\n    container: node:22\n    steps:\n      - uses: actions/checkout@0123456789abcdef0123456789abcdef01234567\n"
+    },
+    "status": 1,
+    "stdout": ".github/workflows/ci.yml:3: image workflow node:22\n.github/workflows/ci.yml:5: action actions/checkout@0123456789abcdef0123456789abcdef01234567\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a .yaml workflow is a workflow site",
+    "files": {
+      ".github/workflows/ci.yaml": "jobs:\n  build:\n    container: node:22\n"
+    },
+    "status": 1,
+    "stdout": ".github/workflows/ci.yaml:3: image workflow node:22\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a missing run alias is an unreadable workflow site",
+    "files": {
+      ".github/workflows/ci.yml": "jobs:\n  build:\n    steps:\n      - run: *missing\n"
+    },
+    "status": 1,
+    "stdout": ".github/workflows/ci.yml:4: unreadable workflow\n",
+    "stderr": ""
+  },
+  {
+    "name": "pass: skipped directories and other names produce no sites",
+    "files": {
+      "node_modules/package.json": "{\n  \"dependencies\": {\n    \"left-pad\": \"^1.0.0\"\n  }\n}\n",
+      ".git/package.json": "{\n  \"dependencies\": {\n    \"left-pad\": \"^1.0.0\"\n  }\n}\n",
+      "dist/package.json": "{\n  \"dependencies\": {\n    \"left-pad\": \"^1.0.0\"\n  }\n}\n",
+      ".mise.toml": "[tools]\nnode = \"latest\"\n",
+      "Makefile": "pnpm install\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "fail: sites are sorted by path then line then message",
+    "files": {
+      "package.json": "{\n  \"dependencies\": {\n    \"left-pad\": \"^1.0.0\"\n  }\n}\n",
+      "apps/package.json": "{\n  \"dependencies\": {\n    \"left-pad\": \"latest\"\n  }\n}\n"
+    },
+    "status": 1,
+    "stdout": "apps/package.json:3: dependency npm left-pad latest\npackage.json:3: dependency npm left-pad ^1.0.0\n",
+    "stderr": ""
+  },
+  {
+    "name": "pending NON-139: an array-of-tables row is a tool site",
+    "files": {
+      "mise.toml": "[[tools.rust]]\nversion = \"latest\"\n"
+    },
+    "pending": "NON-139",
+    "status": 1,
+    "stdout": "mise.toml:2: tool rust latest\n",
+    "stderr": ""
+  }
+]

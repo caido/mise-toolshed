@@ -18,6 +18,7 @@
     "scripts/tool-version.d.ts",
     "test/**/*.ts",
     "packages/shared/src/**/*.ts",
+    "packages/shared/test-support/report-sites.ts",
     "packages/check-exact-versions/src/**/*.ts",
     "packages/check-lockfiles/src/**/*.ts",
     "packages/check-minimum-release-age/src/**/*.ts"

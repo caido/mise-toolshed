@@ -1,0 +1,801 @@
+[
+  {
+    "name": "pass: empty directory prints nothing",
+    "files": {},
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "fail: npm ranges are rejected in every dependency section",
+    "files": {
+      "dependencies/0/package.json": "{\n  \"dependencies\": {\n    \"left-pad\": \"^1.0.0\"\n  }\n}\n",
+      "dependencies/1/package.json": "{\n  \"dependencies\": {\n    \"left-pad\": \"~1.0.0\"\n  }\n}\n",
+      "dependencies/2/package.json": "{\n  \"dependencies\": {\n    \"left-pad\": \">1.0.0\"\n  }\n}\n",
+      "dependencies/3/package.json": "{\n  \"dependencies\": {\n    \"left-pad\": \"<1.0.0\"\n  }\n}\n",
+      "dependencies/4/package.json": "{\n  \"dependencies\": {\n    \"left-pad\": \">=1\"\n  }\n}\n",
+      "dependencies/5/package.json": "{\n  \"dependencies\": {\n    \"left-pad\": \"<=1\"\n  }\n}\n",
+      "dependencies/6/package.json": "{\n  \"dependencies\": {\n    \"left-pad\": \"*\"\n  }\n}\n",
+      "dependencies/7/package.json": "{\n  \"dependencies\": {\n    \"left-pad\": \"latest\"\n  }\n}\n",
+      "dependencies/8/package.json": "{\n  \"dependencies\": {\n    \"left-pad\": \"1.x\"\n  }\n}\n",
+      "dependencies/9/package.json": "{\n  \"dependencies\": {\n    \"left-pad\": \"1.2\"\n  }\n}\n",
+      "dependencies/10/package.json": "{\n  \"dependencies\": {\n    \"left-pad\": \"abc\"\n  }\n}\n",
+      "dependencies/11/package.json": "{\n  \"dependencies\": {\n    \"left-pad\": \"^1.2.3\"\n  }\n}\n",
+      "devDependencies/0/package.json": "{\n  \"devDependencies\": {\n    \"left-pad\": \"^1.0.0\"\n  }\n}\n",
+      "devDependencies/1/package.json": "{\n  \"devDependencies\": {\n    \"left-pad\": \"~1.0.0\"\n  }\n}\n",
+      "devDependencies/2/package.json": "{\n  \"devDependencies\": {\n    \"left-pad\": \">1.0.0\"\n  }\n}\n",
+      "devDependencies/3/package.json": "{\n  \"devDependencies\": {\n    \"left-pad\": \"<1.0.0\"\n  }\n}\n",
+      "devDependencies/4/package.json": "{\n  \"devDependencies\": {\n    \"left-pad\": \">=1\"\n  }\n}\n",
+      "devDependencies/5/package.json": "{\n  \"devDependencies\": {\n    \"left-pad\": \"<=1\"\n  }\n}\n",
+      "devDependencies/6/package.json": "{\n  \"devDependencies\": {\n    \"left-pad\": \"*\"\n  }\n}\n",
+      "devDependencies/7/package.json": "{\n  \"devDependencies\": {\n    \"left-pad\": \"latest\"\n  }\n}\n",
+      "devDependencies/8/package.json": "{\n  \"devDependencies\": {\n    \"left-pad\": \"1.x\"\n  }\n}\n",
+      "devDependencies/9/package.json": "{\n  \"devDependencies\": {\n    \"left-pad\": \"1.2\"\n  }\n}\n",
+      "devDependencies/10/package.json": "{\n  \"devDependencies\": {\n    \"left-pad\": \"abc\"\n  }\n}\n",
+      "devDependencies/11/package.json": "{\n  \"devDependencies\": {\n    \"left-pad\": \"^1.2.3\"\n  }\n}\n",
+      "optionalDependencies/0/package.json": "{\n  \"optionalDependencies\": {\n    \"left-pad\": \"^1.0.0\"\n  }\n}\n",
+      "optionalDependencies/1/package.json": "{\n  \"optionalDependencies\": {\n    \"left-pad\": \"~1.0.0\"\n  }\n}\n",
+      "optionalDependencies/2/package.json": "{\n  \"optionalDependencies\": {\n    \"left-pad\": \">1.0.0\"\n  }\n}\n",
+      "optionalDependencies/3/package.json": "{\n  \"optionalDependencies\": {\n    \"left-pad\": \"<1.0.0\"\n  }\n}\n",
+      "optionalDependencies/4/package.json": "{\n  \"optionalDependencies\": {\n    \"left-pad\": \">=1\"\n  }\n}\n",
+      "optionalDependencies/5/package.json": "{\n  \"optionalDependencies\": {\n    \"left-pad\": \"<=1\"\n  }\n}\n",
+      "optionalDependencies/6/package.json": "{\n  \"optionalDependencies\": {\n    \"left-pad\": \"*\"\n  }\n}\n",
+      "optionalDependencies/7/package.json": "{\n  \"optionalDependencies\": {\n    \"left-pad\": \"latest\"\n  }\n}\n",
+      "optionalDependencies/8/package.json": "{\n  \"optionalDependencies\": {\n    \"left-pad\": \"1.x\"\n  }\n}\n",
+      "optionalDependencies/9/package.json": "{\n  \"optionalDependencies\": {\n    \"left-pad\": \"1.2\"\n  }\n}\n",
+      "optionalDependencies/10/package.json": "{\n  \"optionalDependencies\": {\n    \"left-pad\": \"abc\"\n  }\n}\n",
+      "optionalDependencies/11/package.json": "{\n  \"optionalDependencies\": {\n    \"left-pad\": \"^1.2.3\"\n  }\n}\n"
+    },
+    "status": 1,
+    "stdout": "dependencies/0/package.json:3: dependency left-pad is not an exact version\ndependencies/1/package.json:3: dependency left-pad is not an exact version\ndependencies/10/package.json:3: dependency left-pad is not an exact version\ndependencies/11/package.json:3: dependency left-pad is not an exact version\ndependencies/2/package.json:3: dependency left-pad is not an exact version\ndependencies/3/package.json:3: dependency left-pad is not an exact version\ndependencies/4/package.json:3: dependency left-pad is not an exact version\ndependencies/5/package.json:3: dependency left-pad is not an exact version\ndependencies/6/package.json:3: dependency left-pad is not an exact version\ndependencies/7/package.json:3: dependency left-pad is not an exact version\ndependencies/8/package.json:3: dependency left-pad is not an exact version\ndependencies/9/package.json:3: dependency left-pad is not an exact version\ndevDependencies/0/package.json:3: dependency left-pad is not an exact version\ndevDependencies/1/package.json:3: dependency left-pad is not an exact version\ndevDependencies/10/package.json:3: dependency left-pad is not an exact version\ndevDependencies/11/package.json:3: dependency left-pad is not an exact version\ndevDependencies/2/package.json:3: dependency left-pad is not an exact version\ndevDependencies/3/package.json:3: dependency left-pad is not an exact version\ndevDependencies/4/package.json:3: dependency left-pad is not an exact version\ndevDependencies/5/package.json:3: dependency left-pad is not an exact version\ndevDependencies/6/package.json:3: dependency left-pad is not an exact version\ndevDependencies/7/package.json:3: dependency left-pad is not an exact version\ndevDependencies/8/package.json:3: dependency left-pad is not an exact version\ndevDependencies/9/package.json:3: dependency left-pad is not an exact version\noptionalDependencies/0/package.json:3: dependency left-pad is not an exact version\noptionalDependencies/1/package.json:3: dependency left-pad is not an exact version\noptionalDependencies/10/package.json:3: dependency left-pad is not an exact version\noptionalDependencies/11/package.json:3: dependency left-pad is not an exact version\noptionalDependencies/2/package.json:3: dependency left-pad is not an exact version\noptionalDependencies/3/package.json:3: dependency left-pad is not an exact version\noptionalDependencies/4/package.json:3: dependency left-pad is not an exact version\noptionalDependencies/5/package.json:3: dependency left-pad is not an exact version\noptionalDependencies/6/package.json:3: dependency left-pad is not an exact version\noptionalDependencies/7/package.json:3: dependency left-pad is not an exact version\noptionalDependencies/8/package.json:3: dependency left-pad is not an exact version\noptionalDependencies/9/package.json:3: dependency left-pad is not an exact version\n",
+    "stderr": ""
+  },
+  {
+    "name": "pass: peerDependencies are not checked",
+    "files": {
+      "package.json": "{\n  \"peerDependencies\": {\n    \"left-pad\": \"^1.0.0\"\n  }\n}\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a tarball URL is an inexact version",
+    "files": {
+      "package.json": "{\n  \"dependencies\": {\n    \"left-pad\": \"https://example.com/pkg.tgz\"\n  }\n}\n"
+    },
+    "status": 1,
+    "stdout": "package.json:3: dependency left-pad is not an exact version\n",
+    "stderr": ""
+  },
+  {
+    "name": "pass: exact npm specs and local protocols",
+    "files": {
+      "package.json": "{\n  \"dependencies\": {\n    \"pkg0\": \"1.2.3\",\n    \"pkg1\": \"=1.2.3\",\n    \"pkg2\": \"1.2.3-beta.1\",\n    \"pkg3\": \"1.2.3+build.5\",\n    \"pkg4\": \"workspace:*\",\n    \"pkg5\": \"workspace:^\",\n    \"pkg6\": \"file:../local\",\n    \"pkg7\": \"link:../local\",\n    \"pkg8\": \"catalog:foo\",\n    \"pkg9\": \"git+https://github.com/org/repo.git#0123456789abcdef0123456789abcdef01234567\"\n  }\n}\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "fail: an npm git pin must be 40 hex",
+    "files": {
+      "package.json": "{\n  \"dependencies\": {\n    \"left-pad\": \"git+https://github.com/org/repo.git#main\"\n  }\n}\n"
+    },
+    "status": 1,
+    "stdout": "package.json:3: dependency left-pad git pin is not 40 hex\n",
+    "stderr": ""
+  },
+  {
+    "name": "pass: git github gitlab and bitbucket specs with 40 hex",
+    "files": {
+      "package.json": "{\n  \"dependencies\": {\n    \"pkg0\": \"git:org/repo#0123456789abcdef0123456789abcdef01234567\",\n    \"pkg1\": \"github:org/repo#0123456789abcdef0123456789abcdef01234567\",\n    \"pkg2\": \"gitlab:org/repo#0123456789abcdef0123456789abcdef01234567\",\n    \"pkg3\": \"bitbucket:org/repo#0123456789abcdef0123456789abcdef01234567\"\n  }\n}\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "fail: ssh gist npm and plain https specs are not exact versions",
+    "files": {
+      "ssh/package.json": "{\n  \"dependencies\": {\n    \"left-pad\": \"ssh://git@github.com/org/repo.git#0123456789abcdef0123456789abcdef01234567\"\n  }\n}\n",
+      "gist/package.json": "{\n  \"dependencies\": {\n    \"left-pad\": \"gist:abc\"\n  }\n}\n",
+      "npm/package.json": "{\n  \"dependencies\": {\n    \"left-pad\": \"npm:right-pad@1.2.3\"\n  }\n}\n",
+      "https/package.json": "{\n  \"dependencies\": {\n    \"left-pad\": \"https://github.com/org/repo\"\n  }\n}\n"
+    },
+    "status": 1,
+    "stdout": "gist/package.json:3: dependency left-pad is not an exact version\nhttps/package.json:3: dependency left-pad is not an exact version\nnpm/package.json:3: dependency left-pad is not an exact version\nssh/package.json:3: dependency left-pad is not an exact version\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a short github pin is not 40 hex",
+    "files": {
+      "package.json": "{\n  \"dependencies\": {\n    \"left-pad\": \"github:org/repo#abc\"\n  }\n}\n"
+    },
+    "status": 1,
+    "stdout": "package.json:3: dependency left-pad git pin is not 40 hex\n",
+    "stderr": ""
+  },
+  {
+    "name": "pass: a non-string dependency value is skipped",
+    "files": {
+      "package.json": "{\n  \"dependencies\": {\n    \"left-pad\": 1\n  }\n}\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pass: engines and an exact packageManager are not findings",
+    "files": {
+      "package.json": "{\n  \"engines\": { \"node\": \">=24\" },\n  \"packageManager\": \"pnpm@12.14.0\"\n}\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pass: a missing packageManager is not a finding",
+    "files": {
+      "package.json": "{}\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "fail: packageManager must be an exact pnpm version",
+    "files": {
+      "0/package.json": "{\n  \"packageManager\": \"pnpm@latest\"\n}\n",
+      "1/package.json": "{\n  \"packageManager\": \"yarn@1.22.22\"\n}\n",
+      "2/package.json": "{\n  \"packageManager\": \"pnpm@1.2\"\n}\n"
+    },
+    "status": 1,
+    "stdout": "0/package.json:2: packageManager is not an exact pnpm version\n1/package.json:2: packageManager is not an exact pnpm version\n2/package.json:2: packageManager is not an exact pnpm version\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a non-string packageManager is not valid",
+    "files": {
+      "package.json": "{\n  \"packageManager\": 1\n}\n"
+    },
+    "status": 1,
+    "stdout": "package.json:1: package-json is not valid\n",
+    "stderr": ""
+  },
+  {
+    "name": "pass: python exact pins markers and ignored tables",
+    "files": {
+      "apps/pyproject.toml": "[project]\nname = \"demo\"\nrequires-python = \">=3.11\"\ndependencies = [\n  \"requests==2.32.3\",\n  'requests==2.32.3 ; python_version >= \"3\"',\n  \"requests==2\",\n  \"pkg @ git+https://example.com/r.git@0123456789abcdef0123456789abcdef01234567\",\n  \"pkg @ git+https://example.com/r.git@0123456789abcdef0123456789abcdef01234567#subdirectory=pkg\",\n]\n\n[project.optional-dependencies]\ndev = [\n  \"pytest==8.2.0\",\n]\n\n[dependency-groups]\ntest = [\n  \"ruff==0.6.0\",\n]\n\n[build-system]\nrequires = [\"setuptools>=61\"]\nbuild-backend = \"setuptools.build_meta\"\n\n[tool.poetry.dependencies]\npython = \"^3.11\"\nrequests = \">=2\"\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a python range is not an exact version",
+    "files": {
+      "apps/pyproject.toml": "[project]\ndependencies = [\n  \"requests>=2\",\n]\n"
+    },
+    "status": 1,
+    "stdout": "apps/pyproject.toml:3: dependency requests is not an exact version\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: python inequality operators are not exact",
+    "files": {
+      "pyproject.toml": "[project]\ndependencies = [\n  \"requests!=2\",\n  \"requests>=2\",\n  \"requests<=2\",\n  \"requests~=2\",\n  \"requests>2\",\n  \"requests<2\",\n]\n"
+    },
+    "status": 1,
+    "stdout": "pyproject.toml:3: dependency requests is not an exact version\npyproject.toml:4: dependency requests is not an exact version\npyproject.toml:5: dependency requests is not an exact version\npyproject.toml:6: dependency requests is not an exact version\npyproject.toml:7: dependency requests is not an exact version\npyproject.toml:8: dependency requests is not an exact version\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a python git revision is the text after the last @ and before #",
+    "files": {
+      "apps/pyproject.toml": "[project]\ndependencies = [\n  \"pkg @ git+https://example.com/r.git@main#subdirectory=0123456789abcdef0123456789abcdef01234567\",\n]\n"
+    },
+    "status": 1,
+    "stdout": "apps/pyproject.toml:3: dependency pkg git pin is not 40 hex\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a broken in-scope python array is one unreadable file",
+    "files": {
+      "pyproject.toml": "[project]\ndependencies = [\n  \"requests==2.32.3\",\n  \"unterminated\n]\n"
+    },
+    "status": 1,
+    "stdout": "pyproject.toml:1: pyproject is not valid\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a python equality pin cannot contain a wildcard",
+    "files": {
+      "pyproject.toml": "[project]\ndependencies = [\n  \"requests==2.32.*\",\n]\n"
+    },
+    "status": 1,
+    "stdout": "pyproject.toml:3: dependency requests is not an exact version\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a python wheel URL is not a git pin",
+    "files": {
+      "pyproject.toml": "[project]\ndependencies = [\n  \"pkg @ https://files.pythonhosted.org/packages/a/b/requests-2.32.3-py3-none-any.whl\",\n]\n"
+    },
+    "status": 1,
+    "stdout": "pyproject.toml:3: dependency pkg is not an exact version\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a direct python url is not an exact pin when it contains ==",
+    "files": {
+      "pyproject.toml": "[project]\ndependencies = [\n  \"pkg @ https://example.com/foo==1.2.3.whl\",\n]\n"
+    },
+    "status": 1,
+    "stdout": "pyproject.toml:3: dependency pkg is not an exact version\n",
+    "stderr": ""
+  },
+  {
+    "name": "pass: mise tool strings and a pinned plugin",
+    "files": {
+      "mise.toml": "[tools]\nnode = \"16.15\"\npnpm = \"1.0.0\"\nzizmor = \"24.22.0\"\n\"toolshed:example\" = \"1.0.0\"\n\n[plugins]\ntoolshed = \"https://github.com/caido/mise-toolshed#0123456789abcdef0123456789abcdef01234567\"\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pass: a toml file under .mise is a mise file",
+    "files": {
+      ".mise/config.toml": "[tools]\nnode = \"24.22.0\"\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a toml file under .mise uses the mise tool rule",
+    "files": {
+      ".mise/config.toml": "[tools]\nnode = \"latest\"\n"
+    },
+    "status": 1,
+    "stdout": ".mise/config.toml:2: tool node is not an exact version\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: mise tool versions that are not major.minor or major.minor.patch",
+    "files": {
+      "0/mise.toml": "[tools]\nnode = \"22\"\n",
+      "1/mise.toml": "[tools]\nnode = \"latest\"\n",
+      "2/mise.toml": "[tools]\nnode = \"v22.0.0\"\n",
+      "3/mise.toml": "[tools]\nnode = \"prefix:22.1.0\"\n"
+    },
+    "status": 1,
+    "stdout": "0/mise.toml:2: tool node is not an exact version\n1/mise.toml:2: tool node is not an exact version\n2/mise.toml:2: tool node is not an exact version\n3/mise.toml:2: tool node is not an exact version\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: latest nightly main stable and a bare major still fail",
+    "files": {
+      "0/mise.toml": "[tools]\nnode = \"latest\"\n",
+      "1/mise.toml": "[tools]\nnode = \"nightly\"\n",
+      "2/mise.toml": "[tools]\nnode = \"main\"\n",
+      "3/mise.toml": "[tools]\nnode = \"stable\"\n",
+      "4/mise.toml": "[tools]\nnode = \"1\"\n"
+    },
+    "status": 1,
+    "stdout": "0/mise.toml:2: tool node is not an exact version\n1/mise.toml:2: tool node is not an exact version\n2/mise.toml:2: tool node is not an exact version\n3/mise.toml:2: tool node is not an exact version\n4/mise.toml:2: tool node is not an exact version\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a mise tool table must be a string",
+    "files": {
+      "mise.toml": "[tools]\nnode = { version = \"24.22.0\" }\n"
+    },
+    "status": 1,
+    "stdout": "mise.toml:2: tool node must be a string\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a mise plugin must end in a 40-hex pin",
+    "files": {
+      "mise.toml": "[plugins]\ntoolshed = \"https://github.com/caido/mise-toolshed\"\n"
+    },
+    "status": 1,
+    "stdout": "mise.toml:2: plugin toolshed must end in a 40-hex pin\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a mise plugin table must end in a 40-hex pin",
+    "files": {
+      "mise.toml": "[plugins.toolshed]\nurl = \"https://example.com\"\n"
+    },
+    "status": 1,
+    "stdout": "mise.toml:1: plugin toolshed must end in a 40-hex pin\n",
+    "stderr": ""
+  },
+  {
+    "name": "pass: names that are not mise files are ignored",
+    "files": {
+      ".mise.toml": "[tools]\nnode = \"latest\"\n",
+      "mise.local.toml": "[tools]\nnode = \"latest\"\n",
+      ".config/mise/config.toml": "[tools]\nnode = \"latest\"\n",
+      ".miserc.toml": "[tools]\nnode = \"latest\"\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "fail: dockerfile images scratch and prior stage aliases",
+    "files": {
+      "Dockerfile": "FROM node:22\nFROM node:22@sha256:abc\nFROM scratch\nFROM scratch AS base\nFROM base\nFROM base:latest\nFROM ubuntu:24.04 AS app\n"
+    },
+    "status": 1,
+    "stdout": "Dockerfile:1: image node:22 must contain @sha256:\nDockerfile:6: image base:latest must contain @sha256:\nDockerfile:7: image ubuntu:24.04 must contain @sha256:\n",
+    "stderr": ""
+  },
+  {
+    "name": "pass: a Dockerfile name with a suffix and a digest",
+    "files": {
+      "Dockerfile.dev": "FROM node:22@sha256:abc\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a Dockerfile name with a suffix still checks FROM",
+    "files": {
+      "Dockerfile.dev": "FROM node:22\n"
+    },
+    "status": 1,
+    "stdout": "Dockerfile.dev:1: image node:22 must contain @sha256:\n",
+    "stderr": ""
+  },
+  {
+    "name": "pass: app.Dockerfile is not a Dockerfile",
+    "files": {
+      "app.Dockerfile": "FROM node:22\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pass: workflow actions local actions and digested images",
+    "files": {
+      ".github/workflows/ci.yml": "jobs:\n  build:\n    container: node:22@sha256:abc\n    steps:\n      - uses: actions/checkout@0123456789abcdef0123456789abcdef01234567 # v6.0.3\n      - uses: ./.github/actions/local\n      - uses: docker://alpine@sha256:abc\n      - run: echo \"uv sync\"\n        with:\n          container: my-name\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "fail: workflow actions and images without pins",
+    "files": {
+      ".github/workflows/ci.yml": "jobs:\n  build:\n    container: node:22\n    steps:\n      - uses: actions/checkout@0123456789abcdef0123456789abcdef01234567\n      - uses: actions/checkout@0123456789abcdef0123456789abcdef01234567\n        # v6.0.3\n      - uses: docker://alpine:3\n"
+    },
+    "status": 1,
+    "stdout": ".github/workflows/ci.yml:3: image node:22 must contain @sha256:\n.github/workflows/ci.yml:8: image docker://alpine:3 must contain @sha256:\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: workflow images are container and service references",
+    "files": {
+      ".github/workflows/ci.yml": "on:\n  workflow_call:\n    inputs:\n      image:\n        default: node:22\njobs:\n  build:\n    container:\n      image: node:22\n    services:\n      db:\n        image: postgres:16\n    steps:\n      - uses: actions/checkout@0123456789abcdef0123456789abcdef01234567 # v6.0.3\n        with:\n          image: node:22\n"
+    },
+    "status": 1,
+    "stdout": ".github/workflows/ci.yml:9: image node:22 must contain @sha256:\n.github/workflows/ci.yml:12: image postgres:16 must contain @sha256:\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a block scalar container is an image",
+    "files": {
+      ".github/workflows/ci.yml": "jobs:\n  build:\n    container: |\n      node:22\n    steps:\n      - run: echo hi\n"
+    },
+    "status": 1,
+    "stdout": ".github/workflows/ci.yml:4: image node:22 must contain @sha256:\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a missing run alias is not a valid workflow",
+    "files": {
+      ".github/workflows/ci.yml": "jobs:\n  build:\n    steps:\n      - run: *missing\n"
+    },
+    "status": 1,
+    "stdout": ".github/workflows/ci.yml:4: workflow is not valid\n",
+    "stderr": ""
+  },
+  {
+    "name": "pass: composite actions and workflow files outside .github/workflows are ignored",
+    "files": {
+      ".github/actions/local/action.yml": "runs:\n  image: node:22\n",
+      ".github/workflow/ci.yml": "jobs:\n  build:\n    container: node:22\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a multiline mise string does not change the section",
+    "files": {
+      "mise.toml": "[tools]\nnote = \"\"\"\n[env]\nUV_LOCKED = \"1\"\n\"\"\"\npnpm = \"latest\"\n"
+    },
+    "status": 1,
+    "stdout": "mise.toml:2: tool note is not an exact version\nmise.toml:6: tool pnpm is not an exact version\n",
+    "stderr": ""
+  },
+  {
+    "name": "pass: skipped directories and non-target files are not scanned",
+    "files": {
+      "node_modules/package.json": "{\n  \"dependencies\": {\n    \"left-pad\": \"^1.0.0\"\n  }\n}\n",
+      ".git/package.json": "{\n  \"dependencies\": {\n    \"left-pad\": \"^1.0.0\"\n  }\n}\n",
+      "dist/package.json": "{\n  \"dependencies\": {\n    \"left-pad\": \"^1.0.0\"\n  }\n}\n",
+      "Makefile": "pnpm install\nuv sync\n",
+      "scripts/build-render.sh": "pnpm install\nuv sync\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "fail: two findings on one line are sorted by message",
+    "files": {
+      "package.json": "{\"dependencies\":{\"right-pad\":\"latest\",\"left-pad\":\"^1.0.0\"}}\n"
+    },
+    "status": 1,
+    "stdout": "package.json:1: dependency left-pad is not an exact version\npackage.json:1: dependency right-pad is not an exact version\n",
+    "stderr": ""
+  },
+  {
+    "name": "pass: a floating uses value is not a finding",
+    "files": {
+      ".github/workflows/ci.yml": "jobs:\n  build:\n    steps:\n      - uses: actions/checkout@v4\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "fail: findings are sorted by path then line then message",
+    "files": {
+      "package.json": "{\n  \"dependencies\": {\n    \"left-pad\": \"^1.0.0\",\n    \"right-pad\": \"latest\"\n  }\n}\n",
+      "apps/package.json": "{\n  \"dependencies\": {\n    \"left-pad\": \"latest\"\n  }\n}\n"
+    },
+    "status": 1,
+    "stdout": "apps/package.json:3: dependency left-pad is not an exact version\npackage.json:3: dependency left-pad is not an exact version\npackage.json:4: dependency right-pad is not an exact version\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: invalid package.json is unreadable",
+    "files": {
+      "package.json": "{\n"
+    },
+    "status": 1,
+    "stdout": "package.json:1: package-json is not valid\n",
+    "stderr": ""
+  },
+  {
+    "name": "pass: a readable .npmrc is not a finding",
+    "files": {
+      ".npmrc": "frozen-lockfile=false\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "fail: an unreadable .npmrc is not valid",
+    "mode": {
+      ".npmrc": 0
+    },
+    "files": {
+      ".npmrc": "secret\n"
+    },
+    "status": 1,
+    "stdout": ".npmrc:1: npmrc is not valid\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: an unreadable Dockerfile is not valid",
+    "mode": {
+      "Dockerfile": 0
+    },
+    "files": {
+      "Dockerfile": "FROM scratch\n"
+    },
+    "status": 1,
+    "stdout": "Dockerfile:1: dockerfile is not valid\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: an unreadable mise.toml is not valid",
+    "mode": {
+      "mise.toml": 0
+    },
+    "files": {
+      "mise.toml": "[tools]\n"
+    },
+    "status": 1,
+    "stdout": "mise.toml:1: mise is not valid\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: an unreadable workflow is not valid",
+    "mode": {
+      ".github/workflows/ci.yml": 0
+    },
+    "files": {
+      ".github/workflows/ci.yml": "jobs: {}\n"
+    },
+    "status": 1,
+    "stdout": ".github/workflows/ci.yml:1: workflow is not valid\n",
+    "stderr": ""
+  },
+  {
+    "name": "pass: a .yaml workflow with a digested image",
+    "files": {
+      ".github/workflows/ci.yaml": "jobs:\n  build:\n    container: node:22@sha256:abc\n    steps:\n      - uses: actions/checkout@0123456789abcdef0123456789abcdef01234567\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a .yaml workflow image without a digest",
+    "files": {
+      ".github/workflows/ci.yaml": "jobs:\n  build:\n    container: node:22\n"
+    },
+    "status": 1,
+    "stdout": ".github/workflows/ci.yaml:3: image node:22 must contain @sha256:\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a workflow scratch image is not accepted",
+    "files": {
+      ".github/workflows/ci.yml": "jobs:\n  build:\n    container: scratch\n"
+    },
+    "status": 1,
+    "stdout": ".github/workflows/ci.yml:3: image scratch must contain @sha256:\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: an inline table in a python dependency array is not valid",
+    "files": {
+      "pyproject.toml": "[project]\ndependencies = [\n  { name = \"requests\" },\n]\n"
+    },
+    "status": 1,
+    "stdout": "pyproject.toml:1: pyproject is not valid\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a python range in optional-dependencies is not an exact version",
+    "files": {
+      "pyproject.toml": "[project.optional-dependencies]\ndev = [\n  \"requests>=2\",\n]\n"
+    },
+    "status": 1,
+    "stdout": "pyproject.toml:3: dependency requests is not an exact version\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a python range in dependency-groups is not an exact version",
+    "files": {
+      "pyproject.toml": "[dependency-groups]\ntest = [\n  \"requests>=2\",\n]\n"
+    },
+    "status": 1,
+    "stdout": "pyproject.toml:3: dependency requests is not an exact version\n",
+    "stderr": ""
+  },
+  {
+    "name": "pass: python git github gitlab and bitbucket urls with 40 hex",
+    "files": {
+      "pyproject.toml": "[project]\ndependencies = [\n  \"a @ git+https://example.com/r.git@0123456789abcdef0123456789abcdef01234567\",\n  \"b @ git:git://example.com/r.git@0123456789abcdef0123456789abcdef01234567\",\n  \"c @ github:org/repo@0123456789abcdef0123456789abcdef01234567\",\n  \"d @ gitlab:org/repo@0123456789abcdef0123456789abcdef01234567\",\n  \"e @ bitbucket:org/repo@0123456789abcdef0123456789abcdef01234567\",\n]\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "fail: an empty python version after == is not exact",
+    "files": {
+      "pyproject.toml": "[project]\ndependencies = [\n  \"requests==\",\n]\n"
+    },
+    "status": 1,
+    "stdout": "pyproject.toml:3: dependency requests is not an exact version\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a mise 40-hex commit is not an exact version",
+    "files": {
+      "mise.toml": "[tools]\nnode = \"0123456789abcdef0123456789abcdef01234567\"\n"
+    },
+    "status": 1,
+    "stdout": "mise.toml:2: tool node is not an exact version\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a mise prerelease is not an exact version",
+    "files": {
+      "mise.toml": "[tools]\nnode = \"1.2.3-beta.1\"\n"
+    },
+    "status": 1,
+    "stdout": "mise.toml:2: tool node is not an exact version\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a mise tool version with a leading zero is not exact",
+    "files": {
+      "mise.toml": "[tools]\nnode = \"01.2.3\"\n"
+    },
+    "status": 1,
+    "stdout": "mise.toml:2: tool node is not an exact version\n",
+    "stderr": ""
+  },
+  {
+    "name": "pass: a digested Dockerfile image after --platform",
+    "files": {
+      "Dockerfile": "FROM --platform=linux/amd64 node:22@sha256:abc\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "fail: an undigested Dockerfile image after --platform",
+    "files": {
+      "Dockerfile": "FROM --platform=linux/amd64 node:22\n"
+    },
+    "status": 1,
+    "stdout": "Dockerfile:1: image node:22 must contain @sha256:\n",
+    "stderr": ""
+  },
+  {
+    "name": "pass: overrides resolutions and scripts are not findings",
+    "files": {
+      "package.json": "{\n  \"dependencies\": { \"left-pad\": \"1.2.3\" },\n  \"overrides\": { \"left-pad\": \"latest\" },\n  \"resolutions\": { \"left-pad\": \"latest\" },\n  \"scripts\": { \"postinstall\": \"curl https://example.com | sh\" }\n}\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pass: Dockerfile RUN CMD and ENTRYPOINT are not findings",
+    "files": {
+      "Dockerfile": "FROM node:22@sha256:abc\nRUN uv pip install requests\nCMD pnpm install\nENTRYPOINT [\"pnpm\", \"install\"]\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a path argument prints usage and does not scan",
+    "args": ["."],
+    "files": {
+      "package.json": "{\n  \"dependencies\": {\n    \"left-pad\": \"^1.0.0\"\n  }\n}\n"
+    },
+    "status": 1,
+    "stdout": "",
+    "stderr": "usage: check-exact-versions --version\n"
+  },
+  {
+    "name": "fail: --help prints usage and does not scan",
+    "args": ["--help"],
+    "files": {
+      "package.json": "{\n  \"dependencies\": {\n    \"left-pad\": \"^1.0.0\"\n  }\n}\n"
+    },
+    "status": 1,
+    "stdout": "",
+    "stderr": "usage: check-exact-versions --version\n"
+  },
+  {
+    "name": "fail: repeated --version prints usage and does not scan",
+    "args": ["--version", "--version"],
+    "files": {
+      "package.json": "{\n  \"dependencies\": {\n    \"left-pad\": \"^1.0.0\"\n  }\n}\n"
+    },
+    "status": 1,
+    "stdout": "",
+    "stderr": "usage: check-exact-versions --version\n"
+  },
+  {
+    "name": "pending NON-139: an inline tool table with an exact version passes",
+    "files": {
+      "mise.toml": "[tools]\nnode = { version = \"24.22.0\" }\n"
+    },
+    "pending": "NON-139",
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pending NON-139: a tools subtable with an exact version passes",
+    "files": {
+      "mise.toml": "[tools.node]\nversion = \"24.22.0\"\n"
+    },
+    "pending": "NON-139",
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pending NON-139: a per-os row with latest fails on that row",
+    "files": {
+      "mise.toml": "[[tools.\"github:taiki-e/cargo-nextest\"]]\nversion = \"cargo-nextest-0.9.126\"\n\n[[tools.\"github:taiki-e/cargo-nextest\"]]\nversion = \"latest\"\n"
+    },
+    "pending": "NON-139",
+    "status": 1,
+    "stdout": "mise.toml:5: tool github:taiki-e/cargo-nextest is not an exact version\n",
+    "stderr": ""
+  },
+  {
+    "name": "pending NON-139: an array of inline tables accepts a dated nightly",
+    "files": {
+      "mise.toml": "[tools]\nrust = [ { version = \"nightly-2026-01-02\" } ]\n"
+    },
+    "pending": "NON-139",
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pending NON-139: a github tool tag ending in major.minor.patch passes",
+    "files": {
+      "mise.toml": "[tools]\n\"github:taiki-e/cargo-nextest\" = \"cargo-nextest-0.9.126\"\n"
+    },
+    "pending": "NON-139",
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pending NON-139: a github tool tag ending in major.minor passes",
+    "files": {
+      "mise.toml": "[tools]\n\"github:example/pkcs11\" = \"pkcs11-v1.9\"\n"
+    },
+    "pending": "NON-139",
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pending NON-139: rust major.minor fails",
+    "files": {
+      "mise.toml": "[tools]\nrust = \"1.98\"\n"
+    },
+    "pending": "NON-139",
+    "status": 1,
+    "stdout": "mise.toml:2: tool rust is not an exact version\n",
+    "stderr": ""
+  },
+  {
+    "name": "pending NON-139: a dated rust nightly passes",
+    "files": {
+      "mise.toml": "[tools]\nrust = \"nightly-2026-01-02\"\n"
+    },
+    "pending": "NON-139",
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pending NON-139: a tool table with no version fails",
+    "files": {
+      "mise.toml": "[tools.node]\nos = \"linux\"\n"
+    },
+    "pending": "NON-139",
+    "status": 1,
+    "stdout": "mise.toml:1: tool node is not an exact version\n",
+    "stderr": ""
+  },
+  {
+    "name": "pending NON-139: a mypy override array after dependency groups passes",
+    "files": {
+      "pyproject.toml": "[dependency-groups]\ntest = [\n  \"ruff==0.6.0\",\n]\n\n[[tool.mypy.overrides]]\nmodule = [\"foo.*\"]\n"
+    },
+    "pending": "NON-139",
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  }
+]

@@ -1,11 +1,10 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { cp, mkdtemp, readdir, readFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { cp, readdir, readFile } from "node:fs/promises";
 import path from "node:path";
-import test from "node:test";
 import { fileURLToPath } from "node:url";
+import { test } from "../../shared/test-support/register-fixtures.mjs";
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const pkg = JSON.parse(readFileSync(path.join(packageRoot, "package.json"), "utf8"));
@@ -22,11 +21,10 @@ test("bundle --version prints package.json version", () => {
   assert.equal(result.stderr, "");
 });
 
-test("a lone copy of the bundle prints the version", async () => {
-  const dir = await mkdtemp(path.join(tmpdir(), `${pkg.name}-`));
-  const copy = path.join(dir, `${pkg.name}.mjs`);
+test("a lone copy of the bundle prints the version", async ({ fixtureDir }) => {
+  const copy = path.join(fixtureDir, `${pkg.name}.mjs`);
   await cp(bundlePath, copy);
-  assert.deepEqual(await readdir(dir), [`${pkg.name}.mjs`]);
+  assert.deepEqual(await readdir(fixtureDir), [`${pkg.name}.mjs`]);
   const result = run(copy, ["--version"]);
   assert.equal(result.status, 0);
   assert.equal(result.stdout, `${pkg.version}\n`);

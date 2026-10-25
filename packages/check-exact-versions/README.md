@@ -118,3 +118,7 @@ Workflow images do not accept `scratch` or a Dockerfile stage name. `uses: docke
 STD-006 is enforced for the dependency, `packageManager`, mise tool, mise plugin, and image rules above. A Python `requests==2` pin passes. `workspace:`, `file:`, `link:`, and `catalog:` pass and are not resolved. A pipeline step's `uses:` commit is not checked here. `@sha256:` is a substring, so `@sha256:abc` passes.
 
 STD-007 and STD-008 are not this tool.
+
+## Tests
+
+`mise run test` builds the package and runs `vitest run`. Scan cases live in `test/cases.json`. Each case receives a `fixtureDir` from the Vitest context, writes its `files` there, and runs the built command. A case with `pending` is a Vitest todo for behavior that is not implemented yet. Its name starts with `pending`. The todo is reported and does not fail the run. Removing `pending` runs the case.

@@ -1,0 +1,144 @@
+[
+  {
+    "name": "pass: an empty directory prints nothing",
+    "files": {},
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pass: a file that is not a manifest prints nothing",
+    "files": {
+      "README.md": "notes\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pending NON-142: package.json without pnpm-lock.yaml fails",
+    "files": {
+      "package.json": "{}\n"
+    },
+    "status": 1,
+    "stdout": "package.json:1: lockfile pnpm-lock.yaml is missing\n",
+    "stderr": "",
+    "pending": "NON-142"
+  },
+  {
+    "name": "pending NON-142: package.json with pnpm-lock.yaml passes",
+    "files": {
+      "package.json": "{}\n",
+      "pnpm-lock.yaml": ""
+    },
+    "pending": "NON-142",
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pending NON-142: pyproject.toml without uv.lock fails",
+    "files": {
+      "pyproject.toml": "[project]\nname = \"demo\"\n"
+    },
+    "pending": "NON-142",
+    "status": 1,
+    "stdout": "pyproject.toml:1: lockfile uv.lock is missing\n",
+    "stderr": ""
+  },
+  {
+    "name": "pending NON-142: pyproject.toml with uv.lock passes",
+    "files": {
+      "pyproject.toml": "[project]\nname = \"demo\"\n",
+      "uv.lock": ""
+    },
+    "pending": "NON-142",
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pending NON-142: Cargo.toml without Cargo.lock fails",
+    "files": {
+      "Cargo.toml": "[package]\nname = \"demo\"\nversion = \"0.1.0\"\n"
+    },
+    "pending": "NON-142",
+    "status": 1,
+    "stdout": "Cargo.toml:1: lockfile Cargo.lock is missing\n",
+    "stderr": ""
+  },
+  {
+    "name": "pending NON-142: Cargo.toml with Cargo.lock passes",
+    "files": {
+      "Cargo.toml": "[package]\nname = \"demo\"\nversion = \"0.1.0\"\n",
+      "Cargo.lock": ""
+    },
+    "pending": "NON-142",
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pending NON-142: mise.toml without mise.lock fails",
+    "files": {
+      "mise.toml": "[tools]\nnode = \"24.22.0\"\n"
+    },
+    "pending": "NON-142",
+    "status": 1,
+    "stdout": "mise.toml:1: lockfile mise.lock is missing\n",
+    "stderr": ""
+  },
+  {
+    "name": "pending NON-142: mise.toml with mise.lock passes",
+    "files": {
+      "mise.toml": "[tools]\nnode = \"24.22.0\"\n",
+      "mise.lock": ""
+    },
+    "pending": "NON-142",
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pending NON-142: .mise/config.toml without mise.lock fails",
+    "files": {
+      ".mise/config.toml": "[tools]\nnode = \"24.22.0\"\n"
+    },
+    "pending": "NON-142",
+    "status": 1,
+    "stdout": ".mise/config.toml:1: lockfile mise.lock is missing\n",
+    "stderr": ""
+  },
+  {
+    "name": "pending NON-142: .mise/config.toml with mise.lock passes",
+    "files": {
+      ".mise/config.toml": "[tools]\nnode = \"24.22.0\"\n",
+      "mise.lock": ""
+    },
+    "pending": "NON-142",
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pending NON-142: a nested pyproject.toml with uv.lock in an ancestor passes",
+    "files": {
+      "apps/pyproject.toml": "[project]\nname = \"demo\"\n",
+      "uv.lock": ""
+    },
+    "pending": "NON-142",
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pending NON-142: a nested package.json without an ancestor lockfile fails",
+    "files": {
+      "apps/package.json": "{}\n"
+    },
+    "pending": "NON-142",
+    "status": 1,
+    "stdout": "apps/package.json:1: lockfile pnpm-lock.yaml is missing\n",
+    "stderr": ""
+  }
+]
