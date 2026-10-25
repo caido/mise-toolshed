@@ -22,6 +22,7 @@ export function run(
   cwd: string,
   io: Io,
   decide: Decide,
+  pathFindings: (files: ReadonlySet<string>) => readonly Finding[] = () => [],
 ): number {
   if (argv.length === 1 && argv[0] === "--version") {
     io.stdout.write(`${tool.version}\n`);
@@ -31,16 +32,24 @@ export function run(
     io.stderr.write(`usage: ${tool.name} --version\n`);
     return 1;
   }
-  const findings = scan(cwd, decide);
+  const findings = scan(cwd, decide, pathFindings);
   for (const found of findings) {
     io.stdout.write(`${found.path}:${found.line}: ${found.message}\n`);
   }
   return findings.length === 0 ? 0 : 1;
 }
 
-function scan(cwd: string, decide: Decide): readonly Finding[] {
-  const parsed = walk(cwd, cwd);
-  const findings = parsed.flatMap((file) => file.sites.flatMap((site) => decide(site)));
+function scan(
+  cwd: string,
+  decide: Decide,
+  pathFindings: (files: ReadonlySet<string>) => readonly Finding[],
+): readonly Finding[] {
+  const files = new Set<string>();
+  const parsed = walk(cwd, cwd, files);
+  const findings = [
+    ...parsed.flatMap((file) => file.sites.flatMap((site) => decide(site))),
+    ...pathFindings(files),
+  ];
   return findings.toSorted((left, right) => {
     if (left.path !== right.path) return left.path < right.path ? -1 : 1;
     if (left.line !== right.line) return left.line - right.line;
@@ -49,7 +58,7 @@ function scan(cwd: string, decide: Decide): readonly Finding[] {
   });
 }
 
-function walk(cwd: string, directory: string): readonly ParsedFile[] {
+function walk(cwd: string, directory: string, files: Set<string>): readonly ParsedFile[] {
   const entries = readdirSync(directory, { withFileTypes: true }).toSorted((left, right) =>
     left.name < right.name ? -1 : left.name > right.name ? 1 : 0,
   );
@@ -58,10 +67,11 @@ function walk(cwd: string, directory: string): readonly ParsedFile[] {
     const full = path.join(directory, entry.name);
     if (entry.isDirectory()) {
       if (skipDirectory(entry.name)) return [];
-      return walk(cwd, full);
+      return walk(cwd, full, files);
     }
     if (!entry.isFile()) return [];
     const relative = path.relative(cwd, full).split(path.sep).join("/");
+    files.add(relative);
     const kind = classify(relative);
     if (kind === "skip") return [];
     try {
