@@ -5,7 +5,7 @@
 Provided tools:
 
 - **`toolshed:check-exact-versions`**, **`toolshed:check-lockfiles`**, and **`toolshed:check-minimum-release-age`**: released commands. Pushing `<tool>-v<semver>` publishes `<tool>.mjs` and `SHA256SUMS`. The plugin downloads that release and refuses the install when the SHA-256 does not match. Each tool is first released as `1.0.0`.
-- **`toolshed:get-skills`**: a `get-skills` command which installs the [`skills/`](https://github.com/caido/ai-ops/tree/main/skills) tree from **[ai-ops](https://github.com/caido/ai-ops)** into one personal folder you choose.
+- **`toolshed:get-skills`**: a `get-skills` command which installs the [`skills/`](https://github.com/caido/ai-ops/tree/main/skills) tree from **[ai-ops](https://github.com/caido/ai-ops)** into one personal folder you choose. It is released like the check tools. The asset is `get-skills.mjs`.
 
 ## Released check tools
 
@@ -43,11 +43,15 @@ You can still publish by pushing the tag.
 git tag check-exact-versions-v1.0.0 && git push origin check-exact-versions-v1.0.0
 ```
 
-`get-skills` stays a git tag. Push `get-skills-v<version>` yourself. The Release workflow does not upload assets for that tag.
+`get-skills` uses this same release. Dispatch it with `tool=get-skills`. The first version is `1.0.0`, and the asset is `get-skills.mjs`.
+
+```bash
+gh workflow run release.yml --ref main -f tool=get-skills
+```
 
 ## get-skills
 
-`latest` installs the newest `get-skills-v*` tag. In a mise home that already has get-skills installed, `mise install` can keep that version. `mise exec toolshed:get-skills@latest -- get-skills` installs and runs the newest tag. Before any such tag exists, `latest` copies the checkout's `bin/get-skills`. A pin `x.y.z` installs `bin/get-skills` from tag `get-skills-vx.y.z` on `https://github.com/caido/mise-toolshed`. The default clone URL is **`https://github.com/caido/ai-ops`**. Run **`bin/get-skills`** from a checkout of this repo without mise.
+`mise ls-remote toolshed:get-skills` lists bare versions from `get-skills-v*` tags, oldest first. With no such tags it lists `latest`. `mise install` of a bare version downloads `get-skills.mjs` and `SHA256SUMS` from `https://github.com/caido/mise-toolshed/releases/download/get-skills-v<version>/`, checks the digest, and installs the file as `get-skills` on `PATH`. Before any tag exists, `latest` copies `packages/get-skills/dist/get-skills.mjs` from the plugin checkout. When tags exist, `latest` is the newest version. In a mise home that already has get-skills installed, `mise install` can keep that version. The default clone URL is **`https://github.com/caido/ai-ops`**. Run `node packages/get-skills/dist/get-skills.mjs` from a checkout of this repo after `mise run build`.
 
 On each run, the tool asks which personal folder to use. It then **clones or updates** a cache of that repo (default: `~/.cache/mise-toolshed/ai-ops`), checks out a ref (default branch, or overrides below), and copies skill directories into the folder you chose.
 
@@ -60,20 +64,10 @@ In the consumer repo’s `mise.toml`:
 toolshed = "https://github.com/caido/mise-toolshed"
 
 [tools]
-"toolshed:get-skills" = "latest"
-```
-
-A pinned release uses a bare version.
-
-```toml
 "toolshed:get-skills" = "1.0.0"
 ```
 
-Publish that tag from a checkout of this repo.
-
-```bash
-git tag get-skills-v1.0.0 && git push origin get-skills-v1.0.0
-```
+Before the first tag exists, the only listed version is `latest`.
 
 ## Install and run
 
@@ -81,7 +75,7 @@ From the consumer project root:
 
 ```bash
 mise install
-mise exec toolshed:get-skills@latest -- get-skills
+mise exec toolshed:get-skills@1.0.0 -- get-skills
 ```
 
 `get-skills` reads one line from stdin. The line chooses the install folder.
@@ -96,7 +90,7 @@ The tool writes `.toolshed-get-skills` in the chosen folder, one owned skill nam
 
 If a skill name from upstream is already in the folder and is not listed in `.toolshed-get-skills`, the run exits with status 1. It does not create, replace, or remove any skill directory. Move that personal directory aside and run `get-skills` again.
 
-`mise ls-remote toolshed:get-skills` lists bare versions from `get-skills-v*` tags, oldest first. With no such tags it lists `latest`. The ai-ops revision is still the default branch or `AI_OPS_SKILLS_REF`.
+The ai-ops revision is the default branch, or `AI_OPS_SKILLS_REF` when that variable is set.
 
 **Overrides (optional):**
 
@@ -109,7 +103,7 @@ If a skill name from upstream is already in the folder and is not listed in `.to
 
 **PATH:** the executable is named `get-skills`. If that conflicts with another tool, use `mise exec toolshed:get-skills@… -- get-skills` or the absolute path under `~/.local/share/mise/installs/`.
 
-**Requirement:** `git` must be on `PATH`.
+**Requirement:** `node` must be on `PATH` to run `get-skills`. `git` must be on `PATH` to clone ai-ops.
 
 If the ai-ops repository is private, ensure your Git credential helper can clone `https://github.com/caido/ai-ops` without a TTY, or use SSH via your Git URL rewrites.
 
@@ -136,8 +130,8 @@ Plugin files are at the repository root. Workspace packages are under `packages/
 
 - `metadata.lua` declares the mise plugin toolshed.
 - `hooks/` has the mise backend entry points `backend_install.lua`, `backend_list_versions.lua`, and `backend_exec_env.lua`.
-- `bin/get-skills` is the script mise installs.
-- `lib/get_skills_release.lua` lists and installs get-skills versions from this repo.
+- `packages/get-skills` is the get-skills command. The build writes `dist/get-skills.mjs`.
+- `lib/get_skills_release.lua` lists get-skills versions. A versioned install uses the checksummed release. `latest` with no tags copies the checkout bundle.
 - `lib/version_order.lua` orders version strings for get-skills and released tools.
 - `lib/released_tool.lua` lists and installs released tools from checksummed GitHub releases.
 - `packages/shared` is private scanner code. It has no build and it is not released.

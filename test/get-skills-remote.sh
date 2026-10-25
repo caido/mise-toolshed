@@ -10,11 +10,11 @@ fi
 
 REPO=$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)
 
-if grep -F 'ssh://git@github.com/caido/ai-ops.git' "$REPO/bin/get-skills"; then
-	echo "bin/get-skills still defaults to ssh://git@github.com/caido/ai-ops.git" >&2
+if grep -F 'ssh://git@github.com/caido/ai-ops.git' "$REPO/packages/get-skills/src/main.ts"; then
+	echo "get-skills still defaults to ssh://git@github.com/caido/ai-ops.git" >&2
 	exit 1
 fi
-grep -F "REPO_URL=\"\${REPO_URL:-https://github.com/caido/ai-ops}\"" "$REPO/bin/get-skills" >/dev/null
+grep -F 'const DEFAULT_REPO_URL = "https://github.com/caido/ai-ops";' "$REPO/packages/get-skills/src/main.ts" >/dev/null
 
 base=$(mktemp -d)
 trap 'rm -rf "$base"' EXIT
@@ -32,83 +32,57 @@ mkdir -p "$work"
 : >"$GIT_CONFIG_GLOBAL"
 
 origin="$work/origin.git"
+releases="$base/releases"
 git init --bare -q -b main "$origin"
 wt="$work/fixture"
 git -C "$wt" init -q -b main
-printf 'pinned-1.0.0-2\n' >"$wt/bin/get-skills"
-git -C "$wt" add bin/get-skills
-git -C "$wt" commit -m 'pin 1.0.0-2' >/dev/null
-git -C "$wt" tag get-skills-v1.0.0-2
-printf 'pinned-1.0.0-10\n' >"$wt/bin/get-skills"
-git -C "$wt" add bin/get-skills
-git -C "$wt" commit -m 'pin 1.0.0-10' >/dev/null
-git -C "$wt" tag get-skills-v1.0.0-10
-printf 'pinned-1.0.0-1a\n' >"$wt/bin/get-skills"
-git -C "$wt" add bin/get-skills
-git -C "$wt" commit -m 'pin 1.0.0-1a' >/dev/null
-git -C "$wt" tag get-skills-v1.0.0-1a
-printf 'pinned-1.0.0-10a\n' >"$wt/bin/get-skills"
-git -C "$wt" add bin/get-skills
-git -C "$wt" commit -m 'pin 1.0.0-10a' >/dev/null
-git -C "$wt" tag get-skills-v1.0.0-10a
-printf 'pinned-1.0.0-beta\n' >"$wt/bin/get-skills"
-git -C "$wt" add bin/get-skills
-git -C "$wt" commit -m 'pin 1.0.0-beta' >/dev/null
-git -C "$wt" tag get-skills-v1.0.0-beta
-printf 'pinned-1.0.0-rc.1\n' >"$wt/bin/get-skills"
-git -C "$wt" add bin/get-skills
-git -C "$wt" commit -m 'pin 1.0.0-rc.1' >/dev/null
-git -C "$wt" tag get-skills-v1.0.0-rc.1
-printf 'pinned-1.0.0\n' >"$wt/bin/get-skills"
-git -C "$wt" add bin/get-skills
-git -C "$wt" commit -m 'pin 1.0.0' >/dev/null
-git -C "$wt" tag get-skills-v1.0.0
-printf 'pinned-1.2-rc\n' >"$wt/bin/get-skills"
-git -C "$wt" add bin/get-skills
-git -C "$wt" commit -m 'pin 1.2-rc' >/dev/null
-git -C "$wt" tag get-skills-v1.2-rc
-printf 'pinned-1.2\n' >"$wt/bin/get-skills"
-git -C "$wt" add bin/get-skills
-git -C "$wt" commit -m 'pin 1.2' >/dev/null
-git -C "$wt" tag get-skills-v1.2
-printf 'pinned-1.2.3\n' >"$wt/bin/get-skills"
-git -C "$wt" add bin/get-skills
-git -C "$wt" commit -m 'pin 1.2.3' >/dev/null
-git -C "$wt" tag get-skills-v1.2.3
-printf 'pinned-1.9-rc\n' >"$wt/bin/get-skills"
-git -C "$wt" add bin/get-skills
-git -C "$wt" commit -m 'pin 1.9-rc' >/dev/null
-git -C "$wt" tag get-skills-v1.9-rc
-printf 'pinned-1.9\n' >"$wt/bin/get-skills"
-git -C "$wt" add bin/get-skills
-git -C "$wt" commit -m 'pin 1.9' >/dev/null
-git -C "$wt" tag get-skills-v1.9
-printf 'pinned-1.10-rc\n' >"$wt/bin/get-skills"
-git -C "$wt" add bin/get-skills
-git -C "$wt" commit -m 'pin 1.10-rc' >/dev/null
-git -C "$wt" tag get-skills-v1.10-rc
-printf 'pinned-1.10.0\n' >"$wt/bin/get-skills"
-git -C "$wt" add bin/get-skills
-git -C "$wt" commit -m 'pin 1.10.0' >/dev/null
-git -C "$wt" tag get-skills-v1.10.0
+printf 'readme\n' >"$wt/readme"
+git -C "$wt" add readme
+git -C "$wt" commit -m 'readme' >/dev/null
+
+publish_pin() {
+	version=$1
+	body=$2
+	dir="$releases/get-skills-v$version"
+	mkdir -p "$dir"
+	printf '%s\n' "$body" >"$dir/get-skills.mjs"
+	hash=$(sha256sum "$dir/get-skills.mjs")
+	hash=${hash%% *}
+	printf '%s  get-skills.mjs\n' "$hash" >"$dir/SHA256SUMS"
+	cp "$dir/get-skills.mjs" "$work/blob-$version"
+	git -C "$wt" tag "get-skills-v$version"
+}
+
+publish_pin 1.0.0-2 pinned-1.0.0-2
+publish_pin 1.0.0-10 pinned-1.0.0-10
+publish_pin 1.0.0-1a pinned-1.0.0-1a
+publish_pin 1.0.0-10a pinned-1.0.0-10a
+publish_pin 1.0.0-beta pinned-1.0.0-beta
+publish_pin 1.0.0-rc.1 pinned-1.0.0-rc.1
+publish_pin 1.0.0 pinned-1.0.0
+publish_pin 1.2-rc pinned-1.2-rc
+publish_pin 1.2 pinned-1.2
+publish_pin 1.2.3 pinned-1.2.3
+publish_pin 1.9-rc pinned-1.9-rc
+publish_pin 1.9 pinned-1.9
+publish_pin 1.10-rc pinned-1.10-rc
+publish_pin 1.10.0 pinned-1.10.0
 git -C "$wt" tag other-tool-v9.9.9
 git -C "$wt" tag v0.0.1
 git -C "$wt" remote add origin "$origin"
 git -C "$wt" push -q origin HEAD:refs/heads/main
 git -C "$wt" push -q origin --tags
 
-git --git-dir="$origin" show get-skills-v1.0.0-rc.1:bin/get-skills >"$work/blob-1.0.0-rc.1"
-git --git-dir="$origin" show get-skills-v1.0.0:bin/get-skills >"$work/blob-1.0.0"
-git --git-dir="$origin" show get-skills-v1.2.3:bin/get-skills >"$work/blob-1.2.3"
-git --git-dir="$origin" show get-skills-v1.10.0:bin/get-skills >"$work/blob-1.10.0"
-if cmp -s "$REPO/bin/get-skills" "$work/blob-1.0.0"; then
-	echo "checkout bin/get-skills matches the 1.0.0 blob" >&2
+bundle="$REPO/packages/get-skills/dist/get-skills.mjs"
+if cmp -s "$bundle" "$work/blob-1.0.0"; then
+	echo "checkout bundle matches the 1.0.0 asset" >&2
 	exit 1
 fi
-if cmp -s "$REPO/bin/get-skills" "$work/blob-1.2.3"; then
-	echo "checkout bin/get-skills matches the 1.2.3 blob" >&2
+if cmp -s "$bundle" "$work/blob-1.2.3"; then
+	echo "checkout bundle matches the 1.2.3 asset" >&2
 	exit 1
 fi
+export TOOLSHED_RELEASE_BASE_URL="file://$releases"
 
 # file:// plus an absolute path. Spaces in the path stay unencoded.
 remote="file://$origin"
@@ -190,8 +164,8 @@ if ! cmp -s "$bin" "$work/blob-1.2.3"; then
 	echo "1.2.3 install does not match get-skills-v1.2.3:bin/get-skills" >&2
 	exit 1
 fi
-if cmp -s "$bin" "$REPO/bin/get-skills"; then
-	echo "1.2.3 install matches the checkout bin/get-skills" >&2
+if cmp -s "$bin" "$bundle"; then
+	echo "1.2.3 install matches the checkout bundle" >&2
 	exit 1
 fi
 echo "install 1.2.3 matched get-skills-v1.2.3:bin/get-skills"
@@ -249,8 +223,8 @@ if ! cmp -s "$latest_bin" "$work/blob-1.10.0"; then
 	echo "latest install does not match get-skills-v1.10.0:bin/get-skills" >&2
 	exit 1
 fi
-if cmp -s "$latest_bin" "$REPO/bin/get-skills"; then
-	echo "latest install matches the checkout bin/get-skills" >&2
+if cmp -s "$latest_bin" "$bundle"; then
+	echo "latest install matches the checkout bundle" >&2
 	exit 1
 fi
 echo "install latest matched get-skills-v1.10.0:bin/get-skills"
@@ -284,8 +258,8 @@ cat >mise.toml <<'EOF'
 EOF
 "$MISE" install
 notags_bin=$("$MISE" where toolshed:get-skills@latest)/bin/get-skills
-if ! cmp -s "$notags_bin" "$REPO/bin/get-skills"; then
-	echo "latest with no tags does not match the checkout bin/get-skills" >&2
+if ! cmp -s "$notags_bin" "$bundle"; then
+	echo "latest with no tags does not match the checkout bundle" >&2
 	exit 1
 fi
-echo "install latest with no tags matched the checkout bin/get-skills"
+echo "install latest with no tags matched the checkout bundle"

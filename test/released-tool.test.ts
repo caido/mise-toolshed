@@ -248,6 +248,23 @@ await test("mise installs check-exact-versions only when SHA256SUMS matches", as
     );
   });
 
+  const skillsBody = `#!/usr/bin/env node
+process.stdout.write("get-skills\\n");
+`;
+  const skillsGood = path.join(releases, "get-skills-v1.0.0");
+  await mkdir(skillsGood, { recursive: true });
+  await writeFile(path.join(skillsGood, "get-skills.mjs"), skillsBody);
+  await writeFile(path.join(skillsGood, "SHA256SUMS"), `${sha256(skillsBody)}  get-skills.mjs\n`);
+  const skillsTamperDir = path.join(releases, "get-skills-v9.9.9");
+  await mkdir(skillsTamperDir, { recursive: true });
+  await writeFile(path.join(skillsTamperDir, "get-skills.mjs"), skillsBody);
+  const skillsBefore = skillsBody;
+  const skillsExpected = sha256(skillsBefore);
+  await writeFile(path.join(skillsTamperDir, "SHA256SUMS"), `${skillsExpected}  get-skills.mjs\n`);
+  const skillsTampered = `${skillsBefore}\n/* tampered */\n`;
+  await writeFile(path.join(skillsTamperDir, "get-skills.mjs"), skillsTampered);
+  const skillsActual = sha256(skillsTampered);
+
   await t.test("missing checksum entry fails and leaves no binary", async () => {
     const missing = run("mise", ["install", "toolshed:check-exact-versions@9.8.0"], {
       cwd: project,
@@ -265,6 +282,70 @@ await test("mise installs check-exact-versions only when SHA256SUMS matches", as
       false,
       left.join("\n"),
     );
+  });
+
+  await t.test("installs get-skills 1.0.0 on PATH", async () => {
+    await writeFile(path.join(project, "mise.toml"), '[tools]\n"toolshed:get-skills" = "1.0.0"\n');
+    must(run("mise", ["install"], { cwd: project, env: miseEnv }), "mise install get-skills");
+    const where = stripTrailingNewlines(
+      must(
+        run("mise", ["where", "toolshed:get-skills"], { cwd: project, env: miseEnv }),
+        "mise where",
+      ),
+    );
+    const resolved = stripTrailingNewlines(
+      must(
+        run("mise", ["exec", "--", "sh", "-c", "command -v get-skills"], {
+          cwd: project,
+          env: miseEnv,
+        }),
+        "command -v get-skills",
+      ),
+    );
+    assert.equal(resolved.startsWith(`${where}${path.sep}`), true, resolved);
+    const installed = await readFile(path.join(where, "bin", "get-skills"), "utf8");
+    assert.equal(installed, skillsBody);
+  });
+
+  await t.test("tampered get-skills download fails", async () => {
+    const tamper = run("mise", ["install", "toolshed:get-skills@9.9.9"], {
+      cwd: project,
+      env: miseEnv,
+    });
+    assert.notEqual(tamper.status, 0);
+    assert.ok(tamper.stderr.includes("get-skills.mjs checksum mismatch for tag get-skills-v9.9.9"));
+    assert.ok(tamper.stderr.includes(skillsExpected));
+    assert.ok(tamper.stderr.includes(skillsActual));
+    const left = await filesNamed(miseEnv.MISE_DATA_DIR ?? "", "get-skills");
+    assert.equal(
+      left.some((file) => file.includes(`${path.sep}9.9.9${path.sep}`)),
+      false,
+      left.join("\n"),
+    );
+  });
+
+  await t.test("restored get-skills bytes install", async () => {
+    await writeFile(path.join(skillsTamperDir, "get-skills.mjs"), skillsBefore);
+    must(
+      run("mise", ["install", "toolshed:get-skills@9.9.9"], { cwd: project, env: miseEnv }),
+      "mise install restored get-skills",
+    );
+    const resolved = stripTrailingNewlines(
+      must(
+        run(
+          "mise",
+          ["exec", "toolshed:get-skills@9.9.9", "--", "sh", "-c", "command -v get-skills"],
+          {
+            cwd: project,
+            env: miseEnv,
+          },
+        ),
+        "command -v restored get-skills",
+      ),
+    );
+    assert.equal(resolved.endsWith(`${path.sep}get-skills`), true, resolved);
+    const installed = await readFile(resolved, "utf8");
+    assert.equal(installed, skillsBefore);
   });
 
   await t.test("check-pins lists and execs an existing install and does not install", async () => {

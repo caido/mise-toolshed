@@ -20,6 +20,7 @@
     "packages/shared/src/**/*.ts",
     "packages/check-exact-versions/src/**/*.ts",
     "packages/check-lockfiles/src/**/*.ts",
-    "packages/check-minimum-release-age/src/**/*.ts"
+    "packages/check-minimum-release-age/src/**/*.ts",
+    "packages/get-skills/src/**/*.ts"
   ]
 }

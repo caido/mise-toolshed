@@ -113,6 +113,12 @@ jobs:
         with:
           version: ${{ vars.CI__MISE_VERSION }}
 
+      - name: Install dependencies
+        run: mise exec -- pnpm install --frozen-lockfile
+
+      - name: Build
+        run: mise exec -- pnpm -r --if-present build
+
       - name: Link toolshed plugin
         run: mise plugins link --force toolshed .
 

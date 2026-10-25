@@ -12,6 +12,7 @@ local RELEASED = {
 	"check-exact-versions",
 	"check-lockfiles",
 	"check-minimum-release-age",
+	"get-skills",
 }
 
 local LEGACY = {

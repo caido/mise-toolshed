@@ -49,6 +49,7 @@ jobs:
           mise exec -- sh scripts/stage-release.sh check-exact-versions "$RUNNER_TEMP/check-exact-versions"
           mise exec -- sh scripts/stage-release.sh check-lockfiles "$RUNNER_TEMP/check-lockfiles"
           mise exec -- sh scripts/stage-release.sh check-minimum-release-age "$RUNNER_TEMP/check-minimum-release-age"
+          mise exec -- sh scripts/stage-release.sh get-skills "$RUNNER_TEMP/get-skills"
 
   plan:
     name: Plan release

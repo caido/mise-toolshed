@@ -18,7 +18,7 @@ function refuseEnv(base: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
   };
 }
 
-await test("plan-release skips get-skills tags and does not call gh", async () => {
+await test("plan-release publishes get-skills at the package version and does not call gh", async () => {
   const version = run(
     "node",
     [
@@ -31,21 +31,43 @@ await test("plan-release skips get-skills tags and does not call gh", async () =
   );
   assert.equal(version.status, 0);
   const packageVersion = version.stdout;
+  const skillsVersion = run(
+    "node",
+    [
+      path.join(repoRoot, "scripts/read-package-version.ts"),
+      path.join(repoRoot, "packages/get-skills/package.json"),
+    ],
+    {
+      env: process.env,
+    },
+  );
+  assert.equal(skillsVersion.status, 0);
+  const skillsPackageVersion = skillsVersion.stdout;
 
-  const tags = [
-    "get-skills-v1.0.0",
-    "get-skills-v1.2",
-    "get-skills-v1.2-rc",
-    "get-skills-v1.9",
-    "get-skills-v1.10-rc",
-  ];
-  for (const tag of tags) {
-    const result = run("sh", [planScript, tag], { env: refuseEnv() });
-    assert.equal(result.status, 0, result.stderr);
-    assert.equal(result.stdout, "skip\n");
-    assert.ok(result.stderr.includes(`tag ${tag} has no packages/get-skills; publishing nothing`));
-    assert.doesNotMatch(result.stderr, /gh invoked/);
-  }
+  const publishSkills = run("sh", [planScript, `get-skills-v${skillsPackageVersion}`], {
+    env: refuseEnv(),
+  });
+  assert.equal(publishSkills.status, 0, publishSkills.stderr);
+  assert.equal(publishSkills.stdout, `publish get-skills ${skillsPackageVersion}\n`);
+  assert.doesNotMatch(publishSkills.stderr, /gh invoked/);
+
+  const skillsMismatch = run("sh", [planScript, "get-skills-v1.0.1"], { env: refuseEnv() });
+  assert.notEqual(skillsMismatch.status, 0);
+  assert.equal(skillsMismatch.stdout, "");
+  assert.ok(
+    skillsMismatch.stderr.includes(
+      `tag get-skills-v1.0.1 version 1.0.1 does not match packages/get-skills/package.json ${skillsPackageVersion}`,
+    ),
+  );
+  assert.doesNotMatch(skillsMismatch.stderr, /gh invoked/);
+
+  const skipped = run("sh", [planScript, "other-tool-v1.0.0"], { env: refuseEnv() });
+  assert.equal(skipped.status, 0, skipped.stderr);
+  assert.equal(skipped.stdout, "skip\n");
+  assert.ok(
+    skipped.stderr.includes("tag other-tool-v1.0.0 has no packages/other-tool; publishing nothing"),
+  );
+  assert.doesNotMatch(skipped.stderr, /gh invoked/);
 
   const mismatch = run("sh", [planScript, "check-exact-versions-v9.9.9"], { env: refuseEnv() });
   assert.notEqual(mismatch.status, 0);
@@ -73,16 +95,16 @@ await test("export-release-plan writes skip and publish outputs", async () => {
     env: refuseEnv({
       ...process.env,
       GITHUB_OUTPUT: output,
-      GITHUB_REF_NAME: "get-skills-v1.2",
+      GITHUB_REF_NAME: "other-tool-v1.2",
     }),
   });
   assert.equal(skip.status, 0, skip.stderr);
   assert.ok(
     skip.stdout.includes(
-      "::notice::tag get-skills-v1.2 has no workspace package; publishing nothing",
+      "::notice::tag other-tool-v1.2 has no workspace package; publishing nothing",
     ),
   );
-  assert.equal(await readFile(output, "utf8"), "action=skip\ntag=get-skills-v1.2\n");
+  assert.equal(await readFile(output, "utf8"), "action=skip\ntag=other-tool-v1.2\n");
   assert.doesNotMatch(skip.stderr, /gh invoked/);
 
   const version = run(

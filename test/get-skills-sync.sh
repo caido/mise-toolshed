@@ -2,7 +2,7 @@
 set -eu
 
 REPO=$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)
-BIN="$REPO/bin/get-skills"
+BIN="$REPO/packages/get-skills/dist/get-skills.mjs"
 real_cp=$(command -v cp)
 
 base=$(mktemp -d)

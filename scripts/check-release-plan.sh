@@ -3,7 +3,7 @@ set -eu
 
 root=$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)
 
-for tool in check-exact-versions check-lockfiles check-minimum-release-age; do
+for tool in check-exact-versions check-lockfiles check-minimum-release-age get-skills; do
 	version=$(node "$root/scripts/read-package-version.ts" "$root/packages/$tool/package.json")
 	tag="${tool}-v${version}"
 	plan=$(sh "$root/scripts/plan-release.sh" "$tag")

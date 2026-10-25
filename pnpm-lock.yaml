@@ -190,6 +190,8 @@ importers:
 
   packages/check-minimum-release-age: {}
 
+  packages/get-skills: {}
+
   packages/shared: {}
 
 packages:

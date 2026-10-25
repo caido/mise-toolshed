@@ -20,7 +20,7 @@ Run this after Launch and before Drive. It only reads the checkout. Stop when a 
 ```sh
 set -eu
 test -f packages/check-pins/dist/check-pins.mjs
-test -f bin/get-skills
+test -f packages/get-skills/dist/get-skills.mjs
 test -f scripts/stage-release.sh
 command -v git >/dev/null
 command -v sha256sum >/dev/null
@@ -92,7 +92,7 @@ Run this whole block as one subshell from the checkout. The subshell owns `HOME`
   test ! -s "$SCRATCH/pins.err"
 
   status=0
-  printf '9\n' | "$REPO/bin/get-skills" --url "$FIXTURE" >"$SCRATCH/gs-bad.out" 2>"$SCRATCH/gs-bad.err" || status=$?
+  printf '9\n' | "$REPO/packages/get-skills/dist/get-skills.mjs" --url "$FIXTURE" >"$SCRATCH/gs-bad.out" 2>"$SCRATCH/gs-bad.err" || status=$?
   record get-skills-bad "$status" "$SCRATCH/gs-bad.out" "$SCRATCH/gs-bad.err"
   test "$status" -eq 1
   test ! -s "$SCRATCH/gs-bad.out"
@@ -100,7 +100,7 @@ Run this whole block as one subshell from the checkout. The subshell owns `HOME`
   test ! -e "$AI_OPS_SKILLS_CACHE"
 
   status=0
-  printf '1\n' | "$REPO/bin/get-skills" --url "$FIXTURE" >"$SCRATCH/gs.out" 2>"$SCRATCH/gs.err" || status=$?
+  printf '1\n' | "$REPO/packages/get-skills/dist/get-skills.mjs" --url "$FIXTURE" >"$SCRATCH/gs.out" 2>"$SCRATCH/gs.err" || status=$?
   record get-skills "$status" "$SCRATCH/gs.out" "$SCRATCH/gs.err"
   {
     printf '%s\n' '--- grilling/SKILL.md ---'
@@ -159,7 +159,7 @@ A `package.json` dependency of `latest` exits 1. Stdout names that file with `pa
 
 Entry command.
 
-`printf '1\n' | "$REPO/bin/get-skills" --url "$FIXTURE"`
+`printf '1\n' | "$REPO/packages/get-skills/dist/get-skills.mjs" --url "$FIXTURE"`
 
 Choice `9` exits 1 before any clone. Stderr includes `toolshed:get-skills: expected 1, 2, or 3`. Stdout is empty. `$AI_OPS_SKILLS_CACHE` does not exist. Choice `1` exits 0. Stdout is empty. Stderr includes the folder prompt and `toolshed:get-skills: synced <cache>/skills to <install>`. `$HOME/.cursor/skills/grilling/SKILL.md` is `grill-v1`, and that file is copied into `$EVIDENCE` before cleanup. The clone remote is `$FIXTURE`.
 
