@@ -608,7 +608,7 @@
     },
     "pending": "NON-139",
     "status": 1,
-    "stdout": "mise.toml:4: tool github:taiki-e/cargo-nextest is not an exact version\n",
+    "stdout": "mise.toml:5: tool github:taiki-e/cargo-nextest is not an exact version\n",
     "stderr": ""
   },
   {

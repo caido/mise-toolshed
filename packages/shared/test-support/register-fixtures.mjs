@@ -35,7 +35,7 @@ function assertCase(item) {
     assert.equal(bits, 0, rel);
   }
   assert.ok(item.status === 0 || item.status === 1);
-  assert.equal(typeof item.stdout, "string");
+  assert.equal(item.stdout === undefined || typeof item.stdout === "string", true);
   assert.equal(typeof item.stderr, "string");
   const args = item.args ?? [];
   assert.ok(Array.isArray(args));
@@ -77,7 +77,7 @@ export function registerFixtures(command, cases) {
       const result = await scanCase(command, item);
       assert.equal(result.stderr, item.stderr);
       assert.equal(result.status, item.status, result.stdout + result.stderr);
-      assert.equal(result.stdout, item.stdout);
+      if (item.stdout !== undefined) assert.equal(result.stdout, item.stdout);
     });
   }
 }

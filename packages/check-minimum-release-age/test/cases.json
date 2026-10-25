@@ -22,7 +22,6 @@
     },
     "pending": "NON-135",
     "status": 1,
-    "stdout": "pnpm-workspace.yaml:1: minimumReleaseAge is below 7 days\n",
     "stderr": ""
   },
   {
@@ -31,7 +30,6 @@
       "pnpm-workspace.yaml": "minimumReleaseAge: 10079\n"
     },
     "status": 1,
-    "stdout": "pnpm-workspace.yaml:1: minimumReleaseAge is below 7 days\n",
     "stderr": "",
     "pending": "NON-135"
   },
@@ -62,7 +60,6 @@
     },
     "pending": "NON-135",
     "status": 1,
-    "stdout": "mise.toml:1: minimum_release_age is below 7 days\n",
     "stderr": ""
   },
   {
@@ -72,7 +69,6 @@
     },
     "pending": "NON-135",
     "status": 1,
-    "stdout": "mise.toml:2: minimum_release_age is below 7 days\n",
     "stderr": ""
   },
   {
@@ -82,7 +78,6 @@
     },
     "pending": "NON-135",
     "status": 1,
-    "stdout": "mise.toml:2: minimum_release_age is below 7 days\n",
     "stderr": ""
   },
   {

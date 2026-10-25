@@ -70,6 +70,24 @@
     "stderr": ""
   },
   {
+    "name": "fail: a plugin string is a plugin site",
+    "files": {
+      "mise.toml": "[plugins]\ntoolshed = \"https://github.com/caido/mise-toolshed#0123456789abcdef0123456789abcdef01234567\"\n"
+    },
+    "status": 1,
+    "stdout": "mise.toml:2: plugin toolshed https://github.com/caido/mise-toolshed#0123456789abcdef0123456789abcdef01234567\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a plugin table is a plugin site",
+    "files": {
+      "mise.toml": "[plugins.toolshed]\nurl = \"https://example.com\"\n"
+    },
+    "status": 1,
+    "stdout": "mise.toml:1: plugin toolshed table\n",
+    "stderr": ""
+  },
+  {
     "name": "fail: a toml file under .mise is a mise site",
     "files": {
       ".mise/config.toml": "[tools]\nnode = \"24.22.0\"\n"
