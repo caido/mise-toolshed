@@ -11,7 +11,14 @@ export function scan(cwd: string): readonly Finding[] {
 }
 
 function walk(cwd: string, directory: string): readonly Finding[] {
-  const entries = readdirSync(directory, { withFileTypes: true }).toSorted((left, right) =>
+  let entries;
+  try {
+    entries = readdirSync(directory, { withFileTypes: true });
+  } catch {
+    const relative = path.relative(cwd, directory).split(path.sep).join("/") || ".";
+    return [{ path: relative, line: 1, message: "directory is not readable" }];
+  }
+  entries = entries.toSorted((left, right) =>
     left.name < right.name ? -1 : left.name > right.name ? 1 : 0,
   );
   return entries.flatMap((entry) => {

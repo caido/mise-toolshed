@@ -241,6 +241,24 @@
     "stderr": ""
   },
   {
+    "name": "fail: ISO duration P7.0D is not a mise duration",
+    "files": {
+      "mise.toml": "[settings]\nminimum_release_age = \"P7.0D\"\n"
+    },
+    "status": 1,
+    "stdout": "mise.toml:2: minimum_release_age must be at least 7d\n",
+    "stderr": ""
+  },
+  {
+    "name": "pass: ISO duration PT168.0H passes",
+    "files": {
+      "mise.toml": "[settings]\nminimum_release_age = \"PT168.0H\"\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
     "name": "fail: an unreadable mise file is not valid",
     "mode": {
       "mise.toml": 0
