@@ -1,6 +1,11 @@
-export function tomlHeader(line: string): string | undefined {
-  const match = /^\s*\[([^[\]]+)\]\s*(?:#.*)?$/.exec(line);
-  return match?.[1]?.trim();
+export type TomlHeader = { readonly name: string; readonly array: boolean };
+
+export function tomlHeader(line: string): TomlHeader | undefined {
+  const array = /^\s*\[\[([^[\]]+)\]\]\s*(?:#.*)?$/.exec(line);
+  if (array) return { name: array[1]?.trim() ?? "", array: true };
+  const single = /^\s*\[([^[\]]+)\]\s*(?:#.*)?$/.exec(line);
+  if (single) return { name: single[1]?.trim() ?? "", array: false };
+  return undefined;
 }
 
 export function tomlAssignment(line: string): { key: string; value: string } | undefined {
