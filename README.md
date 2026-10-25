@@ -29,7 +29,7 @@ toolshed = "https://github.com/caido/mise-toolshed#<40-hex sha>"
 
 ## Publish a release
 
-Publish a workspace package from the Release workflow on the default branch. Set `tool` to the directory name under `packages/`. The workflow reads `version` from that package's `package.json`, creates the tag `<tool>-v<version>` on the selected commit, and uploads `<tool>.mjs` and `SHA256SUMS` in the same run.
+Publish a workspace package from the Release workflow on the default branch. Choose `tool` from `check-exact-versions`, `check-lockfiles`, or `check-minimum-release-age`. The workflow reads `version` from that package's `package.json`, creates the tag `<tool>-v<version>` on the selected commit, and uploads `<tool>.mjs` and `SHA256SUMS` in the same run.
 
 ```bash
 gh workflow run release.yml --ref main -f tool=check-exact-versions
