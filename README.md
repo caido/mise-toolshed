@@ -25,7 +25,7 @@ toolshed = "https://github.com/caido/mise-toolshed#<40-hex sha>"
 
 `check-pins` is not installed anymore. `mise ls-remote toolshed:check-pins` still lists the published tag, and `mise exec` still runs a copy that is already on disk. `mise install` refuses it.
 
-`check-exact-versions` enforces [STD-006](https://github.com/caido/engineering/blob/main/standards/STD-006-exact-versions.md). What it flags is in [packages/check-exact-versions/README.md](packages/check-exact-versions/README.md). `check-lockfiles` is the [STD-007](https://github.com/caido/engineering/blob/main/standards/STD-007-lockfiles.md) tool and `check-minimum-release-age` is the [STD-008](https://github.com/caido/engineering/blob/main/standards/STD-008-minimum-release-age.md) tool. Those two share the command-line contract and have no rules yet. `packages/shared` is private and is not released.
+`check-exact-versions` enforces [STD-006](https://github.com/caido/engineering/blob/main/standards/STD-006-exact-versions.md). What it flags is in [packages/check-exact-versions/README.md](packages/check-exact-versions/README.md). `check-lockfiles` enforces [STD-007](https://github.com/caido/engineering/blob/main/standards/STD-007-lockfiles.md). What it flags is in [packages/check-lockfiles/README.md](packages/check-lockfiles/README.md). `check-minimum-release-age` is the [STD-008](https://github.com/caido/engineering/blob/main/standards/STD-008-minimum-release-age.md) tool. It shares the command-line contract and has no rules yet. `packages/shared` is private and is not released.
 
 ## Publish a release
 

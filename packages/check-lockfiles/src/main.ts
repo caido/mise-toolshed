@@ -1,5 +1,6 @@
 import { TOOL_NAME, TOOL_VERSION } from "#tool-version";
 import { run } from "../../shared/src/run.js";
+import { missingLockfiles } from "./presence.js";
 
 process.exitCode = run(
   { name: TOOL_NAME, version: TOOL_VERSION },
@@ -7,4 +8,5 @@ process.exitCode = run(
   process.cwd(),
   { stdout: process.stdout, stderr: process.stderr },
   () => [],
+  missingLockfiles,
 );

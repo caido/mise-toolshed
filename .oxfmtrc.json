@@ -1,3 +1,3 @@
 {
-  "ignorePatterns": ["pnpm-lock.yaml", "dist/", "node_modules/", ".agents/"]
+  "ignorePatterns": ["pnpm-lock.yaml", "dist/", "node_modules/", ".agents/", ".mise/locks/"]
 }
