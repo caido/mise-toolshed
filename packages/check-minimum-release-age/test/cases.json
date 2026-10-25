@@ -151,6 +151,87 @@
     "stderr": ""
   },
   {
+    "name": "pass: mise minimum_release_age of +7d passes",
+    "files": {
+      "mise.toml": "[settings]\nminimum_release_age = \"+7d\"\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pass: mise minimum_release_age of 6d, 24h passes",
+    "files": {
+      "mise.toml": "[settings]\nminimum_release_age = \"6d, 24h\"\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pass: mise minimum_release_age of 168,0h passes",
+    "files": {
+      "mise.toml": "[settings]\nminimum_release_age = \"168,0h\"\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pass: mise minimum_release_age of 168:00:00 passes",
+    "files": {
+      "mise.toml": "[settings]\nminimum_release_age = \"168:00:00\"\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pass: mise minimum_release_age of 6d 24:00:00 passes",
+    "files": {
+      "mise.toml": "[settings]\nminimum_release_age = \"6d 24:00:00\"\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "fail: mise minimum_release_age of 7.5d fails",
+    "files": {
+      "mise.toml": "[settings]\nminimum_release_age = \"7.5d\"\n"
+    },
+    "status": 1,
+    "stdout": "mise.toml:2: minimum_release_age must be at least 7d\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: mise minimum_release_age of 7D fails",
+    "files": {
+      "mise.toml": "[settings]\nminimum_release_age = \"7D\"\n"
+    },
+    "status": 1,
+    "stdout": "mise.toml:2: minimum_release_age must be at least 7d\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: mise minimum_release_age of 24h6d fails",
+    "files": {
+      "mise.toml": "[settings]\nminimum_release_age = \"24h6d\"\n"
+    },
+    "status": 1,
+    "stdout": "mise.toml:2: minimum_release_age must be at least 7d\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: mise minimum_release_age of 6d,24h fails",
+    "files": {
+      "mise.toml": "[settings]\nminimum_release_age = \"6d,24h\"\n"
+    },
+    "status": 1,
+    "stdout": "mise.toml:2: minimum_release_age must be at least 7d\n",
+    "stderr": ""
+  },
+  {
     "name": "pass: mise minimum_release_age of 10080m passes",
     "files": {
       "mise.toml": "[settings]\nminimum_release_age = \"10080m\"\n"
