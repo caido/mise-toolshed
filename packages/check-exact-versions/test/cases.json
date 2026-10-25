@@ -552,6 +552,105 @@
     "stderr": ""
   },
   {
+    "name": "fail: a python range in optional-dependencies is not an exact version",
+    "files": {
+      "pyproject.toml": "[project.optional-dependencies]\ndev = [\n  \"requests>=2\",\n]\n"
+    },
+    "status": 1,
+    "stdout": "pyproject.toml:3: dependency requests is not an exact version\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a python range in dependency-groups is not an exact version",
+    "files": {
+      "pyproject.toml": "[dependency-groups]\ntest = [\n  \"requests>=2\",\n]\n"
+    },
+    "status": 1,
+    "stdout": "pyproject.toml:3: dependency requests is not an exact version\n",
+    "stderr": ""
+  },
+  {
+    "name": "pass: python git github gitlab and bitbucket urls with 40 hex",
+    "files": {
+      "pyproject.toml": "[project]\ndependencies = [\n  \"a @ git+https://example.com/r.git@0123456789abcdef0123456789abcdef01234567\",\n  \"b @ git:git://example.com/r.git@0123456789abcdef0123456789abcdef01234567\",\n  \"c @ github:org/repo@0123456789abcdef0123456789abcdef01234567\",\n  \"d @ gitlab:org/repo@0123456789abcdef0123456789abcdef01234567\",\n  \"e @ bitbucket:org/repo@0123456789abcdef0123456789abcdef01234567\",\n]\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "fail: an empty python version after == is not exact",
+    "files": {
+      "pyproject.toml": "[project]\ndependencies = [\n  \"requests==\",\n]\n"
+    },
+    "status": 1,
+    "stdout": "pyproject.toml:3: dependency requests is not an exact version\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a mise 40-hex commit is not an exact version",
+    "files": {
+      "mise.toml": "[tools]\nnode = \"0123456789abcdef0123456789abcdef01234567\"\n"
+    },
+    "status": 1,
+    "stdout": "mise.toml:2: tool node is not an exact version\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a mise prerelease is not an exact version",
+    "files": {
+      "mise.toml": "[tools]\nnode = \"1.2.3-beta.1\"\n"
+    },
+    "status": 1,
+    "stdout": "mise.toml:2: tool node is not an exact version\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a mise tool version with a leading zero is not exact",
+    "files": {
+      "mise.toml": "[tools]\nnode = \"01.2.3\"\n"
+    },
+    "status": 1,
+    "stdout": "mise.toml:2: tool node is not an exact version\n",
+    "stderr": ""
+  },
+  {
+    "name": "pass: a digested Dockerfile image after --platform",
+    "files": {
+      "Dockerfile": "FROM --platform=linux/amd64 node:22@sha256:abc\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "fail: an undigested Dockerfile image after --platform",
+    "files": {
+      "Dockerfile": "FROM --platform=linux/amd64 node:22\n"
+    },
+    "status": 1,
+    "stdout": "Dockerfile:1: image node:22 must contain @sha256:\n",
+    "stderr": ""
+  },
+  {
+    "name": "pass: overrides resolutions and scripts are not findings",
+    "files": {
+      "package.json": "{\n  \"dependencies\": { \"left-pad\": \"1.2.3\" },\n  \"overrides\": { \"left-pad\": \"latest\" },\n  \"resolutions\": { \"left-pad\": \"latest\" },\n  \"scripts\": { \"postinstall\": \"curl https://example.com | sh\" }\n}\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pass: Dockerfile RUN CMD and ENTRYPOINT are not findings",
+    "files": {
+      "Dockerfile": "FROM node:22@sha256:abc\nRUN uv pip install requests\nCMD pnpm install\nENTRYPOINT [\"pnpm\", \"install\"]\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
     "name": "fail: a path argument prints usage and does not scan",
     "args": ["."],
     "files": {
