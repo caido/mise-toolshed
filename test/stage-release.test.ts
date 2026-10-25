@@ -11,6 +11,11 @@ const bundle = path.join(repoRoot, "packages/check-pins/dist/check-pins.mjs");
 const usage = "usage: stage-release.sh <tool> <dest>\n";
 
 await test("stage-release copies check-pins and writes SHA256SUMS", async () => {
+  const built = run("node", [path.join(repoRoot, "scripts/build-package.mjs")], {
+    cwd: path.join(repoRoot, "packages/check-pins"),
+    env: process.env,
+  });
+  assert.equal(built.status, 0, `${built.stdout}${built.stderr}`);
   const dest = await mkdtemp(path.join(tmpdir(), "stage-release-"));
   const result = run("sh", [stageScript, "check-pins", dest], { env: process.env });
   assert.equal(result.status, 0, result.stderr);
