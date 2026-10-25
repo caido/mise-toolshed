@@ -1,0 +1,118 @@
+[
+  {
+    "name": "pass: an empty directory prints nothing",
+    "files": {},
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pass: a file that is not a config prints nothing",
+    "files": {
+      "README.md": "notes\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pending NON-135: pnpm-workspace.yaml without minimumReleaseAge fails",
+    "files": {
+      "pnpm-workspace.yaml": "packages:\n  - packages/*\n"
+    },
+    "pending": "NON-135",
+    "status": 1,
+    "stdout": "pnpm-workspace.yaml:1: minimumReleaseAge is below 7 days\n",
+    "stderr": ""
+  },
+  {
+    "name": "pending NON-135: minimumReleaseAge 10079 fails",
+    "files": {
+      "pnpm-workspace.yaml": "minimumReleaseAge: 10079\n"
+    },
+    "status": 1,
+    "stdout": "pnpm-workspace.yaml:1: minimumReleaseAge is below 7 days\n",
+    "stderr": "",
+    "pending": "NON-135"
+  },
+  {
+    "name": "pending NON-135: minimumReleaseAge 10080 passes",
+    "files": {
+      "pnpm-workspace.yaml": "minimumReleaseAge: 10080\n"
+    },
+    "pending": "NON-135",
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pending NON-135: minimumReleaseAge 10080 passes with an exclude list",
+    "files": {
+      "pnpm-workspace.yaml": "minimumReleaseAge: 10080\nminimumReleaseAgeExclude:\n  - \"@caido/*\"\n"
+    },
+    "pending": "NON-135",
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pending NON-135: mise without minimum_release_age fails",
+    "files": {
+      "mise.toml": "[tools]\nnode = \"24.22.0\"\n"
+    },
+    "pending": "NON-135",
+    "status": 1,
+    "stdout": "mise.toml:1: minimum_release_age is below 7 days\n",
+    "stderr": ""
+  },
+  {
+    "name": "pending NON-135: mise minimum_release_age of 6d fails",
+    "files": {
+      "mise.toml": "[settings]\nminimum_release_age = \"6d\"\n"
+    },
+    "pending": "NON-135",
+    "status": 1,
+    "stdout": "mise.toml:2: minimum_release_age is below 7 days\n",
+    "stderr": ""
+  },
+  {
+    "name": "pending NON-135: an absolute mise date fails",
+    "files": {
+      "mise.toml": "[settings]\nminimum_release_age = \"2026-01-01\"\n"
+    },
+    "pending": "NON-135",
+    "status": 1,
+    "stdout": "mise.toml:2: minimum_release_age is below 7 days\n",
+    "stderr": ""
+  },
+  {
+    "name": "pending NON-135: mise minimum_release_age of 7d passes",
+    "files": {
+      "mise.toml": "[settings]\nminimum_release_age = \"7d\"\n"
+    },
+    "pending": "NON-135",
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pending NON-135: mise minimum_release_age of 168h passes",
+    "files": {
+      "mise.toml": "[settings]\nminimum_release_age = \"168h\"\n"
+    },
+    "pending": "NON-135",
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pending NON-135: mise minimum_release_age of 1w passes",
+    "files": {
+      ".mise/config.toml": "[settings]\nminimum_release_age = \"1w\"\n"
+    },
+    "pending": "NON-135",
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  }
+]
