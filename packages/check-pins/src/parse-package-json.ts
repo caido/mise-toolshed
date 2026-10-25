@@ -20,7 +20,12 @@ export function parsePackageJson(relativePath: string, text: string): ParsedFile
     return unreadable(relativePath, "package-json");
   }
   const sites: PinSite[] = [];
-  for (const section of ["dependencies", "devDependencies", "optionalDependencies", "peerDependencies"]) {
+  for (const section of [
+    "dependencies",
+    "devDependencies",
+    "optionalDependencies",
+    "peerDependencies",
+  ]) {
     const value = record[section];
     if (value === null || typeof value !== "object" || Array.isArray(value)) continue;
     for (const [name, spec] of Object.entries(value)) {

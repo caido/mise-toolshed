@@ -85,14 +85,16 @@ function decidePython(site: DependencySite): readonly Finding[] {
     if (hex40.test(revision)) return [];
     return [finding(site, `dependency ${site.name} git pin is not 40 hex`)];
   }
-  if (requirement.includes(" @ ")) return [finding(site, `dependency ${site.name} is not an exact version`)];
+  if (requirement.includes(" @ "))
+    return [finding(site, `dependency ${site.name} is not an exact version`)];
   if (pythonExact(requirement)) return [];
   return [finding(site, `dependency ${site.name} is not an exact version`)];
 }
 
 function decideTool(site: ToolSite): readonly Finding[] {
   if (site.value.shape === "table") return [finding(site, `tool ${site.name} must be a string`)];
-  if (!toolExact.test(site.value.text)) return [finding(site, `tool ${site.name} is not an exact version`)];
+  if (!toolExact.test(site.value.text))
+    return [finding(site, `tool ${site.name} is not an exact version`)];
   return [];
 }
 

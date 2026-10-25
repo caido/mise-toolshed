@@ -96,9 +96,9 @@ If a skill name from upstream is already in the folder and is not listed in `.to
 
 **Overrides (optional):**
 
-| Variable | Purpose |
-| -------- | ------- |
-| `AI_OPS_SKILLS_REF` | Force ref to checkout in ai-ops (e.g. `main`, `v1.0.0`) |
+| Variable              | Purpose                                                                 |
+| --------------------- | ----------------------------------------------------------------------- |
+| `AI_OPS_SKILLS_REF`   | Force ref to checkout in ai-ops (e.g. `main`, `v1.0.0`)                 |
 | `AI_OPS_SKILLS_CACHE` | Local clone cache path (default `$XDG_CACHE_HOME/mise-toolshed/ai-ops`) |
 
 **Security:** mise plugins run arbitrary code during install and use; this tool runs `git` and copies files from the cloned repo—only use sources you trust ([mise plugin usage](https://mise.jdx.dev/plugin-usage.html)).
@@ -112,6 +112,19 @@ If the ai-ops repository is private, ensure your Git credential helper can clone
 **First clone looks stuck:** The first run does a **shallow** clone (`--depth 1`) with **`--progress`** so you should see `Receiving objects` / `Resolving deltas`. A large monorepo can still take several minutes. If it never advances past `0%`, check network, VPN, or auth (private repo). Remove a bad partial clone with `rm -rf "$AI_OPS_SKILLS_CACHE"` (default `~/.cache/mise-toolshed/ai-ops`) and retry.
 
 Install the plugin from a git URL so mise can clone and resolve the plugin source.
+
+## Checks
+
+These commands match the CI jobs. Each one installs dependencies from the lockfile first. `mise run test` also builds, because the check-pins tests run the built bundle.
+
+- `mise run typecheck` reports type errors.
+- `mise run lint` reports lint errors and does not change files.
+- `mise run build` builds each package.
+- `mise run test` builds, then runs the tests.
+- `mise run format` reports files that are not formatted and does not change them.
+- `mise run format-fix` writes the formatted files.
+
+`mise run format` is the CI job. `mise run format-fix` is the local command that writes.
 
 ## Repository layout
 

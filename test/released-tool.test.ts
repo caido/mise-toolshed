@@ -82,7 +82,7 @@ async function assertMissing(file: string): Promise<void> {
   assert.fail(`${file} exists`);
 }
 
-test("mise installs check-pins only when SHA256SUMS matches", async (t) => {
+await test("mise installs check-pins only when SHA256SUMS matches", async (t) => {
   const mise = spawnSync("mise", ["--version"], { encoding: "utf8" });
   assert.equal(mise.status, 0, "mise is required on PATH");
   const sha = spawnSync("sha256sum", ["--version"], { encoding: "utf8" });
@@ -100,7 +100,12 @@ test("mise installs check-pins only when SHA256SUMS matches", async (t) => {
   await writeFile(path.join(wt, "readme"), "noise\n");
   must(run("git", ["-C", wt, "add", "readme"], { env }), "git add");
   must(run("git", ["-C", wt, "commit", "-m", "tags"], { env }), "git commit");
-  for (const tag of ["check-pins-v1.0.0", "check-pins-v1.1.0", "get-skills-v1.0.0", "get-skills-v2.0.0"]) {
+  for (const tag of [
+    "check-pins-v1.0.0",
+    "check-pins-v1.1.0",
+    "get-skills-v1.0.0",
+    "get-skills-v2.0.0",
+  ]) {
     must(run("git", ["-C", wt, "tag", tag], { env }), `git tag ${tag}`);
   }
   must(run("git", ["-C", wt, "remote", "add", "origin", origin], { env }), "git remote");
@@ -113,7 +118,10 @@ test("mise installs check-pins only when SHA256SUMS matches", async (t) => {
   for (const version of ["1.0.0", "1.1.0"]) {
     const dir = path.join(releases, `check-pins-v${version}`);
     const body = await readFile(path.join(dir, "check-pins.mjs"));
-    await writeFile(path.join(dir, "SHA256SUMS"), `${sha256(body.toString("utf8"))}  check-pins.mjs\n`);
+    await writeFile(
+      path.join(dir, "SHA256SUMS"),
+      `${sha256(body.toString("utf8"))}  check-pins.mjs\n`,
+    );
   }
 
   const tamperDir = path.join(releases, "check-pins-v9.9.9");
@@ -154,16 +162,28 @@ test("mise installs check-pins only when SHA256SUMS matches", async (t) => {
   };
   await writeFile(miseEnv.MISE_GLOBAL_CONFIG_FILE ?? "", "");
   await writeFile(miseEnv.MISE_SYSTEM_CONFIG_FILE ?? "", "");
-  must(run("mise", ["plugin", "link", "--force", "toolshed", repoRoot], { cwd: project, env: miseEnv }), "plugin link");
+  must(
+    run("mise", ["plugin", "link", "--force", "toolshed", repoRoot], {
+      cwd: project,
+      env: miseEnv,
+    }),
+    "plugin link",
+  );
 
   await t.test("ls-remote prints 1.0.0 then 1.1.0", () => {
-    const listed = run("mise", ["ls-remote", "toolshed:check-pins"], { cwd: project, env: miseEnv });
+    const listed = run("mise", ["ls-remote", "toolshed:check-pins"], {
+      cwd: project,
+      env: miseEnv,
+    });
     assert.equal(listed.status, 0, listed.stderr);
     assert.equal(listed.stdout, "1.0.0\n1.1.0\n");
   });
 
   await t.test("unknown tool fails", () => {
-    const unknown = run("mise", ["ls-remote", "toolshed:not-a-tool"], { cwd: project, env: miseEnv });
+    const unknown = run("mise", ["ls-remote", "toolshed:not-a-tool"], {
+      cwd: project,
+      env: miseEnv,
+    });
     assert.notEqual(unknown.status, 0);
   });
 
@@ -171,36 +191,64 @@ test("mise installs check-pins only when SHA256SUMS matches", async (t) => {
     await writeFile(path.join(project, "mise.toml"), '[tools]\n"toolshed:check-pins" = "1.0.0"\n');
     must(run("mise", ["install"], { cwd: project, env: miseEnv }), "mise install");
     const where = stripTrailingNewlines(
-      must(run("mise", ["where", "toolshed:check-pins"], { cwd: project, env: miseEnv }), "mise where"),
+      must(
+        run("mise", ["where", "toolshed:check-pins"], { cwd: project, env: miseEnv }),
+        "mise where",
+      ),
     );
     const bin = path.join(where, "bin", "check-pins");
     await access(bin, constants.X_OK);
     await assertMissing(path.join(where, "bin", "check-pins.mjs"));
     const resolved = stripTrailingNewlines(
-      must(run("mise", ["exec", "--", "sh", "-c", "command -v check-pins"], { cwd: project, env: miseEnv }), "command -v"),
+      must(
+        run("mise", ["exec", "--", "sh", "-c", "command -v check-pins"], {
+          cwd: project,
+          env: miseEnv,
+        }),
+        "command -v",
+      ),
     );
     assert.equal(resolved.startsWith(`${where}${path.sep}`), true, resolved);
     const version = stripTrailingNewlines(
-      must(run("mise", ["exec", "--", "check-pins", "--version"], { cwd: project, env: miseEnv }), "version"),
+      must(
+        run("mise", ["exec", "--", "check-pins", "--version"], { cwd: project, env: miseEnv }),
+        "version",
+      ),
     );
     assert.equal(version, "1.0.0");
   });
 
   await t.test("tampered download fails and leaves no binary", async () => {
-    const tamper = run("mise", ["install", "toolshed:check-pins@9.9.9"], { cwd: project, env: miseEnv });
+    const tamper = run("mise", ["install", "toolshed:check-pins@9.9.9"], {
+      cwd: project,
+      env: miseEnv,
+    });
     assert.notEqual(tamper.status, 0);
     assert.ok(tamper.stderr.includes("check-pins.mjs checksum mismatch for tag check-pins-v9.9.9"));
     assert.ok(tamper.stderr.includes(expectedHash));
     assert.ok(tamper.stderr.includes(actualHash));
     const left = await filesNamed(miseEnv.MISE_DATA_DIR ?? "", "check-pins");
-    assert.equal(left.some((file) => file.includes(`${path.sep}9.9.9${path.sep}`)), false, left.join("\n"));
+    assert.equal(
+      left.some((file) => file.includes(`${path.sep}9.9.9${path.sep}`)),
+      false,
+      left.join("\n"),
+    );
   });
 
   await t.test("missing checksum entry fails and leaves no binary", async () => {
-    const missing = run("mise", ["install", "toolshed:check-pins@9.8.0"], { cwd: project, env: miseEnv });
+    const missing = run("mise", ["install", "toolshed:check-pins@9.8.0"], {
+      cwd: project,
+      env: miseEnv,
+    });
     assert.notEqual(missing.status, 0);
-    assert.ok(missing.stderr.includes("SHA256SUMS has no check-pins.mjs line for tag check-pins-v9.8.0"));
+    assert.ok(
+      missing.stderr.includes("SHA256SUMS has no check-pins.mjs line for tag check-pins-v9.8.0"),
+    );
     const left = await filesNamed(miseEnv.MISE_DATA_DIR ?? "", "check-pins");
-    assert.equal(left.some((file) => file.includes(`${path.sep}9.8.0${path.sep}`)), false, left.join("\n"));
+    assert.equal(
+      left.some((file) => file.includes(`${path.sep}9.8.0${path.sep}`)),
+      false,
+      left.join("\n"),
+    );
   });
 });

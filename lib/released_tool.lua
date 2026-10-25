@@ -22,10 +22,7 @@ function M.is_released(tool)
 end
 
 local function reject_shell_break(value, label)
-	if string.find(value, '"', 1, true)
-		or string.find(value, "'", 1, true)
-		or string.find(value, "\n", 1, true)
-	then
+	if string.find(value, '"', 1, true) or string.find(value, "'", 1, true) or string.find(value, "\n", 1, true) then
 		error(label .. " contains a quote or newline")
 	end
 end
@@ -96,13 +93,16 @@ local function trim_trailing_newline(text)
 end
 
 local function hash_of(path)
-	local out = shell.exec([[
+	local out = shell.exec(
+		[[
 if command -v sha256sum >/dev/null 2>&1; then
   sha256sum "$TOOLSHED_FILE"
 else
   shasum -a 256 "$TOOLSHED_FILE"
 fi
-]], { TOOLSHED_FILE = path }) or ""
+]],
+		{ TOOLSHED_FILE = path }
+	) or ""
 	local hash = string.match(out, "^(%x+)")
 	if hash == nil then
 		error("could not hash " .. path)
@@ -147,15 +147,18 @@ function M.install(ctx)
 	local asset_path = file.join_path(download, filename)
 	local sums_path = file.join_path(download, "SHA256SUMS")
 	local base = base_url()
-	shell.exec([[
+	shell.exec(
+		[[
 curl -fsSL --output "$TOOLSHED_ASSET" "$TOOLSHED_ASSET_URL"
 curl -fsSL --output "$TOOLSHED_SUMS" "$TOOLSHED_SUMS_URL"
-]], {
-		TOOLSHED_ASSET = asset_path,
-		TOOLSHED_SUMS = sums_path,
-		TOOLSHED_ASSET_URL = base .. "/" .. tag .. "/" .. filename,
-		TOOLSHED_SUMS_URL = base .. "/" .. tag .. "/SHA256SUMS",
-	})
+]],
+		{
+			TOOLSHED_ASSET = asset_path,
+			TOOLSHED_SUMS = sums_path,
+			TOOLSHED_ASSET_URL = base .. "/" .. tag .. "/" .. filename,
+			TOOLSHED_SUMS_URL = base .. "/" .. tag .. "/SHA256SUMS",
+		}
+	)
 	local sums_file, open_err = io.open(sums_path, "rb")
 	if not sums_file then
 		error("failed to read SHA256SUMS for tag " .. tag .. ": " .. tostring(open_err))
@@ -172,14 +175,17 @@ curl -fsSL --output "$TOOLSHED_SUMS" "$TOOLSHED_SUMS_URL"
 	end
 	local bin_dir = file.join_path(install_path, "bin")
 	local dest = file.join_path(bin_dir, tool)
-	shell.exec([[
+	shell.exec(
+		[[
 mkdir -p "$TOOLSHED_BIN_DIR"
 mv -f "$TOOLSHED_ASSET" "$TOOLSHED_DEST"
-]], {
-		TOOLSHED_BIN_DIR = bin_dir,
-		TOOLSHED_ASSET = asset_path,
-		TOOLSHED_DEST = dest,
-	})
+]],
+		{
+			TOOLSHED_BIN_DIR = bin_dir,
+			TOOLSHED_ASSET = asset_path,
+			TOOLSHED_DEST = dest,
+		}
+	)
 	if RUNTIME.osType ~= "windows" then
 		shell.exec('chmod 755 "$TOOLSHED_DEST"', { TOOLSHED_DEST = dest })
 	end

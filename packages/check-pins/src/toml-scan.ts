@@ -41,7 +41,10 @@ export function readTomlString(value: string): string | undefined {
   return undefined;
 }
 
-export function scanToml(text: string, startDepth: number): { strings: string[]; depth: number; broken: boolean; sawTable: boolean } {
+export function scanToml(
+  text: string,
+  startDepth: number,
+): { strings: string[]; depth: number; broken: boolean; sawTable: boolean } {
   let depth = startDepth;
   let quote: '"' | "'" | null = null;
   let current = "";

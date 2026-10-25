@@ -8,7 +8,7 @@ fi
 
 tool=$1
 dest=$2
-root=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
+root=$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)
 src="$root/packages/$tool/dist/$tool.mjs"
 
 if [ ! -f "$src" ]; then
@@ -20,6 +20,6 @@ mkdir -p "$dest"
 cp "$src" "$dest/$tool.mjs"
 (
 	cd "$dest"
-	sha256sum "$tool.mjs" > SHA256SUMS
+	sha256sum "$tool.mjs" >SHA256SUMS
 	sha256sum -c SHA256SUMS
 )

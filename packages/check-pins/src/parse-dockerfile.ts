@@ -55,15 +55,19 @@ function fromImage(args: string): { reference: string; stage?: string } | undefi
 function execForm(text: string): string | undefined {
   try {
     const parsed: unknown = JSON.parse(text);
-    if (!Array.isArray(parsed) || !parsed.every((item) => typeof item === "string")) return undefined;
+    if (!Array.isArray(parsed) || !parsed.every((item) => typeof item === "string"))
+      return undefined;
     return parsed.join(" ");
   } catch {
     return undefined;
   }
 }
 
-function dockerfileInstructions(text: string): { line: number; text: string; parts: { line: number; text: string }[] }[] {
-  const instructions: { line: number; text: string; parts: { line: number; text: string }[] }[] = [];
+function dockerfileInstructions(
+  text: string,
+): { line: number; text: string; parts: { line: number; text: string }[] }[] {
+  const instructions: { line: number; text: string; parts: { line: number; text: string }[] }[] =
+    [];
   let parts: { line: number; text: string }[] = [];
   const lines = text.split(/\r?\n/);
   for (let index = 0; index < lines.length; index += 1) {
@@ -90,11 +94,15 @@ function dockerfileInstructions(text: string): { line: number; text: string; par
   return instructions;
 }
 
-function lineWithToken(parts: readonly { line: number; text: string }[], tool: "uv" | "pnpm"): number | undefined {
+function lineWithToken(
+  parts: readonly { line: number; text: string }[],
+  tool: "uv" | "pnpm",
+): number | undefined {
   for (const part of parts) {
     const tokens = shellTokens(part.text.replace(/[[\],]/g, " "));
     if (tool === "uv" && tokens.includes("uv")) return part.line;
-    if (tool === "pnpm" && tokens.some((token) => token === "pnpm" || token.endsWith("/pnpm"))) return part.line;
+    if (tool === "pnpm" && tokens.some((token) => token === "pnpm" || token.endsWith("/pnpm")))
+      return part.line;
   }
   return undefined;
 }

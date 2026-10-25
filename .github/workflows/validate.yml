@@ -14,8 +14,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  validate:
-    name: Validate
+  typecheck:
+    name: Typecheck
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -28,17 +28,45 @@ jobs:
         with:
           version: ${{ vars.CI__MISE_VERSION }}
 
-      - name: Install dependencies
-        run: mise exec -- pnpm install --frozen-lockfile
+      - name: Typecheck
+        run: mise run typecheck
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Install mise
+        uses: caido/action-mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
+        with:
+          version: ${{ vars.CI__MISE_VERSION }}
+
+      - name: Lint
+        run: mise run lint
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Install mise
+        uses: caido/action-mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
+        with:
+          version: ${{ vars.CI__MISE_VERSION }}
 
       - name: Build
-        run: mise exec -- pnpm -r --if-present build
+        run: mise run build
 
-      - name: Test
-        run: mise exec -- pnpm -r --if-present test
-
-  zizmor:
-    name: Zizmor
+  test:
+    name: Test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -51,8 +79,25 @@ jobs:
         with:
           version: ${{ vars.CI__MISE_VERSION }}
 
-      - name: Run zizmor
-        run: mise exec -- zizmor --offline --format=github .
+      - name: Test
+        run: mise run test
+
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Install mise
+        uses: caido/action-mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
+        with:
+          version: ${{ vars.CI__MISE_VERSION }}
+
+      - name: Format
+        run: mise run format
 
   plugin-smoke-test:
     name: Plugin smoke test

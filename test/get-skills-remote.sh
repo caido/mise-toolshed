@@ -8,13 +8,13 @@ else
 	exit 1
 fi
 
-REPO=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
+REPO=$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)
 
 if grep -F 'ssh://git@github.com/caido/ai-ops.git' "$REPO/bin/get-skills"; then
 	echo "bin/get-skills still defaults to ssh://git@github.com/caido/ai-ops.git" >&2
 	exit 1
 fi
-grep -F 'REPO_URL="${REPO_URL:-https://github.com/caido/ai-ops}"' "$REPO/bin/get-skills" >/dev/null
+grep -F "REPO_URL=\"\${REPO_URL:-https://github.com/caido/ai-ops}\"" "$REPO/bin/get-skills" >/dev/null
 
 base=$(mktemp -d)
 trap 'rm -rf "$base"' EXIT
@@ -29,65 +29,65 @@ export GIT_COMMITTER_NAME=toolshed
 export GIT_COMMITTER_EMAIL=toolshed@example.com
 export GIT_TERMINAL_PROMPT=0
 mkdir -p "$work"
-: > "$GIT_CONFIG_GLOBAL"
+: >"$GIT_CONFIG_GLOBAL"
 
 origin="$work/origin.git"
 git init --bare -q -b main "$origin"
 wt="$work/fixture"
 git -C "$wt" init -q -b main
-printf 'pinned-1.0.0-2\n' > "$wt/bin/get-skills"
+printf 'pinned-1.0.0-2\n' >"$wt/bin/get-skills"
 git -C "$wt" add bin/get-skills
 git -C "$wt" commit -m 'pin 1.0.0-2' >/dev/null
 git -C "$wt" tag get-skills-v1.0.0-2
-printf 'pinned-1.0.0-10\n' > "$wt/bin/get-skills"
+printf 'pinned-1.0.0-10\n' >"$wt/bin/get-skills"
 git -C "$wt" add bin/get-skills
 git -C "$wt" commit -m 'pin 1.0.0-10' >/dev/null
 git -C "$wt" tag get-skills-v1.0.0-10
-printf 'pinned-1.0.0-1a\n' > "$wt/bin/get-skills"
+printf 'pinned-1.0.0-1a\n' >"$wt/bin/get-skills"
 git -C "$wt" add bin/get-skills
 git -C "$wt" commit -m 'pin 1.0.0-1a' >/dev/null
 git -C "$wt" tag get-skills-v1.0.0-1a
-printf 'pinned-1.0.0-10a\n' > "$wt/bin/get-skills"
+printf 'pinned-1.0.0-10a\n' >"$wt/bin/get-skills"
 git -C "$wt" add bin/get-skills
 git -C "$wt" commit -m 'pin 1.0.0-10a' >/dev/null
 git -C "$wt" tag get-skills-v1.0.0-10a
-printf 'pinned-1.0.0-beta\n' > "$wt/bin/get-skills"
+printf 'pinned-1.0.0-beta\n' >"$wt/bin/get-skills"
 git -C "$wt" add bin/get-skills
 git -C "$wt" commit -m 'pin 1.0.0-beta' >/dev/null
 git -C "$wt" tag get-skills-v1.0.0-beta
-printf 'pinned-1.0.0-rc.1\n' > "$wt/bin/get-skills"
+printf 'pinned-1.0.0-rc.1\n' >"$wt/bin/get-skills"
 git -C "$wt" add bin/get-skills
 git -C "$wt" commit -m 'pin 1.0.0-rc.1' >/dev/null
 git -C "$wt" tag get-skills-v1.0.0-rc.1
-printf 'pinned-1.0.0\n' > "$wt/bin/get-skills"
+printf 'pinned-1.0.0\n' >"$wt/bin/get-skills"
 git -C "$wt" add bin/get-skills
 git -C "$wt" commit -m 'pin 1.0.0' >/dev/null
 git -C "$wt" tag get-skills-v1.0.0
-printf 'pinned-1.2-rc\n' > "$wt/bin/get-skills"
+printf 'pinned-1.2-rc\n' >"$wt/bin/get-skills"
 git -C "$wt" add bin/get-skills
 git -C "$wt" commit -m 'pin 1.2-rc' >/dev/null
 git -C "$wt" tag get-skills-v1.2-rc
-printf 'pinned-1.2\n' > "$wt/bin/get-skills"
+printf 'pinned-1.2\n' >"$wt/bin/get-skills"
 git -C "$wt" add bin/get-skills
 git -C "$wt" commit -m 'pin 1.2' >/dev/null
 git -C "$wt" tag get-skills-v1.2
-printf 'pinned-1.2.3\n' > "$wt/bin/get-skills"
+printf 'pinned-1.2.3\n' >"$wt/bin/get-skills"
 git -C "$wt" add bin/get-skills
 git -C "$wt" commit -m 'pin 1.2.3' >/dev/null
 git -C "$wt" tag get-skills-v1.2.3
-printf 'pinned-1.9-rc\n' > "$wt/bin/get-skills"
+printf 'pinned-1.9-rc\n' >"$wt/bin/get-skills"
 git -C "$wt" add bin/get-skills
 git -C "$wt" commit -m 'pin 1.9-rc' >/dev/null
 git -C "$wt" tag get-skills-v1.9-rc
-printf 'pinned-1.9\n' > "$wt/bin/get-skills"
+printf 'pinned-1.9\n' >"$wt/bin/get-skills"
 git -C "$wt" add bin/get-skills
 git -C "$wt" commit -m 'pin 1.9' >/dev/null
 git -C "$wt" tag get-skills-v1.9
-printf 'pinned-1.10-rc\n' > "$wt/bin/get-skills"
+printf 'pinned-1.10-rc\n' >"$wt/bin/get-skills"
 git -C "$wt" add bin/get-skills
 git -C "$wt" commit -m 'pin 1.10-rc' >/dev/null
 git -C "$wt" tag get-skills-v1.10-rc
-printf 'pinned-1.10.0\n' > "$wt/bin/get-skills"
+printf 'pinned-1.10.0\n' >"$wt/bin/get-skills"
 git -C "$wt" add bin/get-skills
 git -C "$wt" commit -m 'pin 1.10.0' >/dev/null
 git -C "$wt" tag get-skills-v1.10.0
@@ -97,10 +97,10 @@ git -C "$wt" remote add origin "$origin"
 git -C "$wt" push -q origin HEAD:refs/heads/main
 git -C "$wt" push -q origin --tags
 
-git --git-dir="$origin" show get-skills-v1.0.0-rc.1:bin/get-skills > "$work/blob-1.0.0-rc.1"
-git --git-dir="$origin" show get-skills-v1.0.0:bin/get-skills > "$work/blob-1.0.0"
-git --git-dir="$origin" show get-skills-v1.2.3:bin/get-skills > "$work/blob-1.2.3"
-git --git-dir="$origin" show get-skills-v1.10.0:bin/get-skills > "$work/blob-1.10.0"
+git --git-dir="$origin" show get-skills-v1.0.0-rc.1:bin/get-skills >"$work/blob-1.0.0-rc.1"
+git --git-dir="$origin" show get-skills-v1.0.0:bin/get-skills >"$work/blob-1.0.0"
+git --git-dir="$origin" show get-skills-v1.2.3:bin/get-skills >"$work/blob-1.2.3"
+git --git-dir="$origin" show get-skills-v1.10.0:bin/get-skills >"$work/blob-1.10.0"
 if cmp -s "$REPO/bin/get-skills" "$work/blob-1.0.0"; then
 	echo "checkout bin/get-skills matches the 1.0.0 blob" >&2
 	exit 1
@@ -123,8 +123,8 @@ use_mise_home() {
 	export MISE_GLOBAL_CONFIG_FILE="$home/config/config.toml"
 	export MISE_SYSTEM_CONFIG_FILE="$home/config/system.toml"
 	export MISE_YES=1
-	: > "$MISE_GLOBAL_CONFIG_FILE"
-	: > "$MISE_SYSTEM_CONFIG_FILE"
+	: >"$MISE_GLOBAL_CONFIG_FILE"
+	: >"$MISE_SYSTEM_CONFIG_FILE"
 	cd "$home/project"
 	"$MISE" plugin link --force toolshed "$REPO" >/dev/null
 }
@@ -145,8 +145,8 @@ assert_checkout_unchanged() {
 
 use_mise_home "$work/pin"
 export TOOLSHED_GET_SKILLS_REMOTE="$remote"
-"$MISE" ls-remote toolshed:get-skills > "$work/ls-remote.out"
-printf '1.0.0-1a\n1.0.0-2\n1.0.0-10\n1.0.0-10a\n1.0.0\n1.2\n1.2.3\n1.9\n1.10.0\n' > "$work/ls-remote.expected"
+"$MISE" ls-remote toolshed:get-skills >"$work/ls-remote.out"
+printf '1.0.0-1a\n1.0.0-2\n1.0.0-10\n1.0.0-10a\n1.0.0\n1.2\n1.2.3\n1.9\n1.10.0\n' >"$work/ls-remote.expected"
 if ! cmp -s "$work/ls-remote.out" "$work/ls-remote.expected"; then
 	echo "mise ls-remote toolshed:get-skills did not print the expected versions" >&2
 	echo "--- actual ---" >&2
@@ -156,8 +156,8 @@ fi
 echo "mise ls-remote toolshed:get-skills"
 cat "$work/ls-remote.out"
 
-"$MISE" ls-remote --prerelease toolshed:get-skills > "$work/ls-remote-pre.out"
-printf '1.0.0-1a\n1.0.0-2\n1.0.0-10\n1.0.0-10a\n1.0.0-beta\n1.0.0-rc.1\n1.0.0\n1.2-rc\n1.2\n1.2.3\n1.9-rc\n1.9\n1.10-rc\n1.10.0\n' > "$work/ls-remote-pre.expected"
+"$MISE" ls-remote --prerelease toolshed:get-skills >"$work/ls-remote-pre.out"
+printf '1.0.0-1a\n1.0.0-2\n1.0.0-10\n1.0.0-10a\n1.0.0-beta\n1.0.0-rc.1\n1.0.0\n1.2-rc\n1.2\n1.2.3\n1.9-rc\n1.9\n1.10-rc\n1.10.0\n' >"$work/ls-remote-pre.expected"
 if ! cmp -s "$work/ls-remote-pre.out" "$work/ls-remote-pre.expected"; then
 	echo "mise ls-remote --prerelease did not print prereleases before their release" >&2
 	echo "--- actual ---" >&2
@@ -175,7 +175,7 @@ if ! cmp -s "$rc_bin" "$work/blob-1.0.0-rc.1"; then
 fi
 echo "install 1.0.0-rc.1 matched get-skills-v1.0.0-rc.1:bin/get-skills"
 
-cat > mise.toml << 'EOF'
+cat >mise.toml <<'EOF'
 [tools]
 "toolshed:get-skills" = "1.2.3"
 EOF
@@ -206,7 +206,7 @@ if ! cmp -s "$bin" "$work/blob-1.2.3"; then
 fi
 echo "second install 1.2.3 left the same bytes"
 
-cat > mise.toml << 'EOF'
+cat >mise.toml <<'EOF'
 [tools]
 "toolshed:get-skills" = "latest"
 EOF
@@ -234,7 +234,7 @@ echo "install 9.9.9 failed"
 
 use_mise_home "$work/latest"
 export TOOLSHED_GET_SKILLS_REMOTE="$remote"
-cat > mise.toml << 'EOF'
+cat >mise.toml <<'EOF'
 [tools]
 "toolshed:get-skills" = "latest"
 EOF
@@ -260,7 +260,7 @@ git init --bare -q -b main "$empty"
 empty_wt="$work/empty-wt"
 mkdir -p "$empty_wt"
 git -C "$empty_wt" init -q -b main
-printf 'no-tags\n' > "$empty_wt/readme"
+printf 'no-tags\n' >"$empty_wt/readme"
 git -C "$empty_wt" add readme
 git -C "$empty_wt" commit -m 'no tags' >/dev/null
 git -C "$empty_wt" remote add origin "$empty"
@@ -268,8 +268,8 @@ git -C "$empty_wt" push -q origin HEAD:refs/heads/main
 
 use_mise_home "$work/notags"
 export TOOLSHED_GET_SKILLS_REMOTE="file://$empty"
-"$MISE" ls-remote toolshed:get-skills > "$work/notags.out"
-printf 'latest\n' > "$work/notags.expected"
+"$MISE" ls-remote toolshed:get-skills >"$work/notags.out"
+printf 'latest\n' >"$work/notags.expected"
 if ! cmp -s "$work/notags.out" "$work/notags.expected"; then
 	echo "a remote with no get-skills tags did not list only latest" >&2
 	cat "$work/notags.out" >&2
@@ -278,7 +278,7 @@ fi
 echo "mise ls-remote with no get-skills tags"
 cat "$work/notags.out"
 
-cat > mise.toml << 'EOF'
+cat >mise.toml <<'EOF'
 [tools]
 "toolshed:get-skills" = "latest"
 EOF

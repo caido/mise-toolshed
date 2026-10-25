@@ -67,7 +67,7 @@ Requirement strings in `[project] dependencies`, every array under `[project.opt
 - `dependency <name> is not an exact version`
 - `dependency <name> git pin is not 40 hex`
 
-The name is the package token at the start of the requirement, before ` @ `. Text after the first `;` is a marker and is not the pin.
+The name is the package token at the start of the requirement, before `@`. Text after the first `;` is a marker and is not the pin.
 
 A requirement passes when the part before the marker is either:
 

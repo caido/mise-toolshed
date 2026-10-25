@@ -13,7 +13,8 @@ export function parsePyproject(relativePath: string, text: string): ParsedFile {
     const lineNo = index + 1;
     if (depth > 0) {
       const scanned = scanToml(line, depth);
-      if (emitting && (scanned.broken || scanned.sawTable)) return unreadable(relativePath, "pyproject");
+      if (emitting && (scanned.broken || scanned.sawTable))
+        return unreadable(relativePath, "pyproject");
       if (emitting) {
         for (const spec of scanned.strings) {
           sites.push(pythonSite(relativePath, lineNo, spec));

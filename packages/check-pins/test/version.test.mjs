@@ -44,10 +44,14 @@ test("any other argv exits 1", () => {
 
 test("a second build writes the same bytes", async () => {
   const before = await readFile(bundlePath);
-  const result = spawnSync(process.execPath, [path.join(packageRoot, "../../scripts/build-package.mjs")], {
-    cwd: packageRoot,
-    encoding: "utf8",
-  });
+  const result = spawnSync(
+    process.execPath,
+    [path.join(packageRoot, "../../scripts/build-package.mjs")],
+    {
+      cwd: packageRoot,
+      encoding: "utf8",
+    },
+  );
   assert.equal(result.status, 0, result.stderr);
   const after = await readFile(bundlePath);
   assert.deepEqual(after, before);

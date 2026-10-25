@@ -4,7 +4,7 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { buildPackage } from "../../../scripts/build-package.mjs";
+import { buildPackage, compilerArgs } from "../../../scripts/build-package.mjs";
 
 async function writeTool(name, { version = "1.2.3", source } = {}) {
   const root = path.join(await mkdtemp(path.join(tmpdir(), "toolshed-build-")), name);
@@ -50,14 +50,27 @@ test("a non-semver version fails and writes nothing", async () => {
 });
 
 test("a package tsconfig does not override the builder", async () => {
-  const root = await writeTool("widget");
+  const root = await writeTool("widget", {
+    source:
+      `import { TOOL_VERSION } from "#tool-version";\n` +
+      `export function f(x) { return x; }\n` +
+      `process.stdout.write(TOOL_VERSION + f(1));\n`,
+  });
+  const tsconfig = '{"compilerOptions":{"strict":false}}\n';
   try {
-    await writeFile(path.join(root, "tsconfig.json"), '{"compilerOptions":{"strict":true}}\n');
-    const built = await buildPackage(root);
-    assert.equal((await readFile(built.outfile, "utf8")).includes('"1.2.3"'), true);
+    await writeFile(path.join(root, "tsconfig.json"), tsconfig);
+    await assert.rejects(buildPackage(root), /implicitly has an 'any' type/);
+    assert.equal(await readFile(path.join(root, "tsconfig.json"), "utf8"), tsconfig);
   } finally {
     await rm(path.dirname(root), { recursive: true, force: true });
   }
+});
+
+test("an unknown compiler option is rejected", () => {
+  assert.throws(
+    () => compilerArgs({ plugins: [{ name: "x" }] }, path.resolve("no-such-root")),
+    /unknown compilerOption plugins/,
+  );
 });
 
 test("a source shebang is rejected", async () => {
