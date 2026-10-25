@@ -17,8 +17,9 @@ await test("stage-release copies check-pins and writes SHA256SUMS", async () => 
   assert.deepEqual((await readdir(dest)).toSorted(), ["SHA256SUMS", "check-pins.mjs"]);
   const source = await readFile(bundle);
   const staged = await readFile(path.join(dest, "check-pins.mjs"));
-  assert.equal(staged.equals(source), true);
   const digest = createHash("sha256").update(source).digest("hex");
+  assert.equal(createHash("sha256").update(staged).digest("hex"), digest);
+  assert.equal(staged.equals(source), true);
   assert.equal(
     await readFile(path.join(dest, "SHA256SUMS"), "utf8"),
     `${digest}  check-pins.mjs\n`,
