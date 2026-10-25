@@ -151,6 +151,15 @@
     "stderr": ""
   },
   {
+    "name": "fail: a .yaml workflow is a workflow site",
+    "files": {
+      ".github/workflows/ci.yaml": "jobs:\n  build:\n    container: node:22\n"
+    },
+    "status": 1,
+    "stdout": ".github/workflows/ci.yaml:3: image workflow node:22\n",
+    "stderr": ""
+  },
+  {
     "name": "fail: a missing run alias is an unreadable workflow site",
     "files": {
       ".github/workflows/ci.yml": "jobs:\n  build:\n    steps:\n      - run: *missing\n"

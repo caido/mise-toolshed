@@ -516,6 +516,42 @@
     "stderr": ""
   },
   {
+    "name": "pass: a .yaml workflow with a digested image",
+    "files": {
+      ".github/workflows/ci.yaml": "jobs:\n  build:\n    container: node:22@sha256:abc\n    steps:\n      - uses: actions/checkout@0123456789abcdef0123456789abcdef01234567\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a .yaml workflow image without a digest",
+    "files": {
+      ".github/workflows/ci.yaml": "jobs:\n  build:\n    container: node:22\n"
+    },
+    "status": 1,
+    "stdout": ".github/workflows/ci.yaml:3: image node:22 must contain @sha256:\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a workflow scratch image is not accepted",
+    "files": {
+      ".github/workflows/ci.yml": "jobs:\n  build:\n    container: scratch\n"
+    },
+    "status": 1,
+    "stdout": ".github/workflows/ci.yml:3: image scratch must contain @sha256:\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: an inline table in a python dependency array is not valid",
+    "files": {
+      "pyproject.toml": "[project]\ndependencies = [\n  { name = \"requests\" },\n]\n"
+    },
+    "status": 1,
+    "stdout": "pyproject.toml:1: pyproject is not valid\n",
+    "stderr": ""
+  },
+  {
     "name": "fail: a path argument prints usage and does not scan",
     "args": ["."],
     "files": {
