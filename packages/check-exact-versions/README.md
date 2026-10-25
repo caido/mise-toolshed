@@ -121,4 +121,4 @@ STD-007 and STD-008 are not this tool.
 
 ## Tests
 
-`mise run test` builds the package and runs `node --test`. Scan cases live in `test/cases.json`. Each case writes its `files` into a temporary directory and runs the built command. A case with `pending` is a node:test todo for behavior that is not implemented yet. The case name starts with `pending`, and the suite stays green while that behavior is missing.
+`mise run test` builds the package and runs `node --test`. Scan cases live in `test/cases.json`. Each case writes its `files` into a temporary directory and runs the built command. A case with `pending` is a node:test todo for behavior that is not implemented yet. Its name starts with `pending`. A failing assertion still leaves the suite green.

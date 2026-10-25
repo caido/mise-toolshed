@@ -440,6 +440,24 @@
     "stderr": ""
   },
   {
+    "name": "fail: two findings on one line are sorted by message",
+    "files": {
+      "package.json": "{\"dependencies\":{\"right-pad\":\"latest\",\"left-pad\":\"^1.0.0\"}}\n"
+    },
+    "status": 1,
+    "stdout": "package.json:1: dependency left-pad is not an exact version\npackage.json:1: dependency right-pad is not an exact version\n",
+    "stderr": ""
+  },
+  {
+    "name": "pass: a floating uses value is not a finding",
+    "files": {
+      ".github/workflows/ci.yml": "jobs:\n  build:\n    steps:\n      - uses: actions/checkout@v4\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
     "name": "fail: findings are sorted by path then line then message",
     "files": {
       "package.json": "{\n  \"dependencies\": {\n    \"left-pad\": \"^1.0.0\",\n    \"right-pad\": \"latest\"\n  }\n}\n",
