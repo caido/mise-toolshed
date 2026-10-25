@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test --test-reporter spec test/*.test.ts && sh test/get-skills-remote.sh && sh test/get-skills-sync.sh"
+    "test": "node --test --test-reporter spec test/*.test.ts test/*.test.mjs && sh test/get-skills-remote.sh && sh test/get-skills-sync.sh"
   },
   "devDependencies": {
     "@types/node": "24.19.2",
