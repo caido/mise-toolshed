@@ -6,6 +6,15 @@ import path from "node:path";
 import test from "node:test";
 
 const pendingIssues = new Set(["NON-139", "NON-142", "NON-135"]);
+const canDenyRead = process.platform !== "win32" && process.getuid?.() !== 0;
+
+export function fixtureTestOptions(item, readsCanBeDenied = canDenyRead) {
+  const options = item.pending === undefined ? {} : { todo: true };
+  if (Object.keys(item.mode ?? {}).length > 0 && !readsCanBeDenied) {
+    options.skip = "cannot deny file reads for this user or platform";
+  }
+  return options;
+}
 
 function assertCase(item) {
   assert.equal(typeof item.name, "string");
@@ -64,7 +73,7 @@ export function registerFixtures(command, cases) {
     assertCase(item);
     assert.equal(names.has(item.name), false, item.name);
     names.add(item.name);
-    test(item.name, item.pending === undefined ? {} : { todo: true }, async () => {
+    test(item.name, fixtureTestOptions(item), async () => {
       const result = await scanCase(command, item);
       assert.equal(result.stderr, item.stderr);
       assert.equal(result.status, item.status, result.stdout + result.stderr);
