@@ -22,7 +22,7 @@ export function checkWorkflows(workflows, io) {
   for (const workflow of workflows) {
     const lines = workflow.text.split("\n");
     for (let index = 0; index < lines.length; index += 1) {
-      const match = /^(\s*)runs-on:\s*(.*)$/.exec(lines[index]);
+      const match = /^(\s*)runs-on\s*:\s*(.*)$/.exec(lines[index]);
       if (match === null) continue;
       const value = scalarValue(match[2]);
       if (value === requiredRunsOn) continue;
