@@ -10,7 +10,11 @@ on:
       tool:
         description: Workspace package directory under packages/
         required: true
-        type: string
+        type: choice
+        options:
+          - check-exact-versions
+          - check-lockfiles
+          - check-minimum-release-age
 
 permissions:
   contents: read
