@@ -87,7 +87,10 @@ export function registerFixtures(command, cases) {
     names.add(item.name);
     const options = fixtureTestOptions(item);
     if (typeof options.skip === "string") {
-      test.skip(item.name, options.skip);
+      const reason = options.skip;
+      test(item.name, ({ skip }) => {
+        skip(reason);
+      });
     } else if (options.todo) {
       test.todo(item.name);
     } else {
