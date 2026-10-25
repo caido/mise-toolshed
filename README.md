@@ -25,7 +25,7 @@ toolshed = "https://github.com/caido/mise-toolshed#<40-hex sha>"
 
 `check-pins` is not installed anymore. `mise ls-remote toolshed:check-pins` still lists the published tag, and `mise exec` still runs a copy that is already on disk. `mise install` refuses it.
 
-`check-exact-versions` enforces [STD-006](https://github.com/caido/engineering/blob/main/standards/STD-006-exact-versions.md). What it flags is in [packages/check-exact-versions/README.md](packages/check-exact-versions/README.md). `check-lockfiles` is the [STD-007](https://github.com/caido/engineering/blob/main/standards/STD-007-lockfiles.md) tool and `check-minimum-release-age` is the [STD-008](https://github.com/caido/engineering/blob/main/standards/STD-008-minimum-release-age.md) tool. Those two share the command-line contract and have no rules yet. `packages/shared` is private and is not released.
+`check-exact-versions` enforces [STD-006](https://github.com/caido/engineering/blob/main/standards/STD-006-exact-versions.md). What it flags is in [packages/check-exact-versions/README.md](packages/check-exact-versions/README.md). `check-lockfiles` is the [STD-007](https://github.com/caido/engineering/blob/main/standards/STD-007-lockfiles.md) tool and has no rules yet. `check-minimum-release-age` enforces [STD-008](https://github.com/caido/engineering/blob/main/standards/STD-008-minimum-release-age.md). What it flags is in [packages/check-minimum-release-age/README.md](packages/check-minimum-release-age/README.md). `packages/shared` is private and is not released.
 
 ## Publish a release
 
@@ -151,7 +151,7 @@ Plugin files are at the repository root. Workspace packages are under `packages/
 - `lib/version_order.lua` orders version strings for get-skills and released tools.
 - `lib/released_tool.lua` lists and installs released tools from checksummed GitHub releases.
 - `packages/shared` is private scanner code. It has no build and it is not released.
-- `packages/check-exact-versions`, `packages/check-lockfiles`, and `packages/check-minimum-release-age` are private CLIs. What `check-exact-versions` checks is in [packages/check-exact-versions/README.md](packages/check-exact-versions/README.md).
+- `packages/check-exact-versions`, `packages/check-lockfiles`, and `packages/check-minimum-release-age` are private CLIs. What `check-exact-versions` checks is in [packages/check-exact-versions/README.md](packages/check-exact-versions/README.md). What `check-minimum-release-age` checks is in [packages/check-minimum-release-age/README.md](packages/check-minimum-release-age/README.md).
 - `scripts/build-package.mjs` bundles a package.
 - `test/get-skills-remote.sh` covers get-skills tag listing.
 - `test/get-skills-sync.sh` covers the personal-folder install.
