@@ -33,10 +33,12 @@ Any file named `package.json`, at any depth.
 
 #### What it checks
 
-String values in `dependencies`, `devDependencies`, `optionalDependencies`, and `peerDependencies`:
+String values in `dependencies`, `devDependencies`, and `optionalDependencies`:
 
 - `dependency <name> is not an exact version`
 - `dependency <name> git pin is not 40 hex`
+
+`peerDependencies` are not checked.
 
 A spec passes when it is one of:
 
@@ -189,7 +191,7 @@ Each Success Criteria below is mapped to the check that exists today. A criterio
 
 A dependency uses one exact version. It never uses a range, a major-only version or latest.
 
-Enforced for string specs in the four `package.json` dependency maps: a range, a major-only version, and `latest` fail as `dependency <name> is not an exact version`. An exact `x.y.z` passes. A spec that starts with `git+`, `git:`, `github:`, `gitlab:`, or `bitbucket:` must be 40 hex after the last `#`. `packageManager` must be an exact `pnpm@x.y.z`. A Python requirement with a range operator fails. A Python git direct URL must use a 40-hex revision.
+Enforced for string specs in `dependencies`, `devDependencies`, and `optionalDependencies`: a range, a major-only version, and `latest` fail as `dependency <name> is not an exact version`. An exact `x.y.z` passes. A spec that starts with `git+`, `git:`, `github:`, `gitlab:`, or `bitbucket:` must be 40 hex after the last `#`. `packageManager` must be an exact `pnpm@x.y.z`. A Python requirement with a range operator fails. A Python git direct URL must use a 40-hex revision. `peerDependencies` are not checked.
 
 Not covered. `requests==2` passes, so a major-only Python equality is accepted. `workspace:`, `file:`, `link:`, and `catalog:` pass and are not resolved. `engines`, `overrides`, and `resolutions` are not read. `ssh:`, `gist:`, `https://….git#<sha>`, and `npm:` aliases fail as inexact even when the commit is 40 hex.
 
@@ -245,7 +247,7 @@ Should `.mise/config.netlify.toml` reject every plugin and every toolshed tool, 
 
 Default if unanswered: keep the current behavior.
 
-STD-006 says a dependency uses one exact version and never uses a range, a major-only version, or latest. Should that apply to every dependency check-pins can see? A range, a major-only version, and `latest` already fail for string specs in the four `package.json` maps, and `packageManager` must be an exact `pnpm@x.y.z`. `requests==2` passes. `workspace:`, `file:`, `link:`, and `catalog:` pass without being resolved. `engines`, `overrides`, `resolutions`, and pnpm catalogs are not read.
+STD-006 says a dependency uses one exact version and never uses a range, a major-only version, or latest. Should that apply to every dependency check-pins can see? A range, a major-only version, and `latest` already fail for string specs in `dependencies`, `devDependencies`, and `optionalDependencies`, and `packageManager` must be an exact `pnpm@x.y.z`. `peerDependencies` are not checked. `requests==2` passes. `workspace:`, `file:`, `link:`, and `catalog:` pass without being resolved. `engines`, `overrides`, `resolutions`, and pnpm catalogs are not read.
 
 Default if unanswered: keep the current behavior.
 
