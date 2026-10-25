@@ -26,7 +26,7 @@ export function parsePyproject(relativePath: string, text: string): ParsedFile {
     }
     const header = tomlHeader(line);
     if (header !== undefined) {
-      table = header;
+      table = header.name;
       continue;
     }
     const assignment = tomlAssignment(line);

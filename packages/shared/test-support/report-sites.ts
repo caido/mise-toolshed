@@ -6,9 +6,7 @@ function describe(site: PinSite): string {
     case "dependency":
       return `dependency ${site.family} ${site.name} ${site.spec}`;
     case "tool":
-      return site.value.shape === "string"
-        ? `tool ${site.name} ${site.value.text}`
-        : `tool ${site.name} table`;
+      return `tool ${site.name} ${site.value.text}`;
     case "plugin":
       return site.value.shape === "string"
         ? `plugin ${site.name} ${site.value.text}`

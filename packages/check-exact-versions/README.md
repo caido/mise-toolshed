@@ -70,16 +70,18 @@ A requirement passes when the part before the marker is either:
 
 A direct URL that is not one of those git prefixes fails as `dependency <name> is not an exact version`, including when the URL contains `==`.
 
-An inline table or a broken string in one of those arrays makes the whole file `pyproject is not valid`. Other tables, including `[tool.uv]` and `[build-system]`, are not read.
+An inline table or a broken string in one of those arrays makes the whole file `pyproject is not valid`. Other tables, including `[tool.uv]`, `[build-system]`, and array-of-tables headers such as `[[tool.mypy.overrides]]`, are not read. Keys under those headers are not dependencies.
 
 ### mise config
 
 `mise.toml` at any depth, and any `*.toml` file whose parent directory is named `.mise`.
 
-Tool values:
+Every tool is judged by one version string. A string assignment uses that string. An inline table, a `[tools.<name>]` subtable, a `[[tools."<name>"]]` row, and each element of an array of inline tables uses its `version` value. Each row or element is its own site, on the `version` line, and the subject is the tool name. A table or element with no `version` is a site on the header or `{` line. Other keys (`os`, `asset_pattern`, `profile`, `components`, `features`) are not tools.
 
-- `tool <name> must be a string` for table form, including `[tools.<name>] version = "…"`.
-- `tool <name> is not an exact version` when the string is not `major.minor` or `major.minor.patch`. Each numeric part is `0` or a number without a leading zero. `22.1` passes. `22`, `v22.0.0`, a `v` prefix, a 40-hex commit, and a prerelease do not.
+- `tool <name> is not an exact version` when that version is not exact.
+- An ordinary tool is exact for `major.minor` or `major.minor.patch`. Each numeric part is `0` or a number without a leading zero. `22.1` passes. `22`, `latest`, `nightly`, `main`, `stable`, `v22.0.0`, a `v` prefix, a 40-hex commit, and a prerelease do not.
+- `rust` is exact only for `major.minor.patch` or `nightly-YYYY-MM-DD`. `1.98`, `nightly`, `stable`, `latest`, and `main` do not pass.
+- A tool whose name starts with `github:` is also exact for a release tag. The tag is `major.minor` or `major.minor.patch` with an optional leading `v`, or a name made of letters, digits, `.`, `_`, and `-`, then a hyphen, an optional `v`, and that version (`cargo-nextest-0.9.126`, `pkcs11-v1.9`). A range (`^`, `~`, `>`, `>=`, `=`), a prerelease, `latest`, `main`, and `stable` do not pass.
 
 Plugin values:
 

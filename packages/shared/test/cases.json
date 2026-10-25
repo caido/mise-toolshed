@@ -210,11 +210,10 @@
     "stderr": ""
   },
   {
-    "name": "pending NON-139: an array-of-tables row is a tool site",
+    "name": "fail: an array-of-tables row is a tool site",
     "files": {
       "mise.toml": "[[tools.rust]]\nversion = \"latest\"\n"
     },
-    "pending": "NON-139",
     "status": 1,
     "stdout": "mise.toml:2: tool rust latest\n",
     "stderr": ""

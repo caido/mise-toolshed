@@ -288,15 +288,6 @@
     "stderr": ""
   },
   {
-    "name": "fail: a mise tool table must be a string",
-    "files": {
-      "mise.toml": "[tools]\nnode = { version = \"24.22.0\" }\n"
-    },
-    "status": 1,
-    "stdout": "mise.toml:2: tool node must be a string\n",
-    "stderr": ""
-  },
-  {
     "name": "fail: a mise plugin must end in a 40-hex pin",
     "files": {
       "mise.toml": "[plugins]\ntoolshed = \"https://github.com/caido/mise-toolshed\"\n"
@@ -699,101 +690,91 @@
     "stderr": "usage: check-exact-versions --version\n"
   },
   {
-    "name": "pending NON-139: an inline tool table with an exact version passes",
+    "name": "pass: an inline tool table with an exact version passes",
     "files": {
       "mise.toml": "[tools]\nnode = { version = \"24.22.0\" }\n"
     },
-    "pending": "NON-139",
     "status": 0,
     "stdout": "",
     "stderr": ""
   },
   {
-    "name": "pending NON-139: a tools subtable with an exact version passes",
+    "name": "pass: a tools subtable with an exact version passes",
     "files": {
       "mise.toml": "[tools.node]\nversion = \"24.22.0\"\n"
     },
-    "pending": "NON-139",
     "status": 0,
     "stdout": "",
     "stderr": ""
   },
   {
-    "name": "pending NON-139: a per-os row with latest fails on that row",
+    "name": "fail: a per-os row with latest fails on that row",
     "files": {
       "mise.toml": "[[tools.\"github:taiki-e/cargo-nextest\"]]\nversion = \"cargo-nextest-0.9.126\"\n\n[[tools.\"github:taiki-e/cargo-nextest\"]]\nversion = \"latest\"\n"
     },
-    "pending": "NON-139",
     "status": 1,
     "stdout": "mise.toml:5: tool github:taiki-e/cargo-nextest is not an exact version\n",
     "stderr": ""
   },
   {
-    "name": "pending NON-139: an array of inline tables accepts a dated nightly",
+    "name": "pass: an array of inline tables accepts a dated nightly",
     "files": {
       "mise.toml": "[tools]\nrust = [ { version = \"nightly-2026-01-02\" } ]\n"
     },
-    "pending": "NON-139",
     "status": 0,
     "stdout": "",
     "stderr": ""
   },
   {
-    "name": "pending NON-139: a github tool tag ending in major.minor.patch passes",
+    "name": "pass: a github tool tag ending in major.minor.patch passes",
     "files": {
       "mise.toml": "[tools]\n\"github:taiki-e/cargo-nextest\" = \"cargo-nextest-0.9.126\"\n"
     },
-    "pending": "NON-139",
     "status": 0,
     "stdout": "",
     "stderr": ""
   },
   {
-    "name": "pending NON-139: a github tool tag ending in major.minor passes",
+    "name": "pass: a github tool tag ending in major.minor passes",
     "files": {
       "mise.toml": "[tools]\n\"github:example/pkcs11\" = \"pkcs11-v1.9\"\n"
     },
-    "pending": "NON-139",
     "status": 0,
     "stdout": "",
     "stderr": ""
   },
   {
-    "name": "pending NON-139: rust major.minor fails",
+    "name": "fail: rust major.minor fails",
     "files": {
       "mise.toml": "[tools]\nrust = \"1.98\"\n"
     },
-    "pending": "NON-139",
     "status": 1,
     "stdout": "mise.toml:2: tool rust is not an exact version\n",
     "stderr": ""
   },
   {
-    "name": "pending NON-139: a dated rust nightly passes",
+    "name": "pass: a dated rust nightly passes",
     "files": {
       "mise.toml": "[tools]\nrust = \"nightly-2026-01-02\"\n"
     },
-    "pending": "NON-139",
     "status": 0,
     "stdout": "",
     "stderr": ""
   },
   {
-    "name": "pending NON-139: a tool table with no version fails",
+    "name": "fail: a tool table with no version fails",
     "files": {
       "mise.toml": "[tools.node]\nos = \"linux\"\n"
     },
-    "pending": "NON-139",
     "status": 1,
     "stdout": "mise.toml:1: tool node is not an exact version\n",
     "stderr": ""
   },
   {
-    "name": "pending NON-139: a mypy override array after dependency groups passes",
+    "name": "pass: a mypy override array after dependency groups passes",
     "files": {
       "pyproject.toml": "[dependency-groups]\ntest = [\n  \"ruff==0.6.0\",\n]\n\n[[tool.mypy.overrides]]\nmodule = [\"foo.*\"]\n"
     },
-    "pending": "NON-139",
     "status": 0,
     "stdout": "",
     "stderr": ""

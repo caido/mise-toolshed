@@ -19,7 +19,7 @@ export type DependencySite = Site & {
 export type ToolSite = Site & {
   readonly kind: "tool";
   readonly name: string;
-  readonly value: StringOrTable;
+  readonly value: { readonly shape: "string"; readonly text: string };
 };
 
 export type PluginSite = Site & {

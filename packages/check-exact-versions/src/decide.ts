@@ -13,6 +13,9 @@ const SEMVER =
 const npmExact = new RegExp(`^=?${SEMVER}$`);
 const packageManagerExact = new RegExp(`^pnpm@${SEMVER}$`);
 const toolExact = /^(0|[1-9]\d*)\.(0|[1-9]\d*)(\.(0|[1-9]\d*))?$/;
+const toolPatch = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
+const rustNightly = /^nightly-\d{4}-\d{2}-\d{2}$/;
+const githubTag = /^[A-Za-z][A-Za-z0-9._-]*-v?(0|[1-9]\d*)\.(0|[1-9]\d*)(?:\.(0|[1-9]\d*))?$/;
 const hex40 = /^[0-9a-fA-F]{40}$/;
 
 export function decide(site: PinSite): readonly Finding[] {
@@ -86,10 +89,19 @@ function decidePython(site: DependencySite): readonly Finding[] {
 }
 
 function decideTool(site: ToolSite): readonly Finding[] {
-  if (site.value.shape === "table") return [finding(site, `tool ${site.name} must be a string`)];
-  if (!toolExact.test(site.value.text))
-    return [finding(site, `tool ${site.name} is not an exact version`)];
-  return [];
+  if (toolVersionExact(site.name, site.value.text)) return [];
+  return [finding(site, `tool ${site.name} is not an exact version`)];
+}
+
+function toolVersionExact(name: string, text: string): boolean {
+  if (name === "rust") return toolPatch.test(text) || rustNightly.test(text);
+  if (name.startsWith("github:")) return toolExact.test(text) || githubReleaseTag(text);
+  return toolExact.test(text);
+}
+
+function githubReleaseTag(text: string): boolean {
+  if (text.startsWith("v") && toolExact.test(text.slice(1))) return true;
+  return githubTag.test(text);
 }
 
 function decidePlugin(site: PluginSite): readonly Finding[] {
