@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import test from "node:test";
 import { fileURLToPath } from "node:url";
+import { test } from "vitest";
 import { registerFixtures } from "../../shared/test-support/register-fixtures.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));

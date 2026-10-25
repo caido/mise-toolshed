@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vitest";
 import { fixtureTestOptions } from "../test-support/register-fixtures.mjs";
 
 const mode = { mode: { "mise.toml": 0 } };

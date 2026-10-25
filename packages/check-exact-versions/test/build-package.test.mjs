@@ -3,7 +3,7 @@ import { realpathSync } from "node:fs";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import test from "node:test";
+import { test } from "vitest";
 import { buildPackage, compilerArgs } from "../../../scripts/build-package.mjs";
 
 async function writeTool(name, { version = "1.2.3", source } = {}) {

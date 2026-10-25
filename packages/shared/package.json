@@ -3,6 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test"
+    "test": "vitest run --reporter=verbose"
+  },
+  "devDependencies": {
+    "vitest": "5.0.5"
   }
 }

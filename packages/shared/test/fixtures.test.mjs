@@ -5,9 +5,8 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { registerFixtures } from "../test-support/register-fixtures.mjs";
+import { registerFixtures, test } from "../test-support/register-fixtures.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const packageRoot = path.resolve(here, "..");
@@ -33,8 +32,7 @@ process.on("exit", () => {
 const cases = JSON.parse(readFileSync(path.join(here, "cases.json"), "utf8"));
 registerFixtures([outfile], cases);
 
-test("symlinks are not followed", async () => {
-  const dir = await mkdtemp(path.join(tmpdir(), "shared-sites-link-"));
+test("symlinks are not followed", async ({ fixtureDir }) => {
   const outside = await mkdtemp(path.join(tmpdir(), "shared-sites-outside-"));
   try {
     await writeFile(
@@ -46,14 +44,13 @@ test("symlinks are not followed", async () => {
 }
 `,
     );
-    await symlink(outside, path.join(dir, "linked"));
-    await symlink(path.join(outside, "package.json"), path.join(dir, "package.json"));
-    const result = spawnSync(process.execPath, [outfile], { cwd: dir, encoding: "utf8" });
+    await symlink(outside, path.join(fixtureDir, "linked"));
+    await symlink(path.join(outside, "package.json"), path.join(fixtureDir, "package.json"));
+    const result = spawnSync(process.execPath, [outfile], { cwd: fixtureDir, encoding: "utf8" });
     assert.equal(result.status, 0, result.stdout + result.stderr);
     assert.equal(result.stdout, "");
     assert.equal(result.stderr, "");
   } finally {
-    await rm(dir, { recursive: true, force: true });
     await rm(outside, { recursive: true, force: true });
   }
 });

@@ -12,4 +12,4 @@
 
 ## Tests
 
-`mise run test` builds the package and runs `node --test`. Scan cases live in `test/cases.json`. Each case writes its `files` into a temporary directory and runs the built command. A case with `pending` is a node:test todo for behavior that is not implemented yet. Its name starts with `pending`. A failing assertion still leaves the suite green.
+`mise run test` builds the package and runs `vitest run`. Scan cases live in `test/cases.json`. Each case receives a `fixtureDir` from the Vitest context, writes its `files` there, and runs the built command. A case with `pending` is a Vitest todo for behavior that is not implemented yet. Its name starts with `pending`. The todo is reported and does not fail the run. Removing `pending` runs the case.
