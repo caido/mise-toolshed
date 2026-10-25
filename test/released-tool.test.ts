@@ -266,4 +266,52 @@ await test("mise installs check-exact-versions only when SHA256SUMS matches", as
       left.join("\n"),
     );
   });
+
+  await t.test("check-pins lists and execs an existing install and does not install", async () => {
+    must(run("git", ["-C", wt, "tag", "check-pins-v1.0.0"], { env }), "git tag check-pins");
+    must(
+      run("git", ["-C", wt, "push", "-q", "origin", "check-pins-v1.0.0"], { env }),
+      "git push check-pins",
+    );
+    const listed = run("mise", ["ls-remote", "toolshed:check-pins"], {
+      cwd: project,
+      env: miseEnv,
+    });
+    assert.equal(listed.status, 0, listed.stderr);
+    assert.equal(listed.stdout, "1.0.0\n");
+
+    const install = run("mise", ["install", "toolshed:check-pins@1.0.0"], {
+      cwd: project,
+      env: miseEnv,
+    });
+    assert.notEqual(install.status, 0);
+    assert.match(install.stderr, /check-pins is not installable/);
+    const leaked = await filesNamed(miseEnv.MISE_DATA_DIR ?? "", "check-pins");
+    assert.deepEqual(leaked, []);
+
+    const exactWhere = stripTrailingNewlines(
+      must(
+        run("mise", ["where", "toolshed:check-exact-versions"], { cwd: project, env: miseEnv }),
+        "mise where exact",
+      ),
+    );
+    const legacyWhere = path.join(
+      path.dirname(path.dirname(exactWhere)),
+      "toolshed-check-pins",
+      "1.0.0",
+    );
+    const binDir = path.join(legacyWhere, "bin");
+    await mkdir(binDir, { recursive: true });
+    const bin = path.join(binDir, "check-pins");
+    await writeFile(bin, "#!/bin/sh\nprintf '1.0.0\\n'\n");
+    await chmod(bin, 0o755);
+    await writeFile(path.join(project, "mise.toml"), '[tools]\n"toolshed:check-pins" = "1.0.0"\n');
+    const version = stripTrailingNewlines(
+      must(
+        run("mise", ["exec", "--", "check-pins", "--version"], { cwd: project, env: miseEnv }),
+        "legacy exec",
+      ),
+    );
+    assert.equal(version, "1.0.0");
+  });
 });

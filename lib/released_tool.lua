@@ -14,13 +14,29 @@ local RELEASED = {
 	"check-minimum-release-age",
 }
 
+local LEGACY = {
+	"check-pins",
+}
+
 local released_set = {}
 for _, name in ipairs(RELEASED) do
 	released_set[name] = true
 end
 
+local known_set = {}
+for _, name in ipairs(RELEASED) do
+	known_set[name] = true
+end
+for _, name in ipairs(LEGACY) do
+	known_set[name] = true
+end
+
 function M.is_released(tool)
 	return released_set[tool] == true
+end
+
+function M.is_known(tool)
+	return known_set[tool] == true
 end
 
 local function reject_shell_break(value, label)
@@ -63,7 +79,7 @@ local function version_from_tag(tool, tag)
 end
 
 function M.list_versions(tool)
-	if not M.is_released(tool) then
+	if not M.is_known(tool) then
 		error("unknown tool: " .. tostring(tool))
 	end
 	local out = shell.exec('git ls-remote --tags --refs "$TOOLSHED_REMOTE"', {
@@ -128,6 +144,9 @@ end
 
 function M.install(ctx)
 	local tool = ctx.tool
+	if M.is_known(tool) and not M.is_released(tool) then
+		error(tool .. " is not installable")
+	end
 	if not M.is_released(tool) then
 		error("unknown tool: " .. tostring(tool))
 	end

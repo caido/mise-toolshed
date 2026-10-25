@@ -23,6 +23,8 @@ toolshed = "https://github.com/caido/mise-toolshed#<40-hex sha>"
 
 `mise ls-remote toolshed:<tool>` lists bare versions from `<tool>-v*` tags, oldest first. It does not list `latest`. `mise install` downloads `<tool>.mjs` and `SHA256SUMS` from `https://github.com/caido/mise-toolshed/releases/download/<tool>-v<version>/`, checks the digest, and installs the file as `<tool>` on `PATH`.
 
+`check-pins` is not installed anymore. `mise ls-remote toolshed:check-pins` still lists the published tag, and `mise exec` still runs a copy that is already on disk. `mise install` refuses it.
+
 `check-exact-versions` enforces [STD-006](https://github.com/caido/engineering/blob/main/standards/STD-006-exact-versions.md). What it flags is in [packages/check-exact-versions/README.md](packages/check-exact-versions/README.md). `check-lockfiles` is the [STD-007](https://github.com/caido/engineering/blob/main/standards/STD-007-lockfiles.md) tool and `check-minimum-release-age` is the [STD-008](https://github.com/caido/engineering/blob/main/standards/STD-008-minimum-release-age.md) tool. Those two share the command-line contract and have no rules yet. `packages/shared` is private and is not released.
 
 ## Publish a release
