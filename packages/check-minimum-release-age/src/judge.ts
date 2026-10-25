@@ -74,8 +74,8 @@ function readMiseSetting(text: string): MiseSetting | undefined {
     }
     const header = tomlHeader(line);
     if (header !== undefined) {
-      const name = unquoteTomlKey(header);
-      section = name === "settings" ? "settings" : "other";
+      const name = unquoteTomlKey(header.name);
+      section = header.array || name !== "settings" ? "other" : "settings";
       continue;
     }
     const assignment = tomlAssignment(line);

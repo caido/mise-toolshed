@@ -61,6 +61,15 @@
     "stderr": ""
   },
   {
+    "name": "fail: an array settings table is not the settings table",
+    "files": {
+      "mise.toml": "[[settings]]\nminimum_release_age = \"7d\"\n"
+    },
+    "status": 1,
+    "stdout": "mise.toml:1: minimum_release_age is not set\n",
+    "stderr": ""
+  },
+  {
     "name": "fail: mise without minimum_release_age fails",
     "files": {
       "mise.toml": "[tools]\nnode = \"24.22.0\"\n"
