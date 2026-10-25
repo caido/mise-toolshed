@@ -9,7 +9,9 @@ local REMOTE_ENV = "TOOLSHED_RELEASE_REMOTE"
 local BASE_ENV = "TOOLSHED_RELEASE_BASE_URL"
 
 local RELEASED = {
-	"check-pins",
+	"check-exact-versions",
+	"check-lockfiles",
+	"check-minimum-release-age",
 }
 
 local released_set = {}

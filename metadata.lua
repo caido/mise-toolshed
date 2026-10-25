@@ -9,6 +9,6 @@ PLUGIN = { -- luacheck: ignore
 	homepage = "https://github.com/caido/mise-toolshed",
 	notes = {
 		"get-skills versions are get-skills-v* tags on https://github.com/caido/mise-toolshed. With no such tags, latest is the plugin checkout.",
-		"check-pins versions are check-pins-v* GitHub releases. The plugin verifies SHA256SUMS before it installs the file. node must be on PATH to run it.",
+		"check-exact-versions, check-lockfiles, and check-minimum-release-age versions are <tool>-v* GitHub releases. The plugin verifies SHA256SUMS before it installs the file. node must be on PATH to run them.",
 	},
 }

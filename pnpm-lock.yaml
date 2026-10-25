@@ -184,7 +184,13 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
 
-  packages/check-pins: {}
+  packages/check-exact-versions: {}
+
+  packages/check-lockfiles: {}
+
+  packages/check-minimum-release-age: {}
+
+  packages/shared: {}
 
 packages:
 
