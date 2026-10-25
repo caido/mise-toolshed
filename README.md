@@ -117,6 +117,16 @@ If the ai-ops repository is private, ensure your Git credential helper can clone
 
 Install the plugin from a git URL so mise can clone and resolve the plugin source.
 
+## Agent skills
+
+`.mise/config.toml` pins the Skills CLI (`npm:skills`) at `1.7.2`. That package needs Node >= 22.20.0. The `node` pin in this repo is 24.22.0.
+
+`.agents/skills/` holds `domain-modeling`, `grilling`, `grill-with-docs`, `codebase-design`, `code-review`, and `tdd` from `skills/` in [caido/ai-ops](https://github.com/caido/ai-ops). `skills-lock.json` records the commit. This command installs those six, with telemetry off and no TTY:
+
+```bash
+DISABLE_TELEMETRY=1 DO_NOT_TRACK=1 npx --yes skills@1.7.2 add "caido/ai-ops/skills#a420dd187be1b9dbc3246fe9dcfa4ba85e3e9cab" --skill domain-modeling --skill grilling --skill grill-with-docs --skill codebase-design --skill code-review --skill tdd -a cursor --copy -y </dev/null
+```
+
 ## Checks
 
 These commands match the CI jobs. Each one installs dependencies from the lockfile first. `mise run test` also builds, because the tool tests run the built bundles.
