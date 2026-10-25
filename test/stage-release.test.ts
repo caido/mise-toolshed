@@ -7,27 +7,27 @@ import test from "node:test";
 import { repoRoot, run } from "./run.ts";
 
 const stageScript = path.join(repoRoot, "scripts/stage-release.sh");
-const bundle = path.join(repoRoot, "packages/check-pins/dist/check-pins.mjs");
+const bundle = path.join(repoRoot, "packages/check-exact-versions/dist/check-exact-versions.mjs");
 const usage = "usage: stage-release.sh <tool> <dest>\n";
 
-await test("stage-release copies check-pins and writes SHA256SUMS", async () => {
+await test("stage-release copies check-exact-versions and writes SHA256SUMS", async () => {
   const built = run("node", [path.join(repoRoot, "scripts/build-package.mjs")], {
-    cwd: path.join(repoRoot, "packages/check-pins"),
+    cwd: path.join(repoRoot, "packages/check-exact-versions"),
     env: process.env,
   });
   assert.equal(built.status, 0, `${built.stdout}${built.stderr}`);
   const dest = await mkdtemp(path.join(tmpdir(), "stage-release-"));
-  const result = run("sh", [stageScript, "check-pins", dest], { env: process.env });
+  const result = run("sh", [stageScript, "check-exact-versions", dest], { env: process.env });
   assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual((await readdir(dest)).toSorted(), ["SHA256SUMS", "check-pins.mjs"]);
+  assert.deepEqual((await readdir(dest)).toSorted(), ["SHA256SUMS", "check-exact-versions.mjs"]);
   const source = await readFile(bundle);
-  const staged = await readFile(path.join(dest, "check-pins.mjs"));
+  const staged = await readFile(path.join(dest, "check-exact-versions.mjs"));
   const digest = createHash("sha256").update(source).digest("hex");
   assert.equal(createHash("sha256").update(staged).digest("hex"), digest);
   assert.equal(staged.equals(source), true);
   assert.equal(
     await readFile(path.join(dest, "SHA256SUMS"), "utf8"),
-    `${digest}  check-pins.mjs\n`,
+    `${digest}  check-exact-versions.mjs\n`,
   );
 });
 
