@@ -56,7 +56,7 @@ test("empty directory prints nothing", async () => {
   });
 });
 
-test("npm ranges are rejected in every dependency map", async () => {
+test("npm ranges are rejected in dependencies, devDependencies, and optionalDependencies", async () => {
   const specs = [
     "^1.0.0",
     "~1.0.0",
@@ -71,7 +71,7 @@ test("npm ranges are rejected in every dependency map", async () => {
     "abc",
     "^1.2.3",
   ];
-  const sections = ["dependencies", "devDependencies", "optionalDependencies", "peerDependencies"];
+  const sections = ["dependencies", "devDependencies", "optionalDependencies"];
   for (const section of sections) {
     for (const spec of specs) {
       await withFixture({ "package.json": packageJson(section, spec) }, (dir) => {
@@ -79,6 +79,22 @@ test("npm ranges are rejected in every dependency map", async () => {
       });
     }
   }
+});
+
+test("peerDependencies are not checked", async () => {
+  await withFixture(
+    {
+      "package.json": `{
+  "peerDependencies": {
+    "left-pad": "^1.0.0"
+  }
+}
+`,
+    },
+    (dir) => {
+      expectClean(scan(dir));
+    },
+  );
 });
 
 test("a tarball URL is an inexact version, not a git pin", async () => {
