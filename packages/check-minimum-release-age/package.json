@@ -1,5 +1,5 @@
 {
-  "name": "check-pins",
+  "name": "check-minimum-release-age",
   "version": "1.0.0",
   "private": true,
   "type": "module",

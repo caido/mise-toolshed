@@ -8,8 +8,8 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const bundlePath = path.join(packageRoot, "dist", "check-pins.mjs");
 const pkg = JSON.parse(readFileSync(path.join(packageRoot, "package.json"), "utf8"));
+const bundlePath = path.join(packageRoot, "dist", `${pkg.name}.mjs`);
 
 function run(file, args) {
   return spawnSync(process.execPath, [file, ...args], { encoding: "utf8" });
@@ -23,10 +23,10 @@ test("bundle --version prints package.json version", () => {
 });
 
 test("a lone copy of the bundle prints the version", async () => {
-  const dir = await mkdtemp(path.join(tmpdir(), "check-pins-"));
-  const copy = path.join(dir, "check-pins.mjs");
+  const dir = await mkdtemp(path.join(tmpdir(), `${pkg.name}-`));
+  const copy = path.join(dir, `${pkg.name}.mjs`);
   await cp(bundlePath, copy);
-  assert.deepEqual(await readdir(dir), ["check-pins.mjs"]);
+  assert.deepEqual(await readdir(dir), [`${pkg.name}.mjs`]);
   const result = run(copy, ["--version"]);
   assert.equal(result.status, 0);
   assert.equal(result.stdout, `${pkg.version}\n`);

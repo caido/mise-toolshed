@@ -23,7 +23,7 @@ await test("plan-release skips get-skills tags and does not call gh", async () =
     "node",
     [
       path.join(repoRoot, "scripts/read-package-version.ts"),
-      path.join(repoRoot, "packages/check-pins/package.json"),
+      path.join(repoRoot, "packages/check-exact-versions/package.json"),
     ],
     {
       env: process.env,
@@ -47,19 +47,21 @@ await test("plan-release skips get-skills tags and does not call gh", async () =
     assert.doesNotMatch(result.stderr, /gh invoked/);
   }
 
-  const mismatch = run("sh", [planScript, "check-pins-v9.9.9"], { env: refuseEnv() });
+  const mismatch = run("sh", [planScript, "check-exact-versions-v9.9.9"], { env: refuseEnv() });
   assert.notEqual(mismatch.status, 0);
   assert.equal(mismatch.stdout, "");
   assert.ok(
     mismatch.stderr.includes(
-      `tag check-pins-v9.9.9 version 9.9.9 does not match packages/check-pins/package.json ${packageVersion}`,
+      `tag check-exact-versions-v9.9.9 version 9.9.9 does not match packages/check-exact-versions/package.json ${packageVersion}`,
     ),
   );
   assert.doesNotMatch(mismatch.stderr, /gh invoked/);
 
-  const match = run("sh", [planScript, `check-pins-v${packageVersion}`], { env: refuseEnv() });
+  const match = run("sh", [planScript, `check-exact-versions-v${packageVersion}`], {
+    env: refuseEnv(),
+  });
   assert.equal(match.status, 0, match.stderr);
-  assert.equal(match.stdout, `publish check-pins ${packageVersion}\n`);
+  assert.equal(match.stdout, `publish check-exact-versions ${packageVersion}\n`);
   assert.doesNotMatch(match.stderr, /gh invoked/);
 });
 
@@ -87,7 +89,7 @@ await test("export-release-plan writes skip and publish outputs", async () => {
     "node",
     [
       path.join(repoRoot, "scripts/read-package-version.ts"),
-      path.join(repoRoot, "packages/check-pins/package.json"),
+      path.join(repoRoot, "packages/check-exact-versions/package.json"),
     ],
     {
       env: process.env,
@@ -99,13 +101,13 @@ await test("export-release-plan writes skip and publish outputs", async () => {
     env: refuseEnv({
       ...process.env,
       GITHUB_OUTPUT: output,
-      GITHUB_REF_NAME: `check-pins-v${version.stdout}`,
+      GITHUB_REF_NAME: `check-exact-versions-v${version.stdout}`,
     }),
   });
   assert.equal(publish.status, 0, publish.stderr);
   assert.equal(
     await readFile(output, "utf8"),
-    `action=publish\ntool=check-pins\ntag=check-pins-v${version.stdout}\n`,
+    `action=publish\ntool=check-exact-versions\ntag=check-exact-versions-v${version.stdout}\n`,
   );
 });
 
@@ -114,33 +116,41 @@ await test("publish-release creates, leaves a public release, and publishes a le
   const stage = path.join(work, "release");
   const record = path.join(work, "gh-record");
   await mkdir(stage);
-  const bundle = path.join(stage, "check-pins.mjs");
+  const bundle = path.join(stage, "check-exact-versions.mjs");
   const sums = path.join(stage, "SHA256SUMS");
   await writeFile(bundle, "bundle\n");
-  await writeFile(sums, "abc  check-pins.mjs\n");
+  await writeFile(sums, "abc  check-exact-versions.mjs\n");
   await writeFile(record, "");
 
   const env: NodeJS.ProcessEnv = {
     ...process.env,
     PATH: `${recordDir}${path.delimiter}${process.env.PATH ?? ""}`,
     GH_RECORD: record,
-    RELEASE_TAG: "check-pins-v0.0.0",
-    TOOL: "check-pins",
+    RELEASE_TAG: "check-exact-versions-v0.0.0",
+    TOOL: "check-exact-versions",
     RUNNER_TEMP: work,
   };
   const created = run("sh", [publishScript], { env });
   assert.equal(created.status, 0, created.stderr);
-  const view = ["release", "view", "check-pins-v0.0.0", "--json", "isDraft", "--jq", ".isDraft"];
+  const view = [
+    "release",
+    "view",
+    "check-exact-versions-v0.0.0",
+    "--json",
+    "isDraft",
+    "--jq",
+    ".isDraft",
+  ];
   assert.deepEqual(recordLines(await readFile(record, "utf8")), [
     view,
     [
       "release",
       "create",
-      "check-pins-v0.0.0",
+      "check-exact-versions-v0.0.0",
       bundle,
       sums,
       "--title",
-      "check-pins-v0.0.0",
+      "check-exact-versions-v0.0.0",
       "--notes",
       "",
       "--verify-tag",
@@ -157,8 +167,8 @@ await test("publish-release creates, leaves a public release, and publishes a le
   assert.equal(drafted.status, 0, drafted.stderr);
   assert.deepEqual(recordLines(await readFile(record, "utf8")), [
     view,
-    ["release", "upload", "check-pins-v0.0.0", bundle, sums, "--clobber"],
-    ["release", "edit", "check-pins-v0.0.0", "--draft=false"],
+    ["release", "upload", "check-exact-versions-v0.0.0", bundle, sums, "--clobber"],
+    ["release", "edit", "check-exact-versions-v0.0.0", "--draft=false"],
   ]);
 
   await writeFile(record, "");
@@ -169,7 +179,7 @@ await test("publish-release creates, leaves a public release, and publishes a le
   assert.ok(uploadFailed.stderr.includes("upload failed"));
   assert.deepEqual(recordLines(await readFile(record, "utf8")), [
     view,
-    ["release", "upload", "check-pins-v0.0.0", bundle, sums, "--clobber"],
+    ["release", "upload", "check-exact-versions-v0.0.0", bundle, sums, "--clobber"],
   ]);
 
   await writeFile(record, "");
@@ -200,7 +210,7 @@ function dispatchEnv(extra: NodeJS.ProcessEnv, output: string): NodeJS.ProcessEn
     ...process.env,
     PATH: `${recordDir}${path.delimiter}${process.env.PATH ?? ""}`,
     GITHUB_OUTPUT: output,
-    TOOL: "check-pins",
+    TOOL: "check-exact-versions",
     DEFAULT_BRANCH: "main",
     GITHUB_REF: "refs/heads/main",
     GITHUB_REPOSITORY: "caido/mise-toolshed",
@@ -214,7 +224,7 @@ await test("plan-dispatch prints the tool and tag, and refuses unknown tools, ot
     "node",
     [
       path.join(repoRoot, "scripts/read-package-version.ts"),
-      path.join(repoRoot, "packages/check-pins/package.json"),
+      path.join(repoRoot, "packages/check-exact-versions/package.json"),
     ],
     {
       env: process.env,
@@ -222,7 +232,7 @@ await test("plan-dispatch prints the tool and tag, and refuses unknown tools, ot
   );
   assert.equal(version.status, 0);
   const packageVersion = version.stdout;
-  const tag = `check-pins-v${packageVersion}`;
+  const tag = `check-exact-versions-v${packageVersion}`;
   const work = await mkdtemp(path.join(tmpdir(), "plan-dispatch-"));
   const output = path.join(work, "github-output");
   const record = path.join(work, "gh-record");
@@ -234,7 +244,7 @@ await test("plan-dispatch prints the tool and tag, and refuses unknown tools, ot
   });
   assert.notEqual(published.status, 0);
   assert.equal(published.stdout, "");
-  assert.match(published.stderr, /tag check-pins-v.+ already exists/);
+  assert.match(published.stderr, /tag check-exact-versions-v.+ already exists/);
   const tagGet = ["api", `repos/caido/mise-toolshed/git/ref/tags/${tag}`];
   assert.deepEqual(recordLines(await readFile(record, "utf8")), [tagGet]);
 
@@ -257,15 +267,21 @@ await test("plan-dispatch prints the tool and tag, and refuses unknown tools, ot
     env: dispatchEnv({ GH_RECORD: record, GH_RELEASE_DRAFT: "1" }, output),
   });
   assert.equal(drafted.status, 0, drafted.stderr);
-  assert.equal(drafted.stdout, `publish check-pins ${packageVersion}\n${tag}\n`);
-  assert.equal(await readFile(output, "utf8"), `action=publish\ntool=check-pins\ntag=${tag}\n`);
+  assert.equal(drafted.stdout, `publish check-exact-versions ${packageVersion}\n${tag}\n`);
+  assert.equal(
+    await readFile(output, "utf8"),
+    `action=publish\ntool=check-exact-versions\ntag=${tag}\n`,
+  );
 
   await writeFile(output, "");
   await writeFile(record, "");
   const ready = run("sh", [dispatchScript], { env: dispatchEnv({ GH_RECORD: record }, output) });
   assert.equal(ready.status, 0, ready.stderr);
-  assert.equal(ready.stdout, `publish check-pins ${packageVersion}\n${tag}\n`);
-  assert.equal(await readFile(output, "utf8"), `action=publish\ntool=check-pins\ntag=${tag}\n`);
+  assert.equal(ready.stdout, `publish check-exact-versions ${packageVersion}\n${tag}\n`);
+  assert.equal(
+    await readFile(output, "utf8"),
+    `action=publish\ntool=check-exact-versions\ntag=${tag}\n`,
+  );
   assert.deepEqual(recordLines(await readFile(record, "utf8")), [
     tagGet,
     ["release", "view", tag, "--json", "isDraft", "--jq", ".isDraft"],
@@ -290,7 +306,7 @@ await test("plan-dispatch prints the tool and tag, and refuses unknown tools, ot
     env: refuseEnv({
       ...process.env,
       GITHUB_OUTPUT: output,
-      TOOL: "check-pins",
+      TOOL: "check-exact-versions",
       DEFAULT_BRANCH: "main",
       GITHUB_REF: "refs/heads/feature",
       GITHUB_REPOSITORY: "caido/mise-toolshed",
@@ -308,7 +324,7 @@ await test("plan-dispatch prints the tool and tag, and refuses unknown tools, ot
     env: refuseEnv({
       ...process.env,
       GITHUB_OUTPUT: output,
-      TOOL: "check-pins",
+      TOOL: "check-exact-versions",
       DEFAULT_BRANCH: "main",
       GITHUB_REF_NAME: "main",
       GITHUB_REF: "refs/tags/main",
@@ -330,7 +346,7 @@ await test("create-release-tag posts the ref and does not update an existing tag
     PATH: `${recordDir}${path.delimiter}${process.env.PATH ?? ""}`,
     GH_RECORD: record,
     GH_TOKEN: "test-token",
-    RELEASE_TAG: "check-pins-v1.0.0",
+    RELEASE_TAG: "check-exact-versions-v1.0.0",
     GITHUB_SHA: "abc123",
     GITHUB_REPOSITORY: "caido/mise-toolshed",
   };
@@ -343,7 +359,7 @@ await test("create-release-tag posts the ref and does not update an existing tag
       "POST",
       "repos/caido/mise-toolshed/git/refs",
       "-f",
-      "ref=refs/tags/check-pins-v1.0.0",
+      "ref=refs/tags/check-exact-versions-v1.0.0",
       "-f",
       "sha=abc123",
     ],
@@ -362,8 +378,8 @@ await test("publish-release requires the planned tag", () => {
   const result = run("sh", [publishScript], {
     env: refuseEnv({
       ...process.env,
-      GITHUB_REF_NAME: "check-pins-v0.0.0",
-      TOOL: "check-pins",
+      GITHUB_REF_NAME: "check-exact-versions-v0.0.0",
+      TOOL: "check-exact-versions",
       RUNNER_TEMP: "/tmp",
     }),
   });

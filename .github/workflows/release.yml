@@ -45,7 +45,10 @@ jobs:
         run: mise exec -- pnpm -r build
 
       - name: Checksum
-        run: mise exec -- sh scripts/stage-release.sh check-pins "$RUNNER_TEMP/release"
+        run: |
+          mise exec -- sh scripts/stage-release.sh check-exact-versions "$RUNNER_TEMP/check-exact-versions"
+          mise exec -- sh scripts/stage-release.sh check-lockfiles "$RUNNER_TEMP/check-lockfiles"
+          mise exec -- sh scripts/stage-release.sh check-minimum-release-age "$RUNNER_TEMP/check-minimum-release-age"
 
   plan:
     name: Plan release

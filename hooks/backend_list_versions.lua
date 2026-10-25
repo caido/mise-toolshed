@@ -10,7 +10,7 @@ function PLUGIN:BackendListVersions(ctx)
 	if tool == "get-skills" then
 		return process_get_skills()
 	end
-	if released.is_released(tool) then
+	if released.is_known(tool) then
 		return { versions = released.list_versions(tool) }
 	end
 

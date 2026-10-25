@@ -4,7 +4,7 @@ import { parseNpmrc } from "./parse-npmrc.js";
 import { parsePackageJson } from "./parse-package-json.js";
 import { parsePyproject } from "./parse-pyproject.js";
 import { parseWorkflow } from "./parse-workflow.js";
-import type { FileKind, ParsedFile, ScanFacts } from "./types.js";
+import type { FileKind, ParsedFile } from "./types.js";
 
 export function parseFile(kind: FileKind, relativePath: string, text: string): ParsedFile {
   switch (kind) {
@@ -27,11 +27,4 @@ export function parseFile(kind: FileKind, relativePath: string, text: string): P
       return neverKind;
     }
   }
-}
-
-export function scanFacts(files: readonly ParsedFile[]): ScanFacts {
-  return {
-    miseUvLocked: files.some((file) => file.miseUvLocked),
-    npmrcFrozen: files.some((file) => file.npmrcFrozen),
-  };
 }

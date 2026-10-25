@@ -15,6 +15,9 @@ function PLUGIN:BackendInstall(ctx)
 		released.install(ctx)
 		return {}
 	end
+	if released.is_known(tool) then
+		error(tool .. " is not installable")
+	end
 
 	error("unknown tool: " .. tostring(tool))
 end

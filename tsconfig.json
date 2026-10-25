@@ -17,6 +17,9 @@
     "scripts/read-package-version.ts",
     "scripts/tool-version.d.ts",
     "test/**/*.ts",
-    "packages/check-pins/src/**/*.ts"
+    "packages/shared/src/**/*.ts",
+    "packages/check-exact-versions/src/**/*.ts",
+    "packages/check-lockfiles/src/**/*.ts",
+    "packages/check-minimum-release-age/src/**/*.ts"
   ]
 }

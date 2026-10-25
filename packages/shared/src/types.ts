@@ -68,11 +68,6 @@ export type Finding = {
   readonly message: string;
 };
 
-export type ScanFacts = {
-  readonly miseUvLocked: boolean;
-  readonly npmrcFrozen: boolean;
-};
-
 export type FileKind =
   | "package-json"
   | "pyproject"

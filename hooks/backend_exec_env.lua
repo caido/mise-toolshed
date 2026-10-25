@@ -3,7 +3,7 @@ function PLUGIN:BackendExecEnv(ctx)
 	local released = require("released_tool")
 
 	local tool = ctx.tool
-	if tool ~= "get-skills" and not released.is_released(tool) then
+	if tool ~= "get-skills" and not released.is_known(tool) then
 		error("unknown tool: " .. tostring(tool))
 	end
 

@@ -143,4 +143,7 @@ jobs:
         run: mise exec -- pnpm -r --if-present build
 
       - name: Check pins
-        run: mise exec -- node packages/check-pins/dist/check-pins.mjs
+        run: |
+          mise exec -- node packages/check-exact-versions/dist/check-exact-versions.mjs
+          mise exec -- node packages/check-lockfiles/dist/check-lockfiles.mjs
+          mise exec -- node packages/check-minimum-release-age/dist/check-minimum-release-age.mjs

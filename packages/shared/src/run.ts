@@ -1,36 +1,46 @@
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { TOOL_NAME, TOOL_VERSION } from "#tool-version";
 import { classify, skipDirectory } from "./classify-path.js";
-import { decide } from "./decide-pins.js";
-import { parseFile, scanFacts } from "./parse-file.js";
-import type { Finding, ParsedFile } from "./types.js";
+import { parseFile } from "./parse-file.js";
+import type { Finding, ParsedFile, PinSite } from "./types.js";
 
-type Io = {
+export type Io = {
   readonly stdout: { write(chunk: string): void };
   readonly stderr: { write(chunk: string): void };
 };
 
-function run(argv: readonly string[], cwd: string, io: Io): number {
+export type ToolIdentity = {
+  readonly name: string;
+  readonly version: string;
+};
+
+export type Decide = (site: PinSite) => readonly Finding[];
+
+export function run(
+  tool: ToolIdentity,
+  argv: readonly string[],
+  cwd: string,
+  io: Io,
+  decide: Decide,
+): number {
   if (argv.length === 1 && argv[0] === "--version") {
-    io.stdout.write(`${TOOL_VERSION}\n`);
+    io.stdout.write(`${tool.version}\n`);
     return 0;
   }
   if (argv.length !== 0) {
-    io.stderr.write(`usage: ${TOOL_NAME} --version\n`);
+    io.stderr.write(`usage: ${tool.name} --version\n`);
     return 1;
   }
-  const findings = scan(cwd);
+  const findings = scan(cwd, decide);
   for (const found of findings) {
     io.stdout.write(`${found.path}:${found.line}: ${found.message}\n`);
   }
   return findings.length === 0 ? 0 : 1;
 }
 
-function scan(cwd: string): readonly Finding[] {
+function scan(cwd: string, decide: Decide): readonly Finding[] {
   const parsed = walk(cwd, cwd);
-  const facts = scanFacts(parsed);
-  const findings = parsed.flatMap((file) => file.sites.flatMap((site) => decide(site, facts)));
+  const findings = parsed.flatMap((file) => file.sites.flatMap((site) => decide(site)));
   return findings.toSorted((left, right) => {
     if (left.path !== right.path) return left.path < right.path ? -1 : 1;
     if (left.line !== right.line) return left.line - right.line;
@@ -66,8 +76,3 @@ function walk(cwd: string, directory: string): readonly ParsedFile[] {
     }
   });
 }
-
-process.exitCode = run(process.argv.slice(2), process.cwd(), {
-  stdout: process.stdout,
-  stderr: process.stderr,
-});

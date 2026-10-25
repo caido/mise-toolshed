@@ -45,10 +45,10 @@ if (process.argv.length === 3 && process.argv[2] === "--version") {
   process.stdout.write("${version}\\n");
   process.exit(0);
 }
-process.stderr.write("usage: check-pins --version\\n");
+process.stderr.write("usage: check-exact-versions --version\\n");
 process.exit(1);
 `;
-  const file = path.join(dir, "check-pins.mjs");
+  const file = path.join(dir, "check-exact-versions.mjs");
   await writeFile(file, body);
   await chmod(file, 0o755);
 }
@@ -82,7 +82,7 @@ async function assertMissing(file: string): Promise<void> {
   assert.fail(`${file} exists`);
 }
 
-await test("mise installs check-pins only when SHA256SUMS matches", async (t) => {
+await test("mise installs check-exact-versions only when SHA256SUMS matches", async (t) => {
   const mise = spawnSync("mise", ["--version"], { encoding: "utf8" });
   assert.equal(mise.status, 0, "mise is required on PATH");
   const sha = spawnSync("sha256sum", ["--version"], { encoding: "utf8" });
@@ -101,8 +101,8 @@ await test("mise installs check-pins only when SHA256SUMS matches", async (t) =>
   must(run("git", ["-C", wt, "add", "readme"], { env }), "git add");
   must(run("git", ["-C", wt, "commit", "-m", "tags"], { env }), "git commit");
   for (const tag of [
-    "check-pins-v1.0.0",
-    "check-pins-v1.1.0",
+    "check-exact-versions-v1.0.0",
+    "check-exact-versions-v1.1.0",
     "get-skills-v1.0.0",
     "get-skills-v2.0.0",
   ]) {
@@ -113,28 +113,31 @@ await test("mise installs check-pins only when SHA256SUMS matches", async (t) =>
   must(run("git", ["-C", wt, "push", "-q", "origin", "--tags"], { env }), "git push tags");
 
   const releases = path.join(work, "releases");
-  await writeBundle(path.join(releases, "check-pins-v1.0.0"), "1.0.0");
-  await writeBundle(path.join(releases, "check-pins-v1.1.0"), "1.1.0");
+  await writeBundle(path.join(releases, "check-exact-versions-v1.0.0"), "1.0.0");
+  await writeBundle(path.join(releases, "check-exact-versions-v1.1.0"), "1.1.0");
   for (const version of ["1.0.0", "1.1.0"]) {
-    const dir = path.join(releases, `check-pins-v${version}`);
-    const body = await readFile(path.join(dir, "check-pins.mjs"));
+    const dir = path.join(releases, `check-exact-versions-v${version}`);
+    const body = await readFile(path.join(dir, "check-exact-versions.mjs"));
     await writeFile(
       path.join(dir, "SHA256SUMS"),
-      `${sha256(body.toString("utf8"))}  check-pins.mjs\n`,
+      `${sha256(body.toString("utf8"))}  check-exact-versions.mjs\n`,
     );
   }
 
-  const tamperDir = path.join(releases, "check-pins-v9.9.9");
+  const tamperDir = path.join(releases, "check-exact-versions-v9.9.9");
   await writeBundle(tamperDir, "9.9.9");
-  const tamperFile = path.join(tamperDir, "check-pins.mjs");
+  const tamperFile = path.join(tamperDir, "check-exact-versions.mjs");
   const beforeTamper = await readFile(tamperFile, "utf8");
   const expectedHash = sha256(beforeTamper);
-  await writeFile(path.join(tamperDir, "SHA256SUMS"), `${expectedHash}  check-pins.mjs\n`);
+  await writeFile(
+    path.join(tamperDir, "SHA256SUMS"),
+    `${expectedHash}  check-exact-versions.mjs\n`,
+  );
   const tampered = `${beforeTamper}\n/* tampered */\n`;
   await writeFile(tamperFile, tampered);
   const actualHash = sha256(tampered);
 
-  const missingDir = path.join(releases, "check-pins-v9.8.0");
+  const missingDir = path.join(releases, "check-exact-versions-v9.8.0");
   await writeBundle(missingDir, "9.8.0");
   await writeFile(
     path.join(missingDir, "SHA256SUMS"),
@@ -171,7 +174,7 @@ await test("mise installs check-pins only when SHA256SUMS matches", async (t) =>
   );
 
   await t.test("ls-remote prints 1.0.0 then 1.1.0", () => {
-    const listed = run("mise", ["ls-remote", "toolshed:check-pins"], {
+    const listed = run("mise", ["ls-remote", "toolshed:check-exact-versions"], {
       cwd: project,
       env: miseEnv,
     });
@@ -188,20 +191,23 @@ await test("mise installs check-pins only when SHA256SUMS matches", async (t) =>
   });
 
   await t.test("installs 1.0.0 on PATH", async () => {
-    await writeFile(path.join(project, "mise.toml"), '[tools]\n"toolshed:check-pins" = "1.0.0"\n');
+    await writeFile(
+      path.join(project, "mise.toml"),
+      '[tools]\n"toolshed:check-exact-versions" = "1.0.0"\n',
+    );
     must(run("mise", ["install"], { cwd: project, env: miseEnv }), "mise install");
     const where = stripTrailingNewlines(
       must(
-        run("mise", ["where", "toolshed:check-pins"], { cwd: project, env: miseEnv }),
+        run("mise", ["where", "toolshed:check-exact-versions"], { cwd: project, env: miseEnv }),
         "mise where",
       ),
     );
-    const bin = path.join(where, "bin", "check-pins");
+    const bin = path.join(where, "bin", "check-exact-versions");
     await access(bin, constants.X_OK);
-    await assertMissing(path.join(where, "bin", "check-pins.mjs"));
+    await assertMissing(path.join(where, "bin", "check-exact-versions.mjs"));
     const resolved = stripTrailingNewlines(
       must(
-        run("mise", ["exec", "--", "sh", "-c", "command -v check-pins"], {
+        run("mise", ["exec", "--", "sh", "-c", "command -v check-exact-versions"], {
           cwd: project,
           env: miseEnv,
         }),
@@ -211,7 +217,10 @@ await test("mise installs check-pins only when SHA256SUMS matches", async (t) =>
     assert.equal(resolved.startsWith(`${where}${path.sep}`), true, resolved);
     const version = stripTrailingNewlines(
       must(
-        run("mise", ["exec", "--", "check-pins", "--version"], { cwd: project, env: miseEnv }),
+        run("mise", ["exec", "--", "check-exact-versions", "--version"], {
+          cwd: project,
+          env: miseEnv,
+        }),
         "version",
       ),
     );
@@ -219,15 +228,19 @@ await test("mise installs check-pins only when SHA256SUMS matches", async (t) =>
   });
 
   await t.test("tampered download fails and leaves no binary", async () => {
-    const tamper = run("mise", ["install", "toolshed:check-pins@9.9.9"], {
+    const tamper = run("mise", ["install", "toolshed:check-exact-versions@9.9.9"], {
       cwd: project,
       env: miseEnv,
     });
     assert.notEqual(tamper.status, 0);
-    assert.ok(tamper.stderr.includes("check-pins.mjs checksum mismatch for tag check-pins-v9.9.9"));
+    assert.ok(
+      tamper.stderr.includes(
+        "check-exact-versions.mjs checksum mismatch for tag check-exact-versions-v9.9.9",
+      ),
+    );
     assert.ok(tamper.stderr.includes(expectedHash));
     assert.ok(tamper.stderr.includes(actualHash));
-    const left = await filesNamed(miseEnv.MISE_DATA_DIR ?? "", "check-pins");
+    const left = await filesNamed(miseEnv.MISE_DATA_DIR ?? "", "check-exact-versions");
     assert.equal(
       left.some((file) => file.includes(`${path.sep}9.9.9${path.sep}`)),
       false,
@@ -236,19 +249,69 @@ await test("mise installs check-pins only when SHA256SUMS matches", async (t) =>
   });
 
   await t.test("missing checksum entry fails and leaves no binary", async () => {
-    const missing = run("mise", ["install", "toolshed:check-pins@9.8.0"], {
+    const missing = run("mise", ["install", "toolshed:check-exact-versions@9.8.0"], {
       cwd: project,
       env: miseEnv,
     });
     assert.notEqual(missing.status, 0);
     assert.ok(
-      missing.stderr.includes("SHA256SUMS has no check-pins.mjs line for tag check-pins-v9.8.0"),
+      missing.stderr.includes(
+        "SHA256SUMS has no check-exact-versions.mjs line for tag check-exact-versions-v9.8.0",
+      ),
     );
-    const left = await filesNamed(miseEnv.MISE_DATA_DIR ?? "", "check-pins");
+    const left = await filesNamed(miseEnv.MISE_DATA_DIR ?? "", "check-exact-versions");
     assert.equal(
       left.some((file) => file.includes(`${path.sep}9.8.0${path.sep}`)),
       false,
       left.join("\n"),
     );
+  });
+
+  await t.test("check-pins lists and execs an existing install and does not install", async () => {
+    must(run("git", ["-C", wt, "tag", "check-pins-v1.0.0"], { env }), "git tag check-pins");
+    must(
+      run("git", ["-C", wt, "push", "-q", "origin", "check-pins-v1.0.0"], { env }),
+      "git push check-pins",
+    );
+    const listed = run("mise", ["ls-remote", "toolshed:check-pins"], {
+      cwd: project,
+      env: miseEnv,
+    });
+    assert.equal(listed.status, 0, listed.stderr);
+    assert.equal(listed.stdout, "1.0.0\n");
+
+    const install = run("mise", ["install", "toolshed:check-pins@1.0.0"], {
+      cwd: project,
+      env: miseEnv,
+    });
+    assert.notEqual(install.status, 0);
+    assert.match(install.stderr, /check-pins is not installable/);
+    const leaked = await filesNamed(miseEnv.MISE_DATA_DIR ?? "", "check-pins");
+    assert.deepEqual(leaked, []);
+
+    const exactWhere = stripTrailingNewlines(
+      must(
+        run("mise", ["where", "toolshed:check-exact-versions"], { cwd: project, env: miseEnv }),
+        "mise where exact",
+      ),
+    );
+    const legacyWhere = path.join(
+      path.dirname(path.dirname(exactWhere)),
+      "toolshed-check-pins",
+      "1.0.0",
+    );
+    const binDir = path.join(legacyWhere, "bin");
+    await mkdir(binDir, { recursive: true });
+    const bin = path.join(binDir, "check-pins");
+    await writeFile(bin, "#!/bin/sh\nprintf '1.0.0\\n'\n");
+    await chmod(bin, 0o755);
+    await writeFile(path.join(project, "mise.toml"), '[tools]\n"toolshed:check-pins" = "1.0.0"\n');
+    const version = stripTrailingNewlines(
+      must(
+        run("mise", ["exec", "--", "check-pins", "--version"], { cwd: project, env: miseEnv }),
+        "legacy exec",
+      ),
+    );
+    assert.equal(version, "1.0.0");
   });
 });

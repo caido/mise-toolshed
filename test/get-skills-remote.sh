@@ -91,7 +91,7 @@ printf 'pinned-1.10.0\n' >"$wt/bin/get-skills"
 git -C "$wt" add bin/get-skills
 git -C "$wt" commit -m 'pin 1.10.0' >/dev/null
 git -C "$wt" tag get-skills-v1.10.0
-git -C "$wt" tag check-pins-v9.9.9
+git -C "$wt" tag other-tool-v9.9.9
 git -C "$wt" tag v0.0.1
 git -C "$wt" remote add origin "$origin"
 git -C "$wt" push -q origin HEAD:refs/heads/main

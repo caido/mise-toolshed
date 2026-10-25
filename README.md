@@ -4,31 +4,35 @@
 
 Provided tools:
 
-- **`toolshed:check-pins`**: a released `check-pins` command. Pushing `check-pins-v<semver>` publishes `check-pins.mjs` and `SHA256SUMS`. The plugin downloads that release and refuses the install when the SHA-256 does not match.
+- **`toolshed:check-exact-versions`**, **`toolshed:check-lockfiles`**, and **`toolshed:check-minimum-release-age`**: released commands. Pushing `<tool>-v<semver>` publishes `<tool>.mjs` and `SHA256SUMS`. The plugin downloads that release and refuses the install when the SHA-256 does not match. Each tool is first released as `1.0.0`.
 - **`toolshed:get-skills`**: a `get-skills` command which installs the [`skills/`](https://github.com/caido/ai-ops/tree/main/skills) tree from **[ai-ops](https://github.com/caido/ai-ops)** into one personal folder you choose.
 
-## check-pins
+## Released check tools
 
-`node` must be on `PATH` when `check-pins` runs. A consumer without `node` adds an exact `node` version to `[tools]`.
+`node` must be on `PATH` when a check tool runs. A consumer without `node` adds an exact `node` version to `[tools]`.
 
 ```toml
 [plugins]
 toolshed = "https://github.com/caido/mise-toolshed#<40-hex sha>"
 
 [tools]
-"toolshed:check-pins" = "1.0.0"
+"toolshed:check-exact-versions" = "1.0.0"
+"toolshed:check-lockfiles" = "1.0.0"
+"toolshed:check-minimum-release-age" = "1.0.0"
 ```
 
-`mise ls-remote toolshed:check-pins` lists bare versions from `check-pins-v*` tags, oldest first. It does not list `latest`. `mise install` downloads `check-pins.mjs` and `SHA256SUMS` from `https://github.com/caido/mise-toolshed/releases/download/check-pins-v<version>/`, checks the digest, and installs the file as `check-pins` on `PATH`.
+`mise ls-remote toolshed:<tool>` lists bare versions from `<tool>-v*` tags, oldest first. It does not list `latest`. `mise install` downloads `<tool>.mjs` and `SHA256SUMS` from `https://github.com/caido/mise-toolshed/releases/download/<tool>-v<version>/`, checks the digest, and installs the file as `<tool>` on `PATH`.
 
-What the scan checks is in [packages/check-pins/README.md](packages/check-pins/README.md).
+`check-pins` is not installed anymore. `mise ls-remote toolshed:check-pins` still lists the published tag, and `mise exec` still runs a copy that is already on disk. `mise install` refuses it.
+
+`check-exact-versions` enforces [STD-006](https://github.com/caido/engineering/blob/main/standards/STD-006-exact-versions.md). What it flags is in [packages/check-exact-versions/README.md](packages/check-exact-versions/README.md). `check-lockfiles` is the [STD-007](https://github.com/caido/engineering/blob/main/standards/STD-007-lockfiles.md) tool and `check-minimum-release-age` is the [STD-008](https://github.com/caido/engineering/blob/main/standards/STD-008-minimum-release-age.md) tool. Those two share the command-line contract and have no rules yet. `packages/shared` is private and is not released.
 
 ## Publish a release
 
 Publish a workspace package from the Release workflow on the default branch. Set `tool` to the directory name under `packages/`. The workflow reads `version` from that package's `package.json`, creates the tag `<tool>-v<version>` on the selected commit, and uploads `<tool>.mjs` and `SHA256SUMS` in the same run.
 
 ```bash
-gh workflow run release.yml --ref main -f tool=check-pins
+gh workflow run release.yml --ref main -f tool=check-exact-versions
 ```
 
 The run stops when that tag already exists or a published release already exists. It does not move an existing tag.
@@ -36,7 +40,7 @@ The run stops when that tag already exists or a published release already exists
 You can still publish by pushing the tag.
 
 ```bash
-git tag check-pins-v1.0.0 && git push origin check-pins-v1.0.0
+git tag check-exact-versions-v1.0.0 && git push origin check-exact-versions-v1.0.0
 ```
 
 `get-skills` stays a git tag. Push `get-skills-v<version>` yourself. The Release workflow does not upload assets for that tag.
@@ -115,7 +119,7 @@ Install the plugin from a git URL so mise can clone and resolve the plugin sourc
 
 ## Checks
 
-These commands match the CI jobs. Each one installs dependencies from the lockfile first. `mise run test` also builds, because the check-pins tests run the built bundle.
+These commands match the CI jobs. Each one installs dependencies from the lockfile first. `mise run test` also builds, because the tool tests run the built bundles.
 
 - `mise run typecheck` reports type errors.
 - `mise run lint` reports lint errors and does not change files.
@@ -136,8 +140,8 @@ Plugin files are at the repository root. Workspace packages are under `packages/
 - `lib/get_skills_release.lua` lists and installs get-skills versions from this repo.
 - `lib/version_order.lua` orders version strings for get-skills and released tools.
 - `lib/released_tool.lua` lists and installs released tools from checksummed GitHub releases.
-- `packages/check-pins` is the only package under `packages/`.
-- `packages/check-pins` is a private CLI. What the scan checks is in [packages/check-pins/README.md](packages/check-pins/README.md).
+- `packages/shared` is private scanner code. It has no build and it is not released.
+- `packages/check-exact-versions`, `packages/check-lockfiles`, and `packages/check-minimum-release-age` are private CLIs. What `check-exact-versions` checks is in [packages/check-exact-versions/README.md](packages/check-exact-versions/README.md).
 - `scripts/build-package.mjs` bundles a package.
 - `test/get-skills-remote.sh` covers get-skills tag listing.
 - `test/get-skills-sync.sh` covers the personal-folder install.
