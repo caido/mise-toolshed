@@ -213,6 +213,112 @@ await test("push-bump publishes only the version change on a branch", async () =
   assert.equal(execFileSync("git", ["-C", work, "rev-parse", "HEAD"], { encoding: "utf8" }), head);
 });
 
+await test("push-bump commits only package.json when the lockfile is also modified", async () => {
+  const { remote, work } = await initPushRepo();
+  const bumped = run("sh", [bumpScript, work, tool, "patch"], { cwd: work, env: process.env });
+  assert.equal(bumped.status, 0, bumped.stderr);
+  await writeFile(path.join(work, ".mise/mise.lock"), "rewritten lockfile\n");
+  const before = execFileSync("git", ["-C", work, "rev-parse", "HEAD"], { encoding: "utf8" });
+
+  const pushed = runPush(work);
+  assert.equal(pushed.status, 0, pushed.stderr);
+  assert.equal(pushed.stdout, "pushed bump/check-exact-versions-v1.0.1\n");
+
+  const committed = execFileSync(
+    "git",
+    [
+      "--git-dir",
+      remote,
+      "diff-tree",
+      "--no-commit-id",
+      "--name-only",
+      "-r",
+      "bump/check-exact-versions-v1.0.1",
+    ],
+    { encoding: "utf8" },
+  );
+  assert.equal(committed, "packages/check-exact-versions/package.json\n");
+  assert.equal(
+    execFileSync("git", ["-C", work, "show", "HEAD:.mise/mise.lock"], { encoding: "utf8" }),
+    "lockfile\n",
+  );
+  assert.equal(await readFile(path.join(work, ".mise/mise.lock"), "utf8"), "rewritten lockfile\n");
+  assert.equal(
+    execFileSync("git", ["-C", work, "status", "--porcelain"], { encoding: "utf8" }),
+    " M .mise/mise.lock\n",
+  );
+  assert.notEqual(
+    execFileSync("git", ["-C", work, "rev-parse", "HEAD"], { encoding: "utf8" }),
+    before,
+  );
+});
+
+await test("push-bump exits non-zero without committing when package.json is unchanged", async () => {
+  const { work } = await initPushRepo();
+  await writeFile(path.join(work, ".mise/mise.lock"), "rewritten lockfile\n");
+  const before = execFileSync("git", ["-C", work, "rev-parse", "HEAD"], { encoding: "utf8" });
+  const statusBefore = execFileSync("git", ["-C", work, "status", "--porcelain"], {
+    encoding: "utf8",
+  });
+
+  const pushed = runPush(work);
+  assert.notEqual(pushed.status, 0);
+  assert.equal(pushed.stdout, "");
+  assert.match(
+    pushed.stderr,
+    /refusing to commit unchanged packages\/check-exact-versions\/package.json/,
+  );
+  assert.equal(
+    execFileSync("git", ["-C", work, "rev-parse", "HEAD"], { encoding: "utf8" }),
+    before,
+  );
+  assert.equal(
+    execFileSync("git", ["-C", work, "status", "--porcelain"], { encoding: "utf8" }),
+    statusBefore,
+  );
+  assert.equal(
+    execFileSync("git", ["-C", work, "rev-list", "--count", "HEAD"], { encoding: "utf8" }),
+    "1\n",
+  );
+});
+
+async function initPushRepo(): Promise<{ remote: string; work: string }> {
+  const remote = await mkdtemp(path.join(tmpdir(), "bump-remote-"));
+  const work = await mkdtemp(path.join(tmpdir(), "bump-work-"));
+  execFileSync("git", ["init", "--bare", "-b", "main", remote], { stdio: "ignore" });
+  execFileSync("git", ["init", "-b", "main", work], { stdio: "ignore" });
+  execFileSync("git", ["-C", work, "config", "user.name", "Test"], { stdio: "ignore" });
+  execFileSync("git", ["-C", work, "config", "user.email", "test@example.com"], {
+    stdio: "ignore",
+  });
+  await writePackage(work, tool, await readFile(sourceManifest, "utf8"));
+  await mkdir(path.join(work, ".mise"), { recursive: true });
+  await writeFile(path.join(work, ".mise/mise.lock"), "lockfile\n");
+  execFileSync(
+    "git",
+    ["-C", work, "add", "--", `packages/${tool}/package.json`, ".mise/mise.lock"],
+    { stdio: "ignore" },
+  );
+  execFileSync("git", ["-C", work, "commit", "-m", "initial"], { stdio: "ignore" });
+  execFileSync("git", ["-C", work, "remote", "add", "origin", remote], { stdio: "ignore" });
+  execFileSync("git", ["-C", work, "push", "origin", "main"], { stdio: "ignore" });
+  return { remote, work };
+}
+
+function runPush(work: string): ReturnType<typeof run> {
+  return run("sh", [pushScript], {
+    cwd: work,
+    env: {
+      ...process.env,
+      TOOL: tool,
+      DEFAULT_BRANCH: "main",
+      GITHUB_REF: "refs/heads/main",
+      BUMP_REMOTE: "origin",
+      GH_TOKEN: "dummy-token",
+    },
+  });
+}
+
 async function packageCopy(text: string): Promise<string> {
   const root = await mkdtemp(path.join(tmpdir(), "bump-package-"));
   await writePackage(root, tool, text);

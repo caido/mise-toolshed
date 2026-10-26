@@ -25,11 +25,8 @@ case $version in
 esac
 
 cd "$root" || exit 1
-status=$(git status --porcelain)
-expected=" M $manifest"
-if [ "$status" != "$expected" ]; then
-	echo "refusing to commit unexpected changes" >&2
-	printf '%s\n' "$status" >&2
+if git diff --quiet -- "$manifest" && git diff --cached --quiet -- "$manifest"; then
+	echo "refusing to commit unchanged $manifest" >&2
 	exit 1
 fi
 
@@ -40,8 +37,7 @@ GIT_COMMITTER_NAME=$GIT_AUTHOR_NAME
 GIT_COMMITTER_EMAIL=$GIT_AUTHOR_EMAIL
 export GIT_AUTHOR_NAME GIT_AUTHOR_EMAIL GIT_COMMITTER_NAME GIT_COMMITTER_EMAIL
 
-git add -- "$manifest"
-git -c commit.gpgsign=false commit -q -m "Bump ${tool} to ${version}"
+git -c commit.gpgsign=false commit -q -m "Bump ${tool} to ${version}" -- "$manifest"
 
 remote=${BUMP_REMOTE:-origin}
 refspec="HEAD:refs/heads/${branch}"
