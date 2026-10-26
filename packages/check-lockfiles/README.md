@@ -21,6 +21,7 @@ The only finding is `lockfile <name> is missing` at line 1. A manifest with no d
 - `package.json` needs `pnpm-lock.yaml`.
 - `pyproject.toml` needs `uv.lock`.
 - `mise.toml` needs `mise.lock`.
+- `.mise/config.<env>.toml` needs `mise.<env>.lock`. `<env>` is one segment of letters, digits, `_`, or `-`, such as `dev`. `mise.lock` does not satisfy that file.
 - Any other `*.toml` file whose parent directory is `.mise` needs `mise.lock`. `package.json`, `pyproject.toml`, and `mise.toml` keep those rules under `.mise` as well. `.mise.toml` is not a mise config.
 - `Cargo.toml` needs `Cargo.lock`, unless the path is already a mise config. `.mise/Cargo.toml` needs `mise.lock`.
 

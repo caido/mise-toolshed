@@ -8,7 +8,7 @@ const LOCKFILE_FOR = {
   cargo: "Cargo.lock",
 } as const;
 
-type LockfileName = (typeof LOCKFILE_FOR)[keyof typeof LOCKFILE_FOR];
+const MISE_ENVIRONMENT_CONFIG = /^config\.([A-Za-z0-9_-]+)\.toml$/;
 
 export function missingLockfiles(files: ReadonlySet<string>): readonly Finding[] {
   const findings: Finding[] = [];
@@ -20,13 +20,14 @@ export function missingLockfiles(files: ReadonlySet<string>): readonly Finding[]
   return findings;
 }
 
-function requiredLockfile(relativePath: string): LockfileName | undefined {
+function requiredLockfile(relativePath: string): string | undefined {
   const kind = classify(relativePath);
   switch (kind) {
     case "package-json":
     case "pyproject":
-    case "mise":
       return LOCKFILE_FOR[kind];
+    case "mise":
+      return miseLockfile(relativePath);
     case "dockerfile":
     case "workflow":
     case "npmrc":
@@ -42,10 +43,17 @@ function requiredLockfile(relativePath: string): LockfileName | undefined {
   }
 }
 
+function miseLockfile(relativePath: string): string {
+  const base = relativePath.slice(relativePath.lastIndexOf("/") + 1);
+  const env = MISE_ENVIRONMENT_CONFIG.exec(base)?.[1];
+  if (env === undefined) return LOCKFILE_FOR.mise;
+  return `mise.${env}.lock`;
+}
+
 function lockfileIsPresent(
   files: ReadonlySet<string>,
   manifest: string,
-  lockfile: LockfileName,
+  lockfile: string,
 ): boolean {
   let dir = directoryOf(manifest);
   for (;;) {

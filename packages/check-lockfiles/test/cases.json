@@ -111,6 +111,27 @@
     "stderr": ""
   },
   {
+    "name": "fail: .mise/config.dev.toml without mise.dev.lock",
+    "files": {
+      ".mise/config.toml": "[tools]\nnode = \"24.22.0\"\n",
+      ".mise/config.dev.toml": "[tools]\nnode = \"24.22.0\"\n",
+      ".mise/mise.lock": ""
+    },
+    "status": 1,
+    "stdout": ".mise/config.dev.toml:1: lockfile mise.dev.lock is missing\n",
+    "stderr": ""
+  },
+  {
+    "name": "pass: .mise/config.dev.toml with mise.dev.lock",
+    "files": {
+      ".mise/config.dev.toml": "[tools]\nnode = \"24.22.0\"\n",
+      ".mise/mise.dev.lock": ""
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
     "name": "pass: a nested pyproject.toml with uv.lock in an ancestor",
     "files": {
       "apps/pyproject.toml": "[project]\nname = \"demo\"\n",
