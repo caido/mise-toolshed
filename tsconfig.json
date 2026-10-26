@@ -14,6 +14,7 @@
     "skipLibCheck": true
   },
   "include": [
+    "scripts/bump-package-version.ts",
     "scripts/read-package-version.ts",
     "scripts/tool-version.d.ts",
     "test/**/*.ts",

@@ -1,0 +1,63 @@
+name: Bump version
+
+on:
+  workflow_dispatch:
+    inputs:
+      tool:
+        description: Workspace package directory under packages/
+        required: true
+        type: choice
+        options:
+          - check-exact-versions
+          - check-lockfiles
+          - check-minimum-release-age
+      part:
+        description: Semver part
+        required: true
+        type: choice
+        options:
+          - major
+          - minor
+          - patch
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bump-${{ inputs.tool }}
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    name: Bump version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Install mise
+        uses: caido/action-mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
+        with:
+          version: ${{ vars.CI__MISE_VERSION }}
+
+      - name: Require default branch
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: mise exec -- sh scripts/require-default-branch.sh
+
+      - name: Bump version
+        env:
+          TOOL: ${{ inputs.tool }}
+          PART: ${{ inputs.part }}
+        run: mise exec -- sh scripts/bump-version.sh "$GITHUB_WORKSPACE" "$TOOL" "$PART"
+
+      - name: Push branch
+        env:
+          TOOL: ${{ inputs.tool }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          GH_TOKEN: ${{ github.token }}
+        run: mise exec -- sh scripts/push-bump.sh
