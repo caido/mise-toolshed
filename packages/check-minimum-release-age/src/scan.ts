@@ -2,15 +2,16 @@ import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { classify, skipDirectory } from "../../shared/src/classify-path.js";
 import type { Finding } from "../../shared/src/types.js";
-import { judgeMise, judgePnpmWorkspace } from "./judge.js";
+import { judgeMiseFiles, judgePnpmWorkspace, type MiseText } from "./judge.js";
 
 const PNPM_WORKSPACE = "pnpm-workspace.yaml";
 
 export function scan(cwd: string): readonly Finding[] {
-  return walk(cwd, cwd).toSorted(byFinding);
+  const mise: MiseText[] = [];
+  return [...walk(cwd, cwd, mise), ...judgeMiseFiles(mise)].toSorted(byFinding);
 }
 
-function walk(cwd: string, directory: string): readonly Finding[] {
+function walk(cwd: string, directory: string, mise: MiseText[]): readonly Finding[] {
   let entries;
   try {
     entries = readdirSync(directory, { withFileTypes: true });
@@ -26,7 +27,7 @@ function walk(cwd: string, directory: string): readonly Finding[] {
     const full = path.join(directory, entry.name);
     if (entry.isDirectory()) {
       if (skipDirectory(entry.name)) return [];
-      return walk(cwd, full);
+      return walk(cwd, full, mise);
     }
     if (!entry.isFile()) return [];
     const relative = path.relative(cwd, full).split(path.sep).join("/");
@@ -34,7 +35,8 @@ function walk(cwd: string, directory: string): readonly Finding[] {
     try {
       const text = readFileSync(full, "utf8");
       if (entry.name === PNPM_WORKSPACE) return judgePnpmWorkspace(relative, text);
-      return judgeMise(relative, text);
+      mise.push({ path: relative, text });
+      return [];
     } catch {
       const message =
         entry.name === PNPM_WORKSPACE ? "pnpm-workspace is not valid" : "mise is not valid";

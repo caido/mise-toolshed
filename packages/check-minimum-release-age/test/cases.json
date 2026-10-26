@@ -290,5 +290,158 @@
     "status": 1,
     "stdout": "pnpm-workspace.yaml:1: pnpm-workspace is not valid\n",
     "stderr": ""
+  },
+  {
+    "name": "pass: a .mise env overlay inherits minimum_release_age from config.toml",
+    "files": {
+      ".mise/config.toml": "[settings]\nminimum_release_age = \"7d\"\n",
+      ".mise/config.dev.toml": "[tools]\nnode = \"24\"\n",
+      ".mise/config.netlify.toml": "[tools]\nnode = \"24\"\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pass: config.local.toml inherits a 7d base",
+    "files": {
+      ".mise/config.toml": "[settings]\nminimum_release_age = \"7d\"\n",
+      ".mise/config.local.toml": "[tools]\nnode = \"24\"\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "fail: .mise/config.toml without minimum_release_age fails",
+    "files": {
+      ".mise/config.toml": "[tools]\nnode = \"24\"\n"
+    },
+    "status": 1,
+    "stdout": ".mise/config.toml:1: minimum_release_age is not set\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: an overlay of 6d fails beside a 7d base",
+    "files": {
+      ".mise/config.toml": "[settings]\nminimum_release_age = \"7d\"\n",
+      ".mise/config.dev.toml": "[settings]\nminimum_release_age = \"6d\"\n"
+    },
+    "status": 1,
+    "stdout": ".mise/config.dev.toml:2: minimum_release_age must be at least 7d\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: an overlay date fails beside a 7d base",
+    "files": {
+      ".mise/config.toml": "[settings]\nminimum_release_age = \"7d\"\n",
+      ".mise/config.dev.toml": "[settings]\nminimum_release_age = \"2026-01-01\"\n"
+    },
+    "status": 1,
+    "stdout": ".mise/config.dev.toml:2: minimum_release_age must be at least 7d\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a 6d base is one finding when the overlay omits the key",
+    "files": {
+      ".mise/config.toml": "[settings]\nminimum_release_age = \"6d\"\n",
+      ".mise/config.dev.toml": "[tools]\nnode = \"24\"\n",
+      ".mise/config.netlify.toml": "[tools]\nnode = \"24\"\n"
+    },
+    "status": 1,
+    "stdout": ".mise/config.toml:2: minimum_release_age must be at least 7d\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: an overlay does not inherit when the base omits the key",
+    "files": {
+      ".mise/config.toml": "[tools]\nnode = \"24\"\n",
+      ".mise/config.dev.toml": "[tools]\nnode = \"24\"\n"
+    },
+    "status": 1,
+    "stdout": ".mise/config.dev.toml:1: minimum_release_age is not set\n.mise/config.toml:1: minimum_release_age is not set\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: an overlay does not inherit when the base file is absent",
+    "files": {
+      ".mise/config.dev.toml": "[tools]\nnode = \"24\"\n"
+    },
+    "status": 1,
+    "stdout": ".mise/config.dev.toml:1: minimum_release_age is not set\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a base that omits the key is one finding when the overlay sets 7d",
+    "files": {
+      ".mise/config.toml": "[tools]\nnode = \"24\"\n",
+      ".mise/config.dev.toml": "[settings]\nminimum_release_age = \"7d\"\n"
+    },
+    "status": 1,
+    "stdout": ".mise/config.toml:1: minimum_release_age is not set\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: mise.toml does not inherit from a .mise config",
+    "files": {
+      "mise.toml": "[tools]\nnode = \"24\"\n",
+      ".mise/config.toml": "[settings]\nminimum_release_age = \"7d\"\n"
+    },
+    "status": 1,
+    "stdout": "mise.toml:1: minimum_release_age is not set\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: .mise/tasks.toml does not inherit from config.toml",
+    "files": {
+      ".mise/config.toml": "[settings]\nminimum_release_age = \"7d\"\n",
+      ".mise/tasks.toml": "[tools]\nnode = \"24\"\n"
+    },
+    "status": 1,
+    "stdout": ".mise/tasks.toml:1: minimum_release_age is not set\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: an overlay does not inherit from another directory",
+    "files": {
+      "apps/web/.mise/config.toml": "[settings]\nminimum_release_age = \"7d\"\n",
+      "apps/api/.mise/config.dev.toml": "[tools]\nnode = \"24\"\n"
+    },
+    "status": 1,
+    "stdout": "apps/api/.mise/config.dev.toml:1: minimum_release_age is not set\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: a non-string base is one finding when the overlay omits the key",
+    "files": {
+      ".mise/config.toml": "[settings]\nminimum_release_age = 7\n",
+      ".mise/config.dev.toml": "[tools]\nnode = \"24\"\n"
+    },
+    "status": 1,
+    "stdout": ".mise/config.toml:2: minimum_release_age must be at least 7d\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: an unreadable base does not cover an overlay",
+    "mode": {
+      ".mise/config.toml": 0
+    },
+    "files": {
+      ".mise/config.toml": "[settings]\nminimum_release_age = \"7d\"\n",
+      ".mise/config.dev.toml": "[tools]\nnode = \"24\"\n"
+    },
+    "status": 1,
+    "stdout": ".mise/config.dev.toml:1: minimum_release_age is not set\n.mise/config.toml:1: mise is not valid\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: config.foo.bar.toml does not inherit from config.toml",
+    "files": {
+      ".mise/config.toml": "[settings]\nminimum_release_age = \"7d\"\n",
+      ".mise/config.foo.bar.toml": "[tools]\nnode = \"24\"\n"
+    },
+    "status": 1,
+    "stdout": ".mise/config.foo.bar.toml:1: minimum_release_age is not set\n",
+    "stderr": ""
   }
 ]
