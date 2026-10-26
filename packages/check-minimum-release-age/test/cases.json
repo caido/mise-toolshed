@@ -16,98 +16,279 @@
     "stderr": ""
   },
   {
-    "name": "pending NON-135: pnpm-workspace.yaml without minimumReleaseAge fails",
+    "name": "fail: pnpm-workspace.yaml without minimumReleaseAge fails",
     "files": {
       "pnpm-workspace.yaml": "packages:\n  - packages/*\n"
     },
-    "pending": "NON-135",
     "status": 1,
+    "stdout": "pnpm-workspace.yaml:1: minimumReleaseAge is not set\n",
     "stderr": ""
   },
   {
-    "name": "pending NON-135: minimumReleaseAge 10079 fails",
+    "name": "fail: minimumReleaseAge 10079 fails",
     "files": {
       "pnpm-workspace.yaml": "minimumReleaseAge: 10079\n"
     },
     "status": 1,
-    "stderr": "",
-    "pending": "NON-135"
+    "stdout": "pnpm-workspace.yaml:1: minimumReleaseAge must be at least 10080 minutes\n",
+    "stderr": ""
   },
   {
-    "name": "pending NON-135: minimumReleaseAge 10080 passes",
+    "name": "pass: minimumReleaseAge 10080 passes",
     "files": {
       "pnpm-workspace.yaml": "minimumReleaseAge: 10080\n"
     },
-    "pending": "NON-135",
     "status": 0,
     "stdout": "",
     "stderr": ""
   },
   {
-    "name": "pending NON-135: minimumReleaseAge 10080 passes with an exclude list",
+    "name": "pass: minimumReleaseAge 10080 passes with an exclude list",
     "files": {
       "pnpm-workspace.yaml": "minimumReleaseAge: 10080\nminimumReleaseAgeExclude:\n  - \"@caido/*\"\n"
     },
-    "pending": "NON-135",
     "status": 0,
     "stdout": "",
     "stderr": ""
   },
   {
-    "name": "pending NON-135: mise without minimum_release_age fails",
+    "name": "fail: a quoted minimumReleaseAge fails",
+    "files": {
+      "pnpm-workspace.yaml": "minimumReleaseAge: \"10080\"\n"
+    },
+    "status": 1,
+    "stdout": "pnpm-workspace.yaml:1: minimumReleaseAge must be at least 10080 minutes\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: an array settings table is not the settings table",
+    "files": {
+      "mise.toml": "[[settings]]\nminimum_release_age = \"7d\"\n"
+    },
+    "status": 1,
+    "stdout": "mise.toml:1: minimum_release_age is not set\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: mise without minimum_release_age fails",
     "files": {
       "mise.toml": "[tools]\nnode = \"24.22.0\"\n"
     },
-    "pending": "NON-135",
     "status": 1,
+    "stdout": "mise.toml:1: minimum_release_age is not set\n",
     "stderr": ""
   },
   {
-    "name": "pending NON-135: mise minimum_release_age of 6d fails",
+    "name": "fail: mise minimum_release_age of 6d fails",
     "files": {
       "mise.toml": "[settings]\nminimum_release_age = \"6d\"\n"
     },
-    "pending": "NON-135",
     "status": 1,
+    "stdout": "mise.toml:2: minimum_release_age must be at least 7d\n",
     "stderr": ""
   },
   {
-    "name": "pending NON-135: an absolute mise date fails",
+    "name": "fail: an absolute mise date fails",
     "files": {
       "mise.toml": "[settings]\nminimum_release_age = \"2026-01-01\"\n"
     },
-    "pending": "NON-135",
     "status": 1,
+    "stdout": "mise.toml:2: minimum_release_age must be at least 7d\n",
     "stderr": ""
   },
   {
-    "name": "pending NON-135: mise minimum_release_age of 7d passes",
+    "name": "fail: an absolute RFC3339 mise timestamp fails",
+    "files": {
+      "mise.toml": "[settings]\nminimum_release_age = \"2024-06-01T12:00:00Z\"\n"
+    },
+    "status": 1,
+    "stdout": "mise.toml:2: minimum_release_age must be at least 7d\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: mise minimum_release_age of 0s fails",
+    "files": {
+      "mise.toml": "[settings]\nminimum_release_age = \"0s\"\n"
+    },
+    "status": 1,
+    "stdout": "mise.toml:2: minimum_release_age must be at least 7d\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: mise minimum_release_age of 10079m fails",
+    "files": {
+      "mise.toml": "[settings]\nminimum_release_age = \"10079m\"\n"
+    },
+    "status": 1,
+    "stdout": "mise.toml:2: minimum_release_age must be at least 7d\n",
+    "stderr": ""
+  },
+  {
+    "name": "pass: mise minimum_release_age of 7d passes",
     "files": {
       "mise.toml": "[settings]\nminimum_release_age = \"7d\"\n"
     },
-    "pending": "NON-135",
     "status": 0,
     "stdout": "",
     "stderr": ""
   },
   {
-    "name": "pending NON-135: mise minimum_release_age of 168h passes",
+    "name": "pass: mise minimum_release_age of 168h passes",
     "files": {
       "mise.toml": "[settings]\nminimum_release_age = \"168h\"\n"
     },
-    "pending": "NON-135",
     "status": 0,
     "stdout": "",
     "stderr": ""
   },
   {
-    "name": "pending NON-135: mise minimum_release_age of 1w passes",
+    "name": "pass: mise minimum_release_age of 1w passes",
     "files": {
       ".mise/config.toml": "[settings]\nminimum_release_age = \"1w\"\n"
     },
-    "pending": "NON-135",
     "status": 0,
     "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pass: mise minimum_release_age of 6d24h passes",
+    "files": {
+      "mise.toml": "[settings]\nminimum_release_age = \"6d24h\"\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pass: mise minimum_release_age of +7d passes",
+    "files": {
+      "mise.toml": "[settings]\nminimum_release_age = \"+7d\"\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pass: mise minimum_release_age of 6d, 24h passes",
+    "files": {
+      "mise.toml": "[settings]\nminimum_release_age = \"6d, 24h\"\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pass: mise minimum_release_age of 168,0h passes",
+    "files": {
+      "mise.toml": "[settings]\nminimum_release_age = \"168,0h\"\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pass: mise minimum_release_age of 168:00:00 passes",
+    "files": {
+      "mise.toml": "[settings]\nminimum_release_age = \"168:00:00\"\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "pass: mise minimum_release_age of 6d 24:00:00 passes",
+    "files": {
+      "mise.toml": "[settings]\nminimum_release_age = \"6d 24:00:00\"\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "fail: mise minimum_release_age of 7.5d fails",
+    "files": {
+      "mise.toml": "[settings]\nminimum_release_age = \"7.5d\"\n"
+    },
+    "status": 1,
+    "stdout": "mise.toml:2: minimum_release_age must be at least 7d\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: mise minimum_release_age of 7D fails",
+    "files": {
+      "mise.toml": "[settings]\nminimum_release_age = \"7D\"\n"
+    },
+    "status": 1,
+    "stdout": "mise.toml:2: minimum_release_age must be at least 7d\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: mise minimum_release_age of 24h6d fails",
+    "files": {
+      "mise.toml": "[settings]\nminimum_release_age = \"24h6d\"\n"
+    },
+    "status": 1,
+    "stdout": "mise.toml:2: minimum_release_age must be at least 7d\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: mise minimum_release_age of 6d,24h fails",
+    "files": {
+      "mise.toml": "[settings]\nminimum_release_age = \"6d,24h\"\n"
+    },
+    "status": 1,
+    "stdout": "mise.toml:2: minimum_release_age must be at least 7d\n",
+    "stderr": ""
+  },
+  {
+    "name": "pass: mise minimum_release_age of 10080m passes",
+    "files": {
+      "mise.toml": "[settings]\nminimum_release_age = \"10080m\"\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "fail: ISO duration P7.0D is not a mise duration",
+    "files": {
+      "mise.toml": "[settings]\nminimum_release_age = \"P7.0D\"\n"
+    },
+    "status": 1,
+    "stdout": "mise.toml:2: minimum_release_age must be at least 7d\n",
+    "stderr": ""
+  },
+  {
+    "name": "pass: ISO duration PT168.0H passes",
+    "files": {
+      "mise.toml": "[settings]\nminimum_release_age = \"PT168.0H\"\n"
+    },
+    "status": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "name": "fail: an unreadable mise file is not valid",
+    "mode": {
+      "mise.toml": 0
+    },
+    "files": {
+      "mise.toml": "[settings]\nminimum_release_age = \"7d\"\n"
+    },
+    "status": 1,
+    "stdout": "mise.toml:1: mise is not valid\n",
+    "stderr": ""
+  },
+  {
+    "name": "fail: an unreadable pnpm-workspace.yaml is not valid",
+    "mode": {
+      "pnpm-workspace.yaml": 0
+    },
+    "files": {
+      "pnpm-workspace.yaml": "minimumReleaseAge: 10080\n"
+    },
+    "status": 1,
+    "stdout": "pnpm-workspace.yaml:1: pnpm-workspace is not valid\n",
     "stderr": ""
   }
 ]
