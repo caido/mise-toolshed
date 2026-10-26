@@ -29,7 +29,17 @@ toolshed = "https://github.com/caido/mise-toolshed#<40-hex sha>"
 
 ## Publish a release
 
-Publish a workspace package from the Release workflow on the default branch. Choose `tool` from `check-exact-versions`, `check-lockfiles`, or `check-minimum-release-age`. The workflow reads `version` from that package's `package.json`, creates the tag `<tool>-v<version>` on the selected commit, and uploads `<tool>.mjs` and `SHA256SUMS` in the same run.
+Bump the package version, merge that change, then publish from the Release workflow.
+
+On the default branch, dispatch Bump version. Choose `tool` from `check-exact-versions`, `check-lockfiles`, or `check-minimum-release-age`, and choose `part` of `major`, `minor`, or `patch`. The workflow reads `version` from `packages/<tool>/package.json`, writes the next version, and pushes branch `bump/<tool>-v<version>`.
+
+```bash
+gh workflow run bump-version.yml --ref main -f tool=check-exact-versions -f part=patch
+```
+
+Open a pull request from that branch into the default branch. Validate runs on the pull request. Merge it after review.
+
+Publish the merged version from the Release workflow on the default branch. Choose the same `tool`. The workflow reads `version` from that package's `package.json`, creates the tag `<tool>-v<version>` on the selected commit, and uploads `<tool>.mjs` and `SHA256SUMS` in the same run.
 
 ```bash
 gh workflow run release.yml --ref main -f tool=check-exact-versions
@@ -157,3 +167,4 @@ Plugin files are at the repository root. Workspace packages are under `packages/
 - `test/get-skills-sync.sh` covers the personal-folder install.
 - `test/release-plan.test.ts` and `test/released-tool.test.ts` cover release planning and checksummed installs.
 - `test/stage-release.test.ts` drives `scripts/stage-release.sh`, and `.cursor/skills/verify-toolshed/SKILL.md` drives check-pins, get-skills, and that script.
+- `test/bump-version.test.ts` drives the version bump, the branch push, and the workflow tool list.
