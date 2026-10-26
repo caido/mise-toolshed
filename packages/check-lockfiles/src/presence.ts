@@ -50,7 +50,11 @@ function miseLockfile(relativePath: string): string {
   return `mise.${env}.lock`;
 }
 
-function lockfileIsPresent(files: ReadonlySet<string>, manifest: string, lockfile: string): boolean {
+function lockfileIsPresent(
+  files: ReadonlySet<string>,
+  manifest: string,
+  lockfile: string,
+): boolean {
   let dir = directoryOf(manifest);
   for (;;) {
     if (files.has(dir === "" ? lockfile : `${dir}/${lockfile}`)) return true;
