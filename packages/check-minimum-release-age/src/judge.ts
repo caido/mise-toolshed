@@ -14,6 +14,14 @@ const PNPM_NOT_SET = "minimumReleaseAge is not set";
 const PNPM_TOO_LOW = "minimumReleaseAge must be at least 10080 minutes";
 const MISE_NOT_SET = "minimum_release_age is not set";
 const MISE_TOO_LOW = "minimum_release_age must be at least 7d";
+const OVERLAY_NAME = /^config\.[A-Za-z0-9_-]+\.toml$/;
+
+export type MiseText = { readonly path: string; readonly text: string };
+
+type MisePlace =
+  | { readonly kind: "solo" }
+  | { readonly kind: "base"; readonly directory: string }
+  | { readonly kind: "overlay"; readonly directory: string };
 
 type PnpmAge =
   | { readonly kind: "missing" }
@@ -30,8 +38,40 @@ export function judgePnpmWorkspace(relativePath: string, text: string): readonly
   return [];
 }
 
-export function judgeMise(relativePath: string, text: string): readonly Finding[] {
-  const setting = readMiseSetting(text);
+export function judgeMiseFiles(files: readonly MiseText[]): readonly Finding[] {
+  const covered = new Set<string>();
+  const parsed = files.map((file) => {
+    const place = misePlace(file.path);
+    const setting = readMiseSetting(file.text);
+    if (place.kind === "base" && setting !== undefined) covered.add(place.directory);
+    return { path: file.path, place, setting };
+  });
+  return parsed.flatMap((file) => {
+    if (
+      file.place.kind === "overlay" &&
+      file.setting === undefined &&
+      covered.has(file.place.directory)
+    ) {
+      return [];
+    }
+    return judgeMiseSetting(file.path, file.setting);
+  });
+}
+
+function misePlace(relativePath: string): MisePlace {
+  const parts = relativePath.split("/");
+  const name = parts[parts.length - 1];
+  if (name === undefined || parts[parts.length - 2] !== ".mise") return { kind: "solo" };
+  const directory = parts.slice(0, -1).join("/");
+  if (name === "config.toml") return { kind: "base", directory };
+  if (OVERLAY_NAME.test(name)) return { kind: "overlay", directory };
+  return { kind: "solo" };
+}
+
+function judgeMiseSetting(
+  relativePath: string,
+  setting: MiseSetting | undefined,
+): readonly Finding[] {
   if (setting === undefined) return [finding(relativePath, 1, MISE_NOT_SET)];
   if (setting.value === undefined) return [finding(relativePath, setting.line, MISE_TOO_LOW)];
   const age = parseMiseAge(setting.value);
