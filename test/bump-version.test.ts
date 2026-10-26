@@ -218,6 +218,7 @@ await test("push-bump commits only package.json when the lockfile is also modifi
   const bumped = run("sh", [bumpScript, work, tool, "patch"], { cwd: work, env: process.env });
   assert.equal(bumped.status, 0, bumped.stderr);
   await writeFile(path.join(work, ".mise/mise.lock"), "rewritten lockfile\n");
+  execFileSync("git", ["-C", work, "add", "--", ".mise/mise.lock"], { stdio: "ignore" });
   const before = execFileSync("git", ["-C", work, "rev-parse", "HEAD"], { encoding: "utf8" });
 
   const pushed = runPush(work);
@@ -245,7 +246,7 @@ await test("push-bump commits only package.json when the lockfile is also modifi
   assert.equal(await readFile(path.join(work, ".mise/mise.lock"), "utf8"), "rewritten lockfile\n");
   assert.equal(
     execFileSync("git", ["-C", work, "status", "--porcelain"], { encoding: "utf8" }),
-    " M .mise/mise.lock\n",
+    "M  .mise/mise.lock\n",
   );
   assert.notEqual(
     execFileSync("git", ["-C", work, "rev-parse", "HEAD"], { encoding: "utf8" }),
