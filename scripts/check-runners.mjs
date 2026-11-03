@@ -21,14 +21,25 @@ function normalizedLines(text) {
   return text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
 }
 
+const jobsHeader = /^jobs:\s*(?:(?:[&*][^\s#]+)\s*)?(?:#.*)?$/;
+const jobHeader = /^  \S.*:\s*(?:(?:[&*][^\s#]+)\s*)?(?:#.*)?$/;
+
+function isCommentOrBlank(line) {
+  const trimmed = line.trim();
+  return trimmed === "" || trimmed.startsWith("#");
+}
+
 function jobBodies(text) {
   const lines = normalizedLines(text);
   let jobsAt = -1;
   for (let index = 0; index < lines.length; index += 1) {
-    if (/^jobs:\s*(?:#.*)?$/.test(lines[index])) {
-      jobsAt = index;
-      break;
+    const line = lines[index];
+    if (!line.startsWith("jobs:")) continue;
+    if (!jobsHeader.test(line)) {
+      throw new Error(`line ${index + 1}: cannot parse jobs:`);
     }
+    jobsAt = index;
+    break;
   }
   if (jobsAt === -1) {
     throw new Error("jobs: is missing");
@@ -37,17 +48,23 @@ function jobBodies(text) {
   let current = null;
   for (let index = jobsAt + 1; index < lines.length; index += 1) {
     const line = lines[index];
-    if (/^  [^ \t].*:\s*(?:#.*)?$/.test(line)) {
-      if (current !== null) bodies.push(current);
-      current = [];
-      continue;
-    }
-    if (line.trim() === "" || line.startsWith("#")) {
+    if (isCommentOrBlank(line)) {
       if (current !== null) current.push({ number: index + 1, text: line });
       continue;
     }
     if (/^[^ \t]/.test(line)) break;
-    if (current !== null) current.push({ number: index + 1, text: line });
+    if (/^  \S/.test(line)) {
+      if (!jobHeader.test(line)) {
+        throw new Error(`line ${index + 1}: cannot parse job header`);
+      }
+      if (current !== null) bodies.push(current);
+      current = [];
+      continue;
+    }
+    if (current === null) {
+      throw new Error(`line ${index + 1}: cannot parse job header`);
+    }
+    current.push({ number: index + 1, text: line });
   }
   if (current !== null) bodies.push(current);
   return bodies;

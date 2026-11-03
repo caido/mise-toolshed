@@ -110,6 +110,23 @@ test("a comment between jobs still rejects a later self-hosted runner", () => {
   assert.match(result.stderr, /scratch\.yml:6: runs-on must be ubuntu-latest/);
 });
 
+test("an anchored job header still rejects a self-hosted runner", () => {
+  const anchor = run("jobs:\n  build: &base_job\n    runs-on: self-hosted\n");
+  assert.notEqual(anchor.error, null);
+  assert.match(anchor.stderr, /scratch\.yml:3: runs-on must be ubuntu-latest/);
+  const commented = run("jobs:\n  build: &base_job # shared\n    runs-on: self-hosted\n");
+  assert.notEqual(commented.error, null);
+  assert.match(commented.stderr, /scratch\.yml:3: runs-on must be ubuntu-latest/);
+  const allowed = run("jobs:\n  build: &base_job\n    runs-on: ubuntu-latest\n");
+  assert.equal(allowed.error, null, allowed.stderr);
+});
+
+test("a job header that cannot be parsed fails", () => {
+  const result = run("jobs:\n  build: { runs-on: self-hosted }\n");
+  assert.notEqual(result.error, null);
+  assert.match(result.stderr, /scratch\.yml: line 2: cannot parse job header/);
+});
+
 test("a matrix that includes a self-hosted runner is rejected", () => {
   const result = run(
     [
