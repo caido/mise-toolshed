@@ -185,6 +185,42 @@ jobs:
           Assert-Version "check-exact-versions" "1.0.0"
           Assert-Version "check-minimum-release-age" "1.0.1"
           Assert-Version "check-lockfiles" "1.0.1"
+          Write-Output "fresh bin: check-exact-versions 1.0.0"
+
+      - name: Reinstall when bin already exists
+        shell: pwsh
+        run: |
+          $raw = @(mise where "toolshed:check-exact-versions@1.0.0")
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $where = @($raw | Out-String -Stream | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" } | Select-Object -Last 1)
+          $bin = Join-Path $where "bin"
+          $tool = Join-Path $bin "check-exact-versions"
+          Set-Content -Path $tool -Value "stale" -NoNewline
+          $keep = Join-Path $bin ".keep"
+          Set-Content -Path $keep -Value "keep" -NoNewline
+          # mise deletes install_path before the plugin runs. Holding .keep open
+          # makes that delete fail, so the copy runs against a bin that already exists.
+          $stream = [System.IO.File]::Open(
+            $keep,
+            [System.IO.FileMode]::Open,
+            [System.IO.FileAccess]::Read,
+            [System.IO.FileShare]::Read
+          )
+          try {
+            mise install --force "toolshed:check-exact-versions@1.0.0"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          } finally {
+            $stream.Dispose()
+          }
+          if (-not (Test-Path -LiteralPath $keep)) {
+            Write-Error "bin was recreated, so this did not install into an existing directory"
+            exit 1
+          }
+          $got = @(mise exec node "toolshed:check-exact-versions@1.0.0" -- check-exact-versions --version)
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $text = ($got | Out-String).Trim()
+          if ($text -ne "1.0.0") { Write-Error "existing bin install printed [$text]"; exit 1 }
+          Write-Output "existing bin: check-exact-versions $text"
 
   pins:
     name: Pins

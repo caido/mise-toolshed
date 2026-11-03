@@ -240,18 +240,10 @@ curl -fsSL --output "$TOOLSHED_SUMS" "$TOOLSHED_SUMS_URL"
 	local bin_dir = file.join_path(install_path, "bin")
 	local dest = file.join_path(bin_dir, tool)
 	if RUNTIME.osType == "windows" then
+		-- `if` owns a following `&&`, so mkdir and copy are separate cmd.exe processes.
 		local cmd = require("cmd")
-		cmd.exec(
-			"if not exist "
-				.. quote_cmd(bin_dir)
-				.. " mkdir "
-				.. quote_cmd(bin_dir)
-				.. " && copy /Y "
-				.. quote_cmd(asset_path)
-				.. " "
-				.. quote_cmd(dest)
-				.. " >NUL"
-		)
+		cmd.exec("if not exist " .. quote_cmd(bin_dir) .. " mkdir " .. quote_cmd(bin_dir))
+		cmd.exec("copy /Y " .. quote_cmd(asset_path) .. " " .. quote_cmd(dest) .. " >NUL")
 	else
 		shell.exec(
 			[[
