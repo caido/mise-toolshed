@@ -98,18 +98,6 @@ function M.list_versions(tool)
 	return version_order.sort_versions(versions)
 end
 
-local function trim_trailing_newline(text)
-	local end_at = #text
-	while end_at > 0 do
-		local ch = string.sub(text, end_at, end_at)
-		if ch ~= "\n" and ch ~= "\r" then
-			break
-		end
-		end_at = end_at - 1
-	end
-	return string.sub(text, 1, end_at)
-end
-
 local function hash_of(path)
 	local out = shell.exec(
 		[[
@@ -142,6 +130,21 @@ local function expected_hash(text, filename)
 	return nil
 end
 
+-- Windows cannot run an extensionless script. mise resolves PATHEXT and launches the .cmd.
+local function write_windows_cmd(bin_dir, tool)
+	if RUNTIME.osType ~= "windows" then
+		return
+	end
+	local file = require("file")
+	local shim = file.join_path(bin_dir, tool .. ".cmd")
+	local handle, open_err = io.open(shim, "wb")
+	if not handle then
+		error("failed to write " .. shim .. ": " .. tostring(open_err))
+	end
+	handle:write('@echo off\r\nnode "%~dp0' .. tool .. '" %*\r\nexit /b %ERRORLEVEL%\r\n')
+	handle:close()
+end
+
 function M.install(ctx)
 	local tool = ctx.tool
 	if M.is_known(tool) and not M.is_released(tool) then
@@ -163,7 +166,7 @@ function M.install(ctx)
 	local file = require("file")
 	local download = ctx.download_path
 	if download == nil or download == "" then
-		download = trim_trailing_newline(shell.exec("mktemp -d"))
+		download = shell.temp_dir()
 	end
 	local asset_path = file.join_path(download, filename)
 	local sums_path = file.join_path(download, "SHA256SUMS")
@@ -210,6 +213,7 @@ mv -f "$TOOLSHED_ASSET" "$TOOLSHED_DEST"
 	if RUNTIME.osType ~= "windows" then
 		shell.exec('chmod 755 "$TOOLSHED_DEST"', { TOOLSHED_DEST = dest })
 	end
+	write_windows_cmd(bin_dir, tool)
 end
 
 return M

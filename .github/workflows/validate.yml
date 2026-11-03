@@ -122,6 +122,70 @@ jobs:
       - name: Check get-skills on PATH
         run: mise exec toolshed:get-skills@latest -- sh -c 'command -v get-skills'
 
+  windows-tools:
+    name: Windows tools
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Install mise
+        uses: caido/action-mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
+        with:
+          version: ${{ vars.CI__MISE_VERSION }}
+          install: false
+
+      - name: Link toolshed plugin
+        shell: pwsh
+        run: mise plugins link --force toolshed .
+
+      - name: List released versions
+        shell: pwsh
+        run: |
+          function Remote-Versions([string]$tool) {
+            $raw = @(mise ls-remote "toolshed:${tool}")
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            return @($raw | Out-String -Stream | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" })
+          }
+          $exact = @(Remote-Versions "check-exact-versions")
+          if ($exact -notcontains "1.0.0") { Write-Error "missing 1.0.0 in [$exact]"; exit 1 }
+          $age = @(Remote-Versions "check-minimum-release-age")
+          if ($age -notcontains "1.0.1") { Write-Error "missing 1.0.1 in [$age]"; exit 1 }
+          $locks = @(Remote-Versions "check-lockfiles")
+          if ($locks -notcontains "1.0.1") { Write-Error "missing 1.0.1 in [$locks]"; exit 1 }
+
+      - name: Install node
+        shell: pwsh
+        run: |
+          mise install node
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Install released tools
+        shell: pwsh
+        run: |
+          mise install toolshed:check-exact-versions@1.0.0
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          mise install toolshed:check-minimum-release-age@1.0.1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          mise install toolshed:check-lockfiles@1.0.1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run released tools
+        shell: pwsh
+        run: |
+          function Assert-Version([string]$tool, [string]$version) {
+            $got = @(mise exec node "toolshed:${tool}@${version}" -- $tool --version)
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            $text = ($got | Out-String).Trim()
+            if ($text -ne $version) { Write-Error "${tool} printed [$text]"; exit 1 }
+            Write-Output "${tool} ${text}"
+          }
+          Assert-Version "check-exact-versions" "1.0.0"
+          Assert-Version "check-minimum-release-age" "1.0.1"
+          Assert-Version "check-lockfiles" "1.0.1"
+
   pins:
     name: Pins
     runs-on: ubuntu-latest

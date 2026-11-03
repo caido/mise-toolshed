@@ -29,7 +29,7 @@ function run(text) {
 test("a space before the runs-on colon still rejects a foreign runner", () => {
   const result = run("jobs:\n  job:\n    runs-on : self-hosted\n");
   assert.notEqual(result.error, null);
-  assert.match(result.stderr, /scratch\.yml:3: runs-on must be ubuntu-latest/);
+  assert.match(result.stderr, /scratch\.yml:3: runs-on must be ubuntu-latest or windows-latest/);
 });
 
 test("a space before the runs-on colon accepts ubuntu-latest", () => {
@@ -37,4 +37,10 @@ test("a space before the runs-on colon accepts ubuntu-latest", () => {
   assert.equal(quoted.error, null);
   const plain = run("jobs:\n  job:\n    runs-on: ubuntu-latest\n");
   assert.equal(plain.error, null);
+});
+
+test("windows-latest is a GitHub-hosted runner", () => {
+  const result = run("jobs:\n  job:\n    runs-on: windows-latest\n");
+  assert.equal(result.error, null);
+  assert.equal(result.stderr, "");
 });

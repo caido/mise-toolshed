@@ -37,18 +37,6 @@ local function tag_from_version(version)
 	return TAG_PREFIX .. version
 end
 
-local function trim_trailing_newline(text)
-	local end_at = #text
-	while end_at > 0 do
-		local ch = string.sub(text, end_at, end_at)
-		if ch ~= "\n" and ch ~= "\r" then
-			break
-		end
-		end_at = end_at - 1
-	end
-	return string.sub(text, 1, end_at)
-end
-
 function M.list_versions()
 	local out = shell.exec('git ls-remote --tags --refs "$TOOLSHED_REMOTE"', {
 		TOOLSHED_REMOTE = remote_url(),
@@ -101,7 +89,7 @@ local function install_tag(ctx, tag)
 	local file = require("file")
 	local download = ctx.download_path
 	if download == nil or download == "" then
-		download = trim_trailing_newline(shell.exec("mktemp -d"))
+		download = shell.temp_dir()
 	end
 	local fetch_dir = file.join_path(download, "repo")
 	local bin_dir = file.join_path(ctx.install_path, "bin")

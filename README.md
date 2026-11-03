@@ -21,7 +21,7 @@ toolshed = "https://github.com/caido/mise-toolshed#<40-hex sha>"
 "toolshed:check-minimum-release-age" = "1.0.0"
 ```
 
-`mise ls-remote toolshed:<tool>` lists bare versions from `<tool>-v*` tags, oldest first. It does not list `latest`. `mise install` downloads `<tool>.mjs` and `SHA256SUMS` from `https://github.com/caido/mise-toolshed/releases/download/<tool>-v<version>/`, checks the digest, and installs the file as `<tool>` on `PATH`.
+`mise ls-remote toolshed:<tool>` lists bare versions from `<tool>-v*` tags, oldest first. It does not list `latest`. `mise install` downloads `<tool>.mjs` and `SHA256SUMS` from `https://github.com/caido/mise-toolshed/releases/download/<tool>-v<version>/`, checks the digest, and installs the file as `<tool>` on `PATH`. On Windows it also writes `<tool>.cmd` beside that file. The `.cmd` runs the file with `node`.
 
 `check-pins` is not installed anymore. `mise ls-remote toolshed:check-pins` still lists the published tag, and `mise exec` still runs a copy that is already on disk. `mise install` refuses it.
 
@@ -147,6 +147,8 @@ These commands match the CI jobs. Each one installs dependencies from the lockfi
 - `mise run test` builds, then runs the tests.
 - `mise run format` reports files that are not formatted and does not change them.
 - `mise run format-fix` writes the formatted files.
+
+The Windows tools job lists, installs, and runs `check-exact-versions@1.0.0`, `check-minimum-release-age@1.0.1`, and `check-lockfiles@1.0.1` through this plugin.
 
 `mise run format` is the CI job. `mise run format-fix` is the local command that writes.
 

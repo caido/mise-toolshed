@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, realpathSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-const requiredRunsOn = "ubuntu-latest";
+const allowedRunsOn = ["ubuntu-latest", "windows-latest"];
 
 function scalarValue(raw) {
   const comment = raw.indexOf(" #");
@@ -25,15 +25,15 @@ export function checkWorkflows(workflows, io) {
       const match = /^(\s*)runs-on\s*:\s*(.*)$/.exec(lines[index]);
       if (match === null) continue;
       const value = scalarValue(match[2]);
-      if (value === requiredRunsOn) continue;
-      failures.push(`${workflow.path}:${index + 1}: runs-on must be ${requiredRunsOn}`);
+      if (allowedRunsOn.includes(value)) continue;
+      failures.push(`${workflow.path}:${index + 1}: runs-on must be ${allowedRunsOn.join(" or ")}`);
     }
   }
   if (failures.length > 0) {
     for (const failure of failures) io.stderr.write(`${failure}\n`);
     throw new Error(failures.join("\n"));
   }
-  io.stdout.write(`${requiredRunsOn}\n`);
+  io.stdout.write(`${allowedRunsOn.join("\n")}\n`);
 }
 
 export function workflowSources(root) {
