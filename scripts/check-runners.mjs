@@ -70,29 +70,80 @@ function jobBodies(text) {
   return bodies;
 }
 
+function leadingIndent(line) {
+  const match = /^( *)\S/.exec(line);
+  return match === null ? null : match[1].length;
+}
+
+function mappingKey(line) {
+  const match = /^(\s*)([A-Za-z_][A-Za-z0-9_-]*):\s*(.*)$/.exec(line);
+  if (match === null) return null;
+  return { indent: match[1].length, name: match[2], rest: match[3] };
+}
+
+function listValues(lines, index, keyIndent) {
+  const bracket = /^\s*[A-Za-z_][A-Za-z0-9_-]*:\s*\[(.*)\]\s*(?:#.*)?$/.exec(lines[index]);
+  if (bracket !== null) {
+    return bracket[1]
+      .split(",")
+      .map((item) => scalarValue(item))
+      .filter((item) => item !== "");
+  }
+  const values = [];
+  for (let next = index + 1; next < lines.length; next += 1) {
+    const line = lines[next];
+    if (line.trim() === "" || line.trim().startsWith("#")) continue;
+    const item = /^(\s*)-\s*(.*)$/.exec(line);
+    if (item === null || item[1].length <= keyIndent) break;
+    const value = scalarValue(item[2]);
+    if (value !== "") values.push(value);
+  }
+  return values;
+}
+
 function matrixValues(jobText, key) {
   const lines = jobText.split("\n");
+  let strategyIndent = null;
+  let strategyAt = -1;
   for (let index = 0; index < lines.length; index += 1) {
-    const bracket = new RegExp(`^\\s*${key}\\s*:\\s*\\[(.*)\\]\\s*$`).exec(lines[index]);
-    if (bracket !== null) {
-      return bracket[1]
-        .split(",")
-        .map((item) => scalarValue(item))
-        .filter((item) => item !== "");
+    const line = lines[index];
+    if (line.trim() === "" || line.trim().startsWith("#")) continue;
+    const parsed = mappingKey(line);
+    if (parsed !== null && parsed.name === "strategy") {
+      strategyIndent = parsed.indent;
+      strategyAt = index;
+      break;
     }
-    const head = new RegExp(`^(\\s*)${key}\\s*:\\s*$`).exec(lines[index]);
-    if (head === null) continue;
-    const indent = head[1].length;
-    const values = [];
-    for (let next = index + 1; next < lines.length; next += 1) {
-      const item = /^(\s*)-\s*(.*)$/.exec(lines[next]);
-      if (item === null || item[1].length <= indent) break;
-      const value = scalarValue(item[2]);
-      if (value !== "") values.push(value);
-    }
-    return values;
   }
-  return null;
+  if (strategyIndent === null) return null;
+  let matrixIndent = null;
+  let matrixAt = -1;
+  for (let index = strategyAt + 1; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (line.trim() === "" || line.trim().startsWith("#")) continue;
+    const indent = leadingIndent(line);
+    if (indent === null || indent <= strategyIndent) break;
+    const parsed = mappingKey(line);
+    if (parsed !== null && parsed.name === "matrix") {
+      matrixIndent = parsed.indent;
+      matrixAt = index;
+      break;
+    }
+  }
+  if (matrixIndent === null) return null;
+  let values = null;
+  for (let index = matrixAt + 1; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (line.trim() === "" || line.trim().startsWith("#")) continue;
+    const indent = leadingIndent(line);
+    if (indent === null || indent <= matrixIndent) break;
+    const parsed = mappingKey(line);
+    if (parsed === null || parsed.indent !== matrixIndent + 2) continue;
+    if (parsed.name === "include" || parsed.name === "exclude") return false;
+    if (parsed.name !== key) continue;
+    values = listValues(lines, index, parsed.indent);
+  }
+  return values;
 }
 
 function runsOnAllowed(value, jobText) {
@@ -101,7 +152,10 @@ function runsOnAllowed(value, jobText) {
   if (matrixKey === null) return false;
   const values = matrixValues(jobText, matrixKey[1]);
   return (
-    values !== null && values.length > 0 && values.every((item) => allowedRunsOn.includes(item))
+    values !== null &&
+    values !== false &&
+    values.length > 0 &&
+    values.every((item) => allowedRunsOn.includes(item))
   );
 }
 

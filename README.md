@@ -21,7 +21,7 @@ toolshed = "https://github.com/caido/mise-toolshed#<40-hex sha>"
 "toolshed:check-minimum-release-age" = "1.0.0"
 ```
 
-`mise ls-remote toolshed:<tool>` lists bare versions from `<tool>-v*` tags, oldest first. It does not list `latest`. `mise install` downloads `<tool>.mjs` and `SHA256SUMS` from `https://github.com/caido/mise-toolshed/releases/download/<tool>-v<version>/`, checks the digest, and installs the file as `<tool>` on `PATH`. On Windows it also writes `<tool>.cmd` beside that file. The `.cmd` runs the file with `node`.
+`mise ls-remote toolshed:<tool>` lists bare versions from `<tool>-v*` tags, oldest first. It does not list `latest`. Listing versions runs `git ls-remote`. On Windows that needs Git for Windows, because the plugin runs git through Git Bash. `mise install` downloads `<tool>.mjs` and `SHA256SUMS` from `https://github.com/caido/mise-toolshed/releases/download/<tool>-v<version>/`, checks the digest, and installs the file as `<tool>` on `PATH`. On Windows it also writes `<tool>.cmd` beside that file. The `.cmd` runs the file with `node`.
 
 `check-pins` is not installed anymore. `mise ls-remote toolshed:check-pins` still lists the published tag, and `mise exec` still runs a copy that is already on disk. `mise install` refuses it.
 
@@ -148,7 +148,7 @@ These commands match the CI jobs. Each one installs dependencies from the lockfi
 - `mise run format` reports files that are not formatted and does not change them.
 - `mise run format-fix` writes the formatted files.
 
-The Released tools job installs `test/fixtures/released-tools` and runs each released tool on `windows-latest`, `macos-latest`, and `ubuntu-latest`. The Windows job also installs into a `bin` directory that already exists. A released tool missing from that fixture fails the job.
+The Test plugin job runs one mise scenario per file in `test/plugin` on `windows-latest`, `macos-latest`, and `ubuntu-latest`: list versions, fresh install, `@latest`, `--force` reinstall, upgrade, uninstall, a checksum mismatch, and a missing release. `test/released-fixture.test.mjs` fails when a released tool is missing from `test/fixtures/released-tools` or that fixture is derived from the released list.
 
 `mise run format` is the CI job. `mise run format-fix` is the local command that writes.
 
@@ -167,8 +167,8 @@ Plugin files are at the repository root. Workspace packages are under `packages/
 - `scripts/build-package.mjs` bundles a package.
 - `test/get-skills-remote.sh` covers get-skills tag listing.
 - `test/get-skills-sync.sh` covers the personal-folder install.
-- `test/fixtures/released-tools` is the mise config CI installs on Windows, macOS, and Linux.
+- `test/fixtures/released-tools` pins every released tool. `test/released-fixture.test.mjs` fails when one is missing or the fixture is derived from the released list.
+- `test/plugin` has one mise scenario per file. The Test plugin job runs each file on Windows, macOS, and Linux.
 - `test/release-plan.test.ts` and `test/released-tool.test.ts` cover release planning and checksummed installs.
-- `test/released-fixture.test.mjs` fails when a released tool is missing from that fixture.
 - `test/stage-release.test.ts` drives `scripts/stage-release.sh`, and `.cursor/skills/verify-toolshed/SKILL.md` drives check-pins, get-skills, and that script.
 - `test/bump-version.test.ts` drives the version bump, the branch push, and the workflow tool list.

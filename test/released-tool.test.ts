@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { repoRoot, run, type RunResult } from "./run.ts";
+import { startMirror } from "./support/release-mirror.mjs";
 
 function stripTrailingNewlines(value: string): string {
   let end = value.length;
@@ -144,6 +145,8 @@ await test("mise installs check-exact-versions only when SHA256SUMS matches", as
     "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef  other.txt\n",
   );
 
+  const mirror = await startMirror(releases);
+  t.after(() => mirror.close());
   const home = path.join(work, "home");
   const project = path.join(home, "project");
   await mkdir(path.join(home, "data"), { recursive: true });
@@ -161,7 +164,7 @@ await test("mise installs check-exact-versions only when SHA256SUMS matches", as
     MISE_SYSTEM_CONFIG_FILE: path.join(home, "config/system.toml"),
     MISE_YES: "1",
     TOOLSHED_RELEASE_REMOTE: `file://${origin}`,
-    TOOLSHED_RELEASE_BASE_URL: `file://${releases}`,
+    TOOLSHED_RELEASE_BASE_URL: mirror.url,
   };
   await writeFile(miseEnv.MISE_GLOBAL_CONFIG_FILE ?? "", "");
   await writeFile(miseEnv.MISE_SYSTEM_CONFIG_FILE ?? "", "");

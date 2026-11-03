@@ -98,45 +98,87 @@ function M.list_versions(tool)
 	return version_order.sort_versions(versions)
 end
 
-local function quote_cmd(value)
-	if string.find(value, '"', 1, true) ~= nil then
-		error("path contains a quote: " .. value)
+local function quote_arg(value)
+	if string.find(value, '"', 1, true) or string.find(value, "\n", 1, true) or string.find(value, "\r", 1, true) then
+		error("path contains a quote or newline")
 	end
 	return '"' .. value .. '"'
 end
 
-local function hash_windows(path)
-	local cmd = require("cmd")
-	local out = cmd.exec("certutil -hashfile " .. quote_cmd(path) .. " SHA256") or ""
-	out = string.gsub(out, "\r", "")
-	for line in string.gmatch(out, "[^\n]+") do
-		local compact = string.lower(string.gsub(line, "%s+", ""))
-		if #compact == 64 and string.match(compact, "^%x+$") ~= nil then
-			return compact
+local function take_hash(found, candidate)
+	if #candidate ~= 64 or string.match(candidate, "^%x+$") == nil then
+		error("could not parse SHA-256")
+	end
+	if found ~= nil and found ~= candidate then
+		error("could not parse SHA-256")
+	end
+	return candidate
+end
+
+local function parse_sha256(text)
+	if type(text) ~= "string" or text == "" then
+		error("could not parse SHA-256")
+	end
+	local found = nil
+	for line in string.gmatch(string.gsub(text, "\r", "") .. "\n", "(.-)\n") do
+		if string.match(line, "%S") ~= nil then
+			local compact = string.lower(string.gsub(line, "%s+", ""))
+			if #compact == 64 and string.match(compact, "^%x+$") ~= nil then
+				found = take_hash(found, compact)
+			else
+				local runs = 0
+				local run = nil
+				for token in string.gmatch(string.lower(line), "%x+") do
+					if #token > 64 then
+						error("could not parse SHA-256")
+					end
+					if #token == 64 then
+						runs = runs + 1
+						run = token
+					end
+				end
+				if runs > 1 then
+					error("could not parse SHA-256")
+				end
+				if runs == 1 then
+					local lead = "^%s*" .. run .. "%s+%*?%S+%s*$"
+					local alone = "^%s*" .. run .. "%s*$"
+					if
+						string.match(string.lower(line), lead) == nil
+						and string.match(string.lower(line), alone) == nil
+					then
+						error("could not parse SHA-256")
+					end
+					found = take_hash(found, run)
+				elseif
+					string.match(
+						compact,
+						"%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x"
+					) ~= nil
+				then
+					error("could not parse SHA-256")
+				end
+			end
 		end
 	end
-	error("could not hash " .. path)
+	if found == nil then
+		error("could not parse SHA-256")
+	end
+	return found
 end
 
 local function hash_of(path)
+	local cmd = require("cmd")
+	local quoted = quote_arg(path)
+	local command
 	if RUNTIME.osType == "windows" then
-		return hash_windows(path)
+		command = "certutil -hashfile " .. quoted .. " SHA256"
+	elseif RUNTIME.osType == "macos" then
+		command = "shasum -a 256 " .. quoted
+	else
+		command = "sha256sum " .. quoted
 	end
-	local out = shell.exec(
-		[[
-if command -v sha256sum >/dev/null 2>&1; then
-  sha256sum "$TOOLSHED_FILE"
-else
-  shasum -a 256 "$TOOLSHED_FILE"
-fi
-]],
-		{ TOOLSHED_FILE = path }
-	) or ""
-	local hash = string.match(out, "^(%x+)")
-	if hash == nil then
-		error("could not hash " .. path)
-	end
-	return string.lower(hash)
+	return parse_sha256(cmd.exec(command) or "")
 end
 
 local function expected_hash(text, filename)
@@ -147,6 +189,9 @@ local function expected_hash(text, filename)
 			hash = string.lower(hash)
 		end
 		if name == filename then
+			if hash == nil or #hash ~= 64 then
+				error("could not parse SHA-256")
+			end
 			return hash
 		end
 	end
@@ -187,78 +232,72 @@ function M.install(ctx)
 	local tag = tool .. "-v" .. version
 	local filename = tool .. ".mjs"
 	local file = require("file")
+	local http = require("http")
 	local download = ctx.download_path
 	if download == nil or download == "" then
-		download = shell.temp_dir()
+		local temp = os.getenv("TMPDIR")
+		if temp == nil or temp == "" then
+			temp = os.getenv("TEMP")
+		end
+		if temp == nil or temp == "" then
+			temp = os.getenv("TMP")
+		end
+		if temp == nil or temp == "" then
+			error("no download directory")
+		end
+		download = file.join_path(temp, "toolshed-" .. tool .. "-" .. version)
 	end
 	local asset_path = file.join_path(download, filename)
 	local sums_path = file.join_path(download, "SHA256SUMS")
 	local base = base_url()
 	local asset_url = base .. "/" .. tag .. "/" .. filename
 	local sums_url = base .. "/" .. tag .. "/SHA256SUMS"
-	if RUNTIME.osType == "windows" then
-		-- Git Bash curl returns exit 23 when it writes these paths. Windows curl.exe does not.
-		local cmd = require("cmd")
-		cmd.exec(
-			"curl.exe -fsSL --output "
-				.. quote_cmd(asset_path)
-				.. " "
-				.. quote_cmd(asset_url)
-				.. " && curl.exe -fsSL --output "
-				.. quote_cmd(sums_path)
-				.. " "
-				.. quote_cmd(sums_url)
-		)
-	else
-		shell.exec(
-			[[
-curl -fsSL --output "$TOOLSHED_ASSET" "$TOOLSHED_ASSET_URL"
-curl -fsSL --output "$TOOLSHED_SUMS" "$TOOLSHED_SUMS_URL"
-]],
-			{
-				TOOLSHED_ASSET = asset_path,
-				TOOLSHED_SUMS = sums_path,
-				TOOLSHED_ASSET_URL = asset_url,
-				TOOLSHED_SUMS_URL = sums_url,
-			}
-		)
-	end
+	http.download_file({ url = asset_url }, asset_path)
+	http.download_file({ url = sums_url }, sums_path)
 	local sums_file, open_err = io.open(sums_path, "rb")
 	if not sums_file then
+		os.remove(asset_path)
 		error("failed to read SHA256SUMS for tag " .. tag .. ": " .. tostring(open_err))
 	end
 	local sums_text = sums_file:read("*a")
 	sums_file:close()
 	local expected = expected_hash(sums_text, filename)
 	if expected == nil then
+		os.remove(asset_path)
+		os.remove(sums_path)
 		error("SHA256SUMS has no " .. filename .. " line for tag " .. tag)
 	end
 	local actual = hash_of(asset_path)
 	if actual ~= expected then
+		os.remove(asset_path)
+		os.remove(sums_path)
 		error(filename .. " checksum mismatch for tag " .. tag .. ": expected " .. expected .. " actual " .. actual)
 	end
 	local bin_dir = file.join_path(install_path, "bin")
 	local dest = file.join_path(bin_dir, tool)
-	if RUNTIME.osType == "windows" then
-		-- `if` owns a following `&&`, so mkdir and copy are separate cmd.exe processes.
-		local cmd = require("cmd")
-		cmd.exec("if not exist " .. quote_cmd(bin_dir) .. " mkdir " .. quote_cmd(bin_dir))
-		cmd.exec("copy /Y " .. quote_cmd(asset_path) .. " " .. quote_cmd(dest) .. " >NUL")
-	else
-		shell.exec(
-			[[
-mkdir -p "$TOOLSHED_BIN_DIR"
-mv -f "$TOOLSHED_ASSET" "$TOOLSHED_DEST"
-]],
-			{
-				TOOLSHED_BIN_DIR = bin_dir,
-				TOOLSHED_ASSET = asset_path,
-				TOOLSHED_DEST = dest,
-			}
-		)
+	if file.exists(dest) then
+		os.remove(dest)
 	end
+	local moved, move_err = pcall(file.move, asset_path, dest)
+	if not moved then
+		local input, in_err = io.open(asset_path, "rb")
+		if not input then
+			error("failed to place " .. dest .. ": " .. tostring(move_err) .. " / " .. tostring(in_err))
+		end
+		local body = input:read("*a")
+		input:close()
+		local output, out_err = io.open(dest, "wb")
+		if not output then
+			error("failed to place " .. dest .. ": " .. tostring(move_err) .. " / " .. tostring(out_err))
+		end
+		output:write(body)
+		output:close()
+		os.remove(asset_path)
+	end
+	os.remove(sums_path)
 	if RUNTIME.osType ~= "windows" then
-		shell.exec('chmod 755 "$TOOLSHED_DEST"', { TOOLSHED_DEST = dest })
+		local cmd = require("cmd")
+		cmd.exec("chmod 755 " .. quote_arg(dest))
 	end
 	write_windows_cmd(bin_dir, tool)
 end

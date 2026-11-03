@@ -127,6 +127,70 @@ test("a job header that cannot be parsed fails", () => {
   assert.match(result.stderr, /scratch\.yml: line 2: cannot parse job header/);
 });
 
+test("an os key under env does not select the runner", () => {
+  const hidden = run(
+    [
+      "jobs:",
+      "  job:",
+      "    runs-on: ${{ matrix.os }}",
+      "    env:",
+      "      os: ubuntu-latest",
+      "    strategy:",
+      "      matrix:",
+      "        os: [self-hosted]",
+    ].join("\n"),
+  );
+  assert.notEqual(hidden.error, null);
+  assert.match(hidden.stderr, /runs-on must be ubuntu-latest or macos-latest or windows-latest/);
+  const ignored = run(
+    [
+      "jobs:",
+      "  job:",
+      "    runs-on: ${{ matrix.os }}",
+      "    env:",
+      "      os: self-hosted",
+      "    strategy:",
+      "      matrix:",
+      "        os: [ubuntu-latest]",
+    ].join("\n"),
+  );
+  assert.equal(ignored.error, null, ignored.stderr);
+});
+
+test("a matrix include is rejected", () => {
+  const result = run(
+    [
+      "jobs:",
+      "  job:",
+      "    runs-on: ${{ matrix.os }}",
+      "    strategy:",
+      "      matrix:",
+      "        os: [ubuntu-latest]",
+      "        include:",
+      "          - os: self-hosted",
+    ].join("\n"),
+  );
+  assert.notEqual(result.error, null);
+  assert.match(result.stderr, /runs-on must be ubuntu-latest or macos-latest or windows-latest/);
+});
+
+test("a matrix exclude is rejected", () => {
+  const result = run(
+    [
+      "jobs:",
+      "  job:",
+      "    runs-on: ${{ matrix.os }}",
+      "    strategy:",
+      "      matrix:",
+      "        os: [ubuntu-latest, macos-latest]",
+      "        exclude:",
+      "          - os: macos-latest",
+    ].join("\n"),
+  );
+  assert.notEqual(result.error, null);
+  assert.match(result.stderr, /runs-on must be ubuntu-latest or macos-latest or windows-latest/);
+});
+
 test("a matrix that includes a self-hosted runner is rejected", () => {
   const result = run(
     [

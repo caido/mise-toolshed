@@ -122,8 +122,8 @@ jobs:
       - name: Check get-skills on PATH
         run: mise exec toolshed:get-skills@latest -- sh -c 'command -v get-skills'
 
-  released-tools:
-    name: Released tools (${{ matrix.os }})
+  test-plugin:
+    name: Test plugin (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -141,30 +141,29 @@ jobs:
           version: ${{ vars.CI__MISE_VERSION }}
           install: false
 
-      - name: Link toolshed plugin
-        run: mise plugins link --force toolshed .
+      - name: List versions
+        run: node test/plugin/ls-remote.mjs
 
-      - name: Require every released tool in the fixture
-        run: node scripts/released-fixture.mjs
+      - name: Fresh install
+        run: node test/plugin/fresh-install.mjs
 
-      - name: Install the fixture
-        working-directory: test/fixtures/released-tools
-        env:
-          MISE_CEILING_PATHS: ${{ github.workspace }}
-        run: mise install
+      - name: Latest
+        run: node test/plugin/latest.mjs
 
-      - name: Run the fixture
-        env:
-          MISE_CEILING_PATHS: ${{ github.workspace }}
-        run: node scripts/released-fixture.mjs --run
+      - name: Reinstall
+        run: node test/plugin/reinstall.mjs
 
-      - name: Install lua
-        if: runner.os == 'Windows'
-        run: mise install lua@5.4.7
+      - name: Upgrade
+        run: node test/plugin/upgrade.mjs
 
-      - name: Reinstall when bin already exists
-        if: runner.os == 'Windows'
-        run: mise exec lua@5.4.7 node -- lua scripts/windows-existing-bin.lua .
+      - name: Uninstall
+        run: node test/plugin/uninstall.mjs
+
+      - name: Checksum mismatch
+        run: node test/plugin/checksum-mismatch.mjs
+
+      - name: Missing release
+        run: node test/plugin/missing-release.mjs
 
   pins:
     name: Pins
