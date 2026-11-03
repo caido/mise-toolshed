@@ -98,7 +98,30 @@ function M.list_versions(tool)
 	return version_order.sort_versions(versions)
 end
 
+local function quote_cmd(value)
+	if string.find(value, '"', 1, true) ~= nil then
+		error("path contains a quote: " .. value)
+	end
+	return '"' .. value .. '"'
+end
+
+local function hash_windows(path)
+	local cmd = require("cmd")
+	local out = cmd.exec("certutil -hashfile " .. quote_cmd(path) .. " SHA256") or ""
+	out = string.gsub(out, "\r", "")
+	for line in string.gmatch(out, "[^\n]+") do
+		local compact = string.lower(string.gsub(line, "%s+", ""))
+		if #compact == 64 and string.match(compact, "^%x+$") ~= nil then
+			return compact
+		end
+	end
+	error("could not hash " .. path)
+end
+
 local function hash_of(path)
+	if RUNTIME.osType == "windows" then
+		return hash_windows(path)
+	end
 	local out = shell.exec(
 		[[
 if command -v sha256sum >/dev/null 2>&1; then
@@ -171,18 +194,35 @@ function M.install(ctx)
 	local asset_path = file.join_path(download, filename)
 	local sums_path = file.join_path(download, "SHA256SUMS")
 	local base = base_url()
-	shell.exec(
-		[[
+	local asset_url = base .. "/" .. tag .. "/" .. filename
+	local sums_url = base .. "/" .. tag .. "/SHA256SUMS"
+	if RUNTIME.osType == "windows" then
+		-- Git Bash curl returns exit 23 when it writes these paths. Windows curl.exe does not.
+		local cmd = require("cmd")
+		cmd.exec(
+			"curl.exe -fsSL --output "
+				.. quote_cmd(asset_path)
+				.. " "
+				.. quote_cmd(asset_url)
+				.. " && curl.exe -fsSL --output "
+				.. quote_cmd(sums_path)
+				.. " "
+				.. quote_cmd(sums_url)
+		)
+	else
+		shell.exec(
+			[[
 curl -fsSL --output "$TOOLSHED_ASSET" "$TOOLSHED_ASSET_URL"
 curl -fsSL --output "$TOOLSHED_SUMS" "$TOOLSHED_SUMS_URL"
 ]],
-		{
-			TOOLSHED_ASSET = asset_path,
-			TOOLSHED_SUMS = sums_path,
-			TOOLSHED_ASSET_URL = base .. "/" .. tag .. "/" .. filename,
-			TOOLSHED_SUMS_URL = base .. "/" .. tag .. "/SHA256SUMS",
-		}
-	)
+			{
+				TOOLSHED_ASSET = asset_path,
+				TOOLSHED_SUMS = sums_path,
+				TOOLSHED_ASSET_URL = asset_url,
+				TOOLSHED_SUMS_URL = sums_url,
+			}
+		)
+	end
 	local sums_file, open_err = io.open(sums_path, "rb")
 	if not sums_file then
 		error("failed to read SHA256SUMS for tag " .. tag .. ": " .. tostring(open_err))
@@ -199,17 +239,32 @@ curl -fsSL --output "$TOOLSHED_SUMS" "$TOOLSHED_SUMS_URL"
 	end
 	local bin_dir = file.join_path(install_path, "bin")
 	local dest = file.join_path(bin_dir, tool)
-	shell.exec(
-		[[
+	if RUNTIME.osType == "windows" then
+		local cmd = require("cmd")
+		cmd.exec(
+			"if not exist "
+				.. quote_cmd(bin_dir)
+				.. " mkdir "
+				.. quote_cmd(bin_dir)
+				.. " && copy /Y "
+				.. quote_cmd(asset_path)
+				.. " "
+				.. quote_cmd(dest)
+				.. " >NUL"
+		)
+	else
+		shell.exec(
+			[[
 mkdir -p "$TOOLSHED_BIN_DIR"
 mv -f "$TOOLSHED_ASSET" "$TOOLSHED_DEST"
 ]],
-		{
-			TOOLSHED_BIN_DIR = bin_dir,
-			TOOLSHED_ASSET = asset_path,
-			TOOLSHED_DEST = dest,
-		}
-	)
+			{
+				TOOLSHED_BIN_DIR = bin_dir,
+				TOOLSHED_ASSET = asset_path,
+				TOOLSHED_DEST = dest,
+			}
+		)
+	end
 	if RUNTIME.osType ~= "windows" then
 		shell.exec('chmod 755 "$TOOLSHED_DEST"', { TOOLSHED_DEST = dest })
 	end
