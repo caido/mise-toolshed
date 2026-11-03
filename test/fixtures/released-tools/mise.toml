@@ -1,0 +1,8 @@
+[tools]
+node = "24.22.0"
+"toolshed:check-exact-versions" = "1.0.0"
+"toolshed:check-lockfiles" = "1.0.1"
+"toolshed:check-minimum-release-age" = "1.0.1"
+
+[settings]
+minimum_release_age = "7d"
