@@ -17,25 +17,36 @@ function scalarValue(raw) {
   return trimmed;
 }
 
+function normalizedLines(text) {
+  return text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+}
+
 function jobBodies(text) {
-  const lines = text.split("\n");
+  const lines = normalizedLines(text);
   let jobsAt = -1;
   for (let index = 0; index < lines.length; index += 1) {
-    if (lines[index] === "jobs:") {
+    if (/^jobs:\s*(?:#.*)?$/.test(lines[index])) {
       jobsAt = index;
       break;
     }
+  }
+  if (jobsAt === -1) {
+    throw new Error("jobs: is missing");
   }
   const bodies = [];
   let current = null;
   for (let index = jobsAt + 1; index < lines.length; index += 1) {
     const line = lines[index];
-    if (/^[^ \t]/.test(line) && line.trim() !== "") break;
-    if (/^  [^ \t].*:\s*$/.test(line)) {
+    if (/^  [^ \t].*:\s*(?:#.*)?$/.test(line)) {
       if (current !== null) bodies.push(current);
       current = [];
       continue;
     }
+    if (line.trim() === "" || line.startsWith("#")) {
+      if (current !== null) current.push({ number: index + 1, text: line });
+      continue;
+    }
+    if (/^[^ \t]/.test(line)) break;
     if (current !== null) current.push({ number: index + 1, text: line });
   }
   if (current !== null) bodies.push(current);
@@ -80,7 +91,15 @@ function runsOnAllowed(value, jobText) {
 export function checkWorkflows(workflows, io) {
   const failures = [];
   for (const workflow of workflows) {
-    for (const body of jobBodies(workflow.text)) {
+    let bodies;
+    try {
+      bodies = jobBodies(workflow.text);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      failures.push(`${workflow.path}: ${message}`);
+      continue;
+    }
+    for (const body of bodies) {
       const jobText = body.map((line) => line.text).join("\n");
       for (const line of body) {
         const match = /^(\s*)runs-on\s*:\s*(.*)$/.exec(line.text);
