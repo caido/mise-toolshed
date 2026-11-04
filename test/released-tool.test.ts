@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { constants } from "node:fs";
-import { access, chmod, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { access, chmod, mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -21,27 +21,13 @@ function sha256(body: string): string {
   return createHash("sha256").update(body).digest("hex");
 }
 
-function gitEnv(work: string): NodeJS.ProcessEnv {
-  return {
-    ...process.env,
-    GIT_CONFIG_GLOBAL: path.join(work, "gitconfig"),
-    GIT_CONFIG_SYSTEM: "/dev/null",
-    GIT_AUTHOR_NAME: "toolshed",
-    GIT_AUTHOR_EMAIL: "toolshed@example.com",
-    GIT_COMMITTER_NAME: "toolshed",
-    GIT_COMMITTER_EMAIL: "toolshed@example.com",
-    GIT_TERMINAL_PROMPT: "0",
-  };
-}
-
 function must(result: RunResult, label: string): string {
   assert.equal(result.status, 0, `${label}\n${result.stderr}${result.stdout}`);
   return result.stdout;
 }
 
-async function writeBundle(dir: string, version: string): Promise<void> {
-  await mkdir(dir, { recursive: true });
-  const body = `#!/usr/bin/env node
+function bundleBody(version: string): string {
+  return `#!/usr/bin/env node
 if (process.argv.length === 3 && process.argv[2] === "--version") {
   process.stdout.write("${version}\\n");
   process.exit(0);
@@ -49,9 +35,15 @@ if (process.argv.length === 3 && process.argv[2] === "--version") {
 process.stderr.write("usage: check-exact-versions --version\\n");
 process.exit(1);
 `;
+}
+
+async function writeBundle(dir: string, version: string): Promise<string> {
+  await mkdir(dir, { recursive: true });
+  const body = bundleBody(version);
   const file = path.join(dir, "check-exact-versions.mjs");
   await writeFile(file, body);
   await chmod(file, 0o755);
+  return body;
 }
 
 async function filesNamed(dir: string, name: string): Promise<string[]> {
@@ -91,59 +83,50 @@ await test("mise installs check-exact-versions only when SHA256SUMS matches", as
   const work = await mkdtemp(path.join(tmpdir(), "released-tool-"));
   t.after(() => rm(work, { recursive: true, force: true }));
 
-  const env = gitEnv(work);
-  await writeFile(env.GIT_CONFIG_GLOBAL ?? "", "");
-  const origin = path.join(work, "origin.git");
-  const wt = path.join(work, "fixture");
-  must(run("git", ["init", "--bare", "-q", "-b", "main", origin], { env }), "git init bare");
-  await mkdir(wt);
-  must(run("git", ["-C", wt, "init", "-q", "-b", "main"], { env }), "git init");
-  await writeFile(path.join(wt, "readme"), "noise\n");
-  must(run("git", ["-C", wt, "add", "readme"], { env }), "git add");
-  must(run("git", ["-C", wt, "commit", "-m", "tags"], { env }), "git commit");
-  for (const tag of [
-    "check-exact-versions-v1.0.0",
-    "check-exact-versions-v1.1.0",
-    "get-skills-v1.0.0",
-    "get-skills-v2.0.0",
-  ]) {
-    must(run("git", ["-C", wt, "tag", tag], { env }), `git tag ${tag}`);
-  }
-  must(run("git", ["-C", wt, "remote", "add", "origin", origin], { env }), "git remote");
-  must(run("git", ["-C", wt, "push", "-q", "origin", "HEAD:refs/heads/main"], { env }), "git push");
-  must(run("git", ["-C", wt, "push", "-q", "origin", "--tags"], { env }), "git push tags");
-
   const releases = path.join(work, "releases");
-  await writeBundle(path.join(releases, "check-exact-versions-v1.0.0"), "1.0.0");
-  await writeBundle(path.join(releases, "check-exact-versions-v1.1.0"), "1.1.0");
-  for (const version of ["1.0.0", "1.1.0"]) {
-    const dir = path.join(releases, `check-exact-versions-v${version}`);
-    const body = await readFile(path.join(dir, "check-exact-versions.mjs"));
-    await writeFile(
-      path.join(dir, "SHA256SUMS"),
-      `${sha256(body.toString("utf8"))}  check-exact-versions.mjs\n`,
-    );
-  }
+  const toolRoot = path.join(releases, "check-exact-versions");
+  const good = await writeBundle(path.join(toolRoot, "1.0.0"), "1.0.0");
+  await writeFile(
+    path.join(toolRoot, "1.0.0", "SHA256SUMS"),
+    `${sha256(good)}  check-exact-versions.mjs\n`,
+  );
+  const newer = await writeBundle(path.join(toolRoot, "1.1.0"), "1.1.0");
+  await writeFile(
+    path.join(toolRoot, "1.1.0", "SHA256SUMS"),
+    `${sha256(newer)}  check-exact-versions.mjs\n`,
+  );
 
-  const tamperDir = path.join(releases, "check-exact-versions-v9.9.9");
-  await writeBundle(tamperDir, "9.9.9");
-  const tamperFile = path.join(tamperDir, "check-exact-versions.mjs");
-  const beforeTamper = await readFile(tamperFile, "utf8");
+  const tamperDir = path.join(toolRoot, "9.9.9");
+  const beforeTamper = await writeBundle(tamperDir, "9.9.9");
   const expectedHash = sha256(beforeTamper);
   await writeFile(
     path.join(tamperDir, "SHA256SUMS"),
     `${expectedHash}  check-exact-versions.mjs\n`,
   );
   const tampered = `${beforeTamper}\n/* tampered */\n`;
-  await writeFile(tamperFile, tampered);
+  await writeFile(path.join(tamperDir, "check-exact-versions.mjs"), tampered);
   const actualHash = sha256(tampered);
 
-  const missingDir = path.join(releases, "check-exact-versions-v9.8.0");
+  const missingDir = path.join(toolRoot, "9.8.0");
   await writeBundle(missingDir, "9.8.0");
   await writeFile(
     path.join(missingDir, "SHA256SUMS"),
     "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef  other.txt\n",
   );
+
+  const duplicateDir = path.join(toolRoot, "9.7.0");
+  const duplicateBody = await writeBundle(duplicateDir, "9.7.0");
+  const duplicateHash = sha256(duplicateBody);
+  await writeFile(
+    path.join(duplicateDir, "SHA256SUMS"),
+    `${duplicateHash}  check-exact-versions.mjs\n${duplicateHash}  check-exact-versions.mjs\n`,
+  );
+
+  const versions = ["1.0.0", "1.1.0", "9.8.0", "9.7.0", "9.9.9"].map((version, index) => ({
+    version,
+    created_at: `2024-0${index + 1}-01T00:00:00Z`,
+  }));
+  await writeFile(path.join(toolRoot, "index.json"), `${JSON.stringify({ versions }, null, 2)}\n`);
 
   const mirror = await startMirror(releases);
   t.after(() => mirror.close());
@@ -155,7 +138,7 @@ await test("mise installs check-exact-versions only when SHA256SUMS matches", as
   await mkdir(path.join(home, "state"), { recursive: true });
   await mkdir(project, { recursive: true });
   const miseEnv: NodeJS.ProcessEnv = {
-    ...env,
+    ...process.env,
     MISE_DATA_DIR: path.join(home, "data"),
     MISE_CACHE_DIR: path.join(home, "cache"),
     MISE_CONFIG_DIR: path.join(home, "config"),
@@ -163,11 +146,13 @@ await test("mise installs check-exact-versions only when SHA256SUMS matches", as
     MISE_GLOBAL_CONFIG_FILE: path.join(home, "config/config.toml"),
     MISE_SYSTEM_CONFIG_FILE: path.join(home, "config/system.toml"),
     MISE_YES: "1",
-    TOOLSHED_RELEASE_REMOTE: `file://${origin}`,
-    TOOLSHED_RELEASE_BASE_URL: mirror.url,
   };
   await writeFile(miseEnv.MISE_GLOBAL_CONFIG_FILE ?? "", "");
   await writeFile(miseEnv.MISE_SYSTEM_CONFIG_FILE ?? "", "");
+  await writeFile(
+    path.join(project, "mise.toml"),
+    `[tools]\n"toolshed:check-exact-versions" = { version = "1.0.0", mirror = "${mirror.url}" }\n`,
+  );
   must(
     run("mise", ["plugin", "link", "--force", "toolshed", repoRoot], {
       cwd: project,
@@ -176,13 +161,13 @@ await test("mise installs check-exact-versions only when SHA256SUMS matches", as
     "plugin link",
   );
 
-  await t.test("ls-remote prints 1.0.0 then 1.1.0", () => {
+  await t.test("ls-remote prints the mirror index oldest first", () => {
     const listed = run("mise", ["ls-remote", "toolshed:check-exact-versions"], {
       cwd: project,
       env: miseEnv,
     });
     assert.equal(listed.status, 0, listed.stderr);
-    assert.equal(listed.stdout, "1.0.0\n1.1.0\n");
+    assert.equal(listed.stdout, "1.0.0\n1.1.0\n9.8.0\n9.7.0\n9.9.9\n");
   });
 
   await t.test("unknown tool fails", () => {
@@ -194,10 +179,6 @@ await test("mise installs check-exact-versions only when SHA256SUMS matches", as
   });
 
   await t.test("installs 1.0.0 on PATH", async () => {
-    await writeFile(
-      path.join(project, "mise.toml"),
-      '[tools]\n"toolshed:check-exact-versions" = "1.0.0"\n',
-    );
     must(run("mise", ["install"], { cwd: project, env: miseEnv }), "mise install");
     const where = stripTrailingNewlines(
       must(
@@ -270,19 +251,22 @@ await test("mise installs check-exact-versions only when SHA256SUMS matches", as
     );
   });
 
-  await t.test("check-pins lists and execs an existing install and does not install", async () => {
-    must(run("git", ["-C", wt, "tag", "check-pins-v1.0.0"], { env }), "git tag check-pins");
-    must(
-      run("git", ["-C", wt, "push", "-q", "origin", "check-pins-v1.0.0"], { env }),
-      "git push check-pins",
-    );
-    const listed = run("mise", ["ls-remote", "toolshed:check-pins"], {
+  await t.test("two checksum lines fail and leave no binary", async () => {
+    const duplicate = run("mise", ["install", "toolshed:check-exact-versions@9.7.0"], {
       cwd: project,
       env: miseEnv,
     });
-    assert.equal(listed.status, 0, listed.stderr);
-    assert.equal(listed.stdout, "1.0.0\n");
+    assert.notEqual(duplicate.status, 0);
+    assert.match(duplicate.stderr, /SHA256SUMS has two hashes for check-exact-versions\.mjs/);
+    const left = await filesNamed(miseEnv.MISE_DATA_DIR ?? "", "check-exact-versions");
+    assert.equal(
+      left.some((file) => file.includes(`${path.sep}9.7.0${path.sep}`)),
+      false,
+      left.join("\n"),
+    );
+  });
 
+  await t.test("check-pins execs an existing install and does not install", async () => {
     const install = run("mise", ["install", "toolshed:check-pins@1.0.0"], {
       cwd: project,
       env: miseEnv,

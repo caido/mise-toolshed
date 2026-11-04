@@ -1,12 +1,7 @@
 local M = {}
 
-local version_order = require("version_order")
-local shell = require("shell")
-
-local DEFAULT_REMOTE = "https://github.com/caido/mise-toolshed"
-local DEFAULT_BASE = "https://github.com/caido/mise-toolshed/releases/download"
-local REMOTE_ENV = "TOOLSHED_RELEASE_REMOTE"
-local BASE_ENV = "TOOLSHED_RELEASE_BASE_URL"
+local DEFAULT_API = "https://api.github.com/repos/caido/mise-toolshed/releases?per_page=100"
+local DEFAULT_DOWNLOAD = "https://github.com/caido/mise-toolshed/releases/download"
 
 local RELEASED = {
 	"check-exact-versions",
@@ -39,150 +34,137 @@ function M.is_known(tool)
 	return known_set[tool] == true
 end
 
-local function reject_shell_break(value, label)
-	if string.find(value, '"', 1, true) or string.find(value, "'", 1, true) or string.find(value, "\n", 1, true) then
-		error(label .. " contains a quote or newline")
+function M.released_names()
+	local names = {}
+	for index, name in ipairs(RELEASED) do
+		names[index] = name
 	end
+	return names
 end
 
-local function env_or_default(name, default)
-	local value = os.getenv(name)
-	if value == nil or value == "" then
-		return default
+local function trim_slash(url)
+	while string.sub(url, -1) == "/" do
+		url = string.sub(url, 1, -2)
 	end
-	reject_shell_break(value, name)
-	return value
+	return url
 end
 
-local function remote_url()
-	return env_or_default(REMOTE_ENV, DEFAULT_REMOTE)
-end
-
-local function base_url()
-	local base = env_or_default(BASE_ENV, DEFAULT_BASE)
-	while string.sub(base, -1) == "/" do
-		base = string.sub(base, 1, -2)
-	end
-	return base
-end
-
-local function version_from_tag(tool, tag)
-	local prefix = tool .. "-v"
-	if tag == nil or string.sub(tag, 1, #prefix) ~= prefix then
+local function mirror_of(options)
+	if type(options) ~= "table" then
 		return nil
 	end
-	local version = string.sub(tag, #prefix + 1)
-	if not version_order.version_body(version) then
+	local mirror = options.mirror
+	if type(mirror) ~= "string" or mirror == "" then
 		return nil
 	end
-	return version
+	return trim_slash(mirror)
 end
 
-function M.list_versions(tool)
-	if not M.is_known(tool) then
-		error("unknown tool: " .. tostring(tool))
+local function assert_version(tool, version)
+	if
+		type(version) ~= "string"
+		or version == ""
+		or string.find(version, "/", 1, true)
+		or string.find(version, "\\", 1, true)
+		or string.find(version, "..", 1, true)
+		or string.find(version, "?", 1, true)
+		or string.find(version, "#", 1, true)
+	then
+		error("not a " .. tool .. " version: " .. tostring(version))
 	end
-	local out = shell.exec('git ls-remote --tags --refs "$TOOLSHED_REMOTE"', {
-		TOOLSHED_REMOTE = remote_url(),
-	}) or ""
-	local seen = {}
-	local versions = {}
-	for line in string.gmatch(out, "[^\n]+") do
-		local tag = string.match(line, "%s+refs/tags/(.+)$")
-		local version = version_from_tag(tool, tag)
-		if version and not seen[version] then
-			seen[version] = true
-			versions[#versions + 1] = version
+end
+
+local function next_link(link)
+	if type(link) ~= "string" then
+		return nil
+	end
+	for part in string.gmatch(link, "[^,]+") do
+		local quoted = string.find(part, 'rel="next"', 1, true) ~= nil
+		local plain = string.find(part, "rel=next", 1, true) ~= nil
+		if quoted or plain then
+			return string.match(part, "<([^>]+)>")
 		end
 	end
-	return version_order.sort_versions(versions)
+	return nil
 end
 
-local function quote_arg(value)
-	if string.find(value, '"', 1, true) or string.find(value, "\n", 1, true) or string.find(value, "\r", 1, true) then
-		error("path contains a quote or newline")
+local function github_versions(tool)
+	local http = require("http")
+	local json = require("json")
+	local prefix = tool .. "-v"
+	local pages = {}
+	local url = DEFAULT_API
+	local headers = {
+		["Accept"] = "application/vnd.github+json",
+		["User-Agent"] = "caido-mise-toolshed",
+		["X-GitHub-Api-Version"] = "2022-11-28",
+	}
+	for _ = 1, 20 do
+		local resp = http.get({ url = url, headers = headers })
+		if resp.status_code ~= 200 then
+			error("fetching releases failed: HTTP " .. tostring(resp.status_code))
+		end
+		pages[#pages + 1] = json.decode(resp.body)
+		url = next_link(resp.headers and resp.headers["link"])
+		if url == nil then
+			break
+		end
 	end
-	return '"' .. value .. '"'
-end
-
-local function take_hash(found, candidate)
-	if #candidate ~= 64 or string.match(candidate, "^%x+$") == nil then
-		error("could not parse SHA-256")
+	if url ~= nil then
+		error("too many GitHub release pages")
 	end
-	if found ~= nil and found ~= candidate then
-		error("could not parse SHA-256")
-	end
-	return candidate
-end
-
-local function parse_sha256(text)
-	if type(text) ~= "string" or text == "" then
-		error("could not parse SHA-256")
-	end
-	local found = nil
-	for line in string.gmatch(string.gsub(text, "\r", "") .. "\n", "(.-)\n") do
-		if string.match(line, "%S") ~= nil then
-			local compact = string.lower(string.gsub(line, "%s+", ""))
-			if #compact == 64 and string.match(compact, "^%x+$") ~= nil then
-				found = take_hash(found, compact)
-			else
-				local runs = 0
-				local run = nil
-				for token in string.gmatch(string.lower(line), "%x+") do
-					if #token > 64 then
-						error("could not parse SHA-256")
+	local versions = {}
+	local seen = {}
+	for page_index = #pages, 1, -1 do
+		local page = pages[page_index]
+		for index = #page, 1, -1 do
+			local release = page[index]
+			local tag = type(release) == "table" and release.tag_name or nil
+			if type(tag) == "string" and string.sub(tag, 1, #prefix) == prefix then
+				local version = string.sub(tag, #prefix + 1)
+				if version ~= "" and not seen[version] then
+					seen[version] = true
+					local entry = { version = version }
+					if type(release.published_at) == "string" and release.published_at ~= "" then
+						entry.created_at = release.published_at
 					end
-					if #token == 64 then
-						runs = runs + 1
-						run = token
-					end
-				end
-				if runs > 1 then
-					error("could not parse SHA-256")
-				end
-				if runs == 1 then
-					local lead = "^%s*" .. run .. "%s+%*?%S+%s*$"
-					local alone = "^%s*" .. run .. "%s*$"
-					if
-						string.match(string.lower(line), lead) == nil
-						and string.match(string.lower(line), alone) == nil
-					then
-						error("could not parse SHA-256")
-					end
-					found = take_hash(found, run)
-				elseif
-					string.match(
-						compact,
-						"%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x"
-					) ~= nil
-				then
-					error("could not parse SHA-256")
+					versions[#versions + 1] = entry
 				end
 			end
 		end
 	end
-	if found == nil then
-		error("could not parse SHA-256")
-	end
-	return found
+	return versions
 end
 
-local function hash_of(path)
-	local cmd = require("cmd")
-	local quoted = quote_arg(path)
-	local command
-	if RUNTIME.osType == "windows" then
-		command = "certutil -hashfile " .. quoted .. " SHA256"
-	elseif RUNTIME.osType == "macos" then
-		command = "shasum -a 256 " .. quoted
-	else
-		command = "sha256sum " .. quoted
+local function mirror_versions(tool, mirror)
+	local http = require("http")
+	local json = require("json")
+	local url = mirror .. "/" .. tool .. "/index.json"
+	local resp = http.get({ url = url })
+	if resp.status_code ~= 200 then
+		error("fetching " .. url .. " failed: HTTP " .. tostring(resp.status_code))
 	end
-	return parse_sha256(cmd.exec(command) or "")
+	local decoded = json.decode(resp.body)
+	if type(decoded) ~= "table" or type(decoded.versions) ~= "table" then
+		error("index.json has no versions for " .. tool)
+	end
+	return decoded.versions
+end
+
+function M.list_versions(tool, options)
+	if not M.is_known(tool) then
+		error("unknown tool: " .. tostring(tool))
+	end
+	local mirror = mirror_of(options)
+	if mirror ~= nil then
+		return mirror_versions(tool, mirror)
+	end
+	return github_versions(tool)
 end
 
 local function expected_hash(text, filename)
-	for line in string.gmatch(text, "[^\n]+") do
+	local found = nil
+	for line in string.gmatch(text or "", "[^\n]+") do
 		local hash, name = string.match(line, "^(%x+)%s+%*?(%S+)%s*$")
 		if name ~= nil then
 			name = string.gsub(name, "\r$", "")
@@ -192,10 +174,33 @@ local function expected_hash(text, filename)
 			if hash == nil or #hash ~= 64 then
 				error("could not parse SHA-256")
 			end
-			return hash
+			if found ~= nil then
+				error("SHA256SUMS has two hashes for " .. filename)
+			end
+			found = hash
 		end
 	end
-	return nil
+	return found
+end
+
+local function sha256(path)
+	local cmd = require("cmd")
+	if RUNTIME.osType == "windows" then
+		local out = cmd.exec('certutil -hashfile "%FILE%" SHA256', { env = { FILE = path } }) or ""
+		for line in string.gmatch(string.gsub(out, "\r", ""), "[^\n]+") do
+			local compact = string.lower(string.gsub(line, "%s+", ""))
+			if #compact == 64 and string.match(compact, "^%x+$") ~= nil then
+				return compact
+			end
+		end
+		error("could not parse SHA-256")
+	end
+	local command = RUNTIME.osType == "darwin" and 'shasum -a 256 "$FILE"' or 'sha256sum "$FILE"'
+	local hash = string.match(cmd.exec(command, { env = { FILE = path } }) or "", "^(%x+)")
+	if hash == nil or #hash ~= 64 then
+		error("could not parse SHA-256")
+	end
+	return string.lower(hash)
 end
 
 -- Windows cannot run an extensionless script. mise resolves PATHEXT and launches the .cmd.
@@ -225,79 +230,54 @@ function M.install(ctx)
 	if install_path == nil or install_path == "" then
 		error("install_path cannot be empty")
 	end
-	local version = ctx.version
-	if not version_order.version_body(version) then
-		error("not a " .. tool .. " version: " .. tostring(version))
+	local download = ctx.download_path
+	if download == nil or download == "" then
+		error("download_path cannot be empty")
 	end
-	local tag = tool .. "-v" .. version
+	local version = ctx.version
+	assert_version(tool, version)
 	local filename = tool .. ".mjs"
 	local file = require("file")
 	local http = require("http")
-	local download = ctx.download_path
-	if download == nil or download == "" then
-		local temp = os.getenv("TMPDIR")
-		if temp == nil or temp == "" then
-			temp = os.getenv("TEMP")
-		end
-		if temp == nil or temp == "" then
-			temp = os.getenv("TMP")
-		end
-		if temp == nil or temp == "" then
-			error("no download directory")
-		end
-		download = file.join_path(temp, "toolshed-" .. tool .. "-" .. version)
+	local mirror = mirror_of(ctx.options)
+	local tag = tool .. "-v" .. version
+	local asset_url
+	local sums_url
+	if mirror ~= nil then
+		local dir = mirror .. "/" .. tool .. "/" .. version
+		asset_url = dir .. "/" .. filename
+		sums_url = dir .. "/SHA256SUMS"
+	else
+		local dir = DEFAULT_DOWNLOAD .. "/" .. tag
+		asset_url = dir .. "/" .. filename
+		sums_url = dir .. "/SHA256SUMS"
 	end
-	local asset_path = file.join_path(download, filename)
-	local sums_path = file.join_path(download, "SHA256SUMS")
-	local base = base_url()
-	local asset_url = base .. "/" .. tag .. "/" .. filename
-	local sums_url = base .. "/" .. tag .. "/SHA256SUMS"
-	http.download_file({ url = asset_url }, asset_path)
-	http.download_file({ url = sums_url }, sums_path)
-	local sums_file, open_err = io.open(sums_path, "rb")
-	if not sums_file then
-		os.remove(asset_path)
-		error("failed to read SHA256SUMS for tag " .. tag .. ": " .. tostring(open_err))
+	local sums = http.get({ url = sums_url })
+	if sums.status_code ~= 200 then
+		error("no release for " .. tool .. " " .. version .. ": HTTP " .. tostring(sums.status_code))
 	end
-	local sums_text = sums_file:read("*a")
-	sums_file:close()
-	local expected = expected_hash(sums_text, filename)
+	local expected = expected_hash(sums.body, filename)
 	if expected == nil then
-		os.remove(asset_path)
-		os.remove(sums_path)
 		error("SHA256SUMS has no " .. filename .. " line for tag " .. tag)
 	end
-	local actual = hash_of(asset_path)
+	local asset_path = file.join_path(download, filename)
+	http.download_file({ url = asset_url }, asset_path)
+	local hashed, actual = pcall(sha256, asset_path)
+	if not hashed then
+		os.remove(asset_path)
+		error(actual)
+	end
 	if actual ~= expected then
 		os.remove(asset_path)
-		os.remove(sums_path)
 		error(filename .. " checksum mismatch for tag " .. tag .. ": expected " .. expected .. " actual " .. actual)
 	end
 	local bin_dir = file.join_path(install_path, "bin")
 	local dest = file.join_path(bin_dir, tool)
-	if file.exists(dest) then
-		os.remove(dest)
-	end
-	local moved, move_err = pcall(file.move, asset_path, dest)
-	if not moved then
-		local input, in_err = io.open(asset_path, "rb")
-		if not input then
-			error("failed to place " .. dest .. ": " .. tostring(move_err) .. " / " .. tostring(in_err))
-		end
-		local body = input:read("*a")
-		input:close()
-		local output, out_err = io.open(dest, "wb")
-		if not output then
-			error("failed to place " .. dest .. ": " .. tostring(move_err) .. " / " .. tostring(out_err))
-		end
-		output:write(body)
-		output:close()
-		os.remove(asset_path)
-	end
-	os.remove(sums_path)
+	file.move(asset_path, dest)
+	-- The file module cannot set the executable bit, so the shebang would not run.
 	if RUNTIME.osType ~= "windows" then
 		local cmd = require("cmd")
-		cmd.exec("chmod 755 " .. quote_arg(dest))
+		cmd.exec('chmod 755 "$FILE"', { env = { FILE = dest } })
 	end
 	write_windows_cmd(bin_dir, tool)
 end

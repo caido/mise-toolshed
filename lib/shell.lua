@@ -1,3 +1,5 @@
+-- get-skills still clones a git tag and copies bin/get-skills with the shell.
+-- Released tools do not use this module.
 local M = {}
 
 -- A caller can point GIT_DIR at the plugin checkout. Leave it set and git writes that repo.

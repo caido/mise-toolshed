@@ -46,19 +46,21 @@ export async function filesUnder(dir) {
   return found;
 }
 
-export async function withPlugin(scenario) {
+export async function withPlugin(scenario, options = {}) {
+  const dataDirName = options.dataDirName ?? "data";
+  const cacheDirName = options.cacheDirName ?? "cache";
   const work = await mkdtemp(path.join(tmpdir(), "toolshed-plugin-"));
   const home = path.join(work, "home");
   const project = path.join(work, "project");
-  await mkdir(path.join(home, "data"), { recursive: true });
-  await mkdir(path.join(home, "cache"), { recursive: true });
+  await mkdir(path.join(home, dataDirName), { recursive: true });
+  await mkdir(path.join(home, cacheDirName), { recursive: true });
   await mkdir(path.join(home, "config"), { recursive: true });
   await mkdir(path.join(home, "state"), { recursive: true });
   await mkdir(project, { recursive: true });
   const env = {
     ...process.env,
-    MISE_DATA_DIR: path.join(home, "data"),
-    MISE_CACHE_DIR: path.join(home, "cache"),
+    MISE_DATA_DIR: path.join(home, dataDirName),
+    MISE_CACHE_DIR: path.join(home, cacheDirName),
     MISE_CONFIG_DIR: path.join(home, "config"),
     MISE_STATE_DIR: path.join(home, "state"),
     MISE_GLOBAL_CONFIG_FILE: path.join(home, "config/config.toml"),

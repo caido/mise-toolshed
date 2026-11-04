@@ -21,9 +21,15 @@ toolshed = "https://github.com/caido/mise-toolshed#<40-hex sha>"
 "toolshed:check-minimum-release-age" = "1.0.0"
 ```
 
-`mise ls-remote toolshed:<tool>` lists bare versions from `<tool>-v*` tags, oldest first. It does not list `latest`. Listing versions runs `git ls-remote`. On Windows that needs Git for Windows, because the plugin runs git through Git Bash. `mise install` downloads `<tool>.mjs` and `SHA256SUMS` from `https://github.com/caido/mise-toolshed/releases/download/<tool>-v<version>/`, checks the digest, and installs the file as `<tool>` on `PATH`. On Windows it also writes `<tool>.cmd` beside that file. The `.cmd` runs the file with `node`.
+`mise ls-remote toolshed:<tool>` lists bare versions from GitHub releases whose tag is `<tool>-v*`. The list is oldest first, in the order GitHub published them, and each entry carries that release's `published_at` as `created_at`. It does not list `latest`. `mise install` downloads `<tool>.mjs` and `SHA256SUMS` from `https://github.com/caido/mise-toolshed/releases/download/<tool>-v<version>/`, checks the digest, and installs the file as `<tool>` on `PATH`. On Windows it also writes `<tool>.cmd` beside that file. The `.cmd` runs the file with `node`.
 
-`check-pins` is not installed anymore. `mise ls-remote toolshed:check-pins` still lists the published tag, and `mise exec` still runs a copy that is already on disk. `mise install` refuses it.
+A `mirror` option on the tool replaces the GitHub URLs. The mirror serves `<mirror>/<tool>/index.json` in mise's backend index format, oldest first, and serves `<tool>.mjs` and `SHA256SUMS` at `<mirror>/<tool>/<version>/`.
+
+```toml
+"toolshed:check-lockfiles" = { version = "1.0.1", mirror = "https://artifacts.example.com" }
+```
+
+`check-pins` is not installed anymore. `mise ls-remote toolshed:check-pins` lists GitHub releases tagged `check-pins-v*`. `mise exec` still runs a copy that is already on disk. `mise install` refuses it.
 
 `check-exact-versions` enforces [STD-006](https://github.com/caido/engineering/blob/main/standards/STD-006-exact-versions.md). What it flags is in [packages/check-exact-versions/README.md](packages/check-exact-versions/README.md). `check-lockfiles` enforces [STD-007](https://github.com/caido/engineering/blob/main/standards/STD-007-lockfiles.md). What it flags is in [packages/check-lockfiles/README.md](packages/check-lockfiles/README.md). `check-minimum-release-age` enforces [STD-008](https://github.com/caido/engineering/blob/main/standards/STD-008-minimum-release-age.md). What it flags is in [packages/check-minimum-release-age/README.md](packages/check-minimum-release-age/README.md). `packages/shared` is private and is not released.
 
@@ -148,7 +154,7 @@ These commands match the CI jobs. Each one installs dependencies from the lockfi
 - `mise run format` reports files that are not formatted and does not change them.
 - `mise run format-fix` writes the formatted files.
 
-The Test plugin job runs one mise scenario per file in `test/plugin` on `windows-latest`, `macos-latest`, and `ubuntu-latest`: list versions, fresh install, `@latest`, `--force` reinstall, upgrade, uninstall, a checksum mismatch, and a missing release. `test/released-fixture.test.mjs` fails when a released tool is missing from `test/fixtures/released-tools` or that fixture is derived from the released list.
+The Test plugin job runs one mise scenario per file in `test/plugin` on `windows-latest`, `macos-latest`, and `ubuntu-latest`: list versions, fresh install, an install whose data and cache paths contain a space, `@latest`, `--force` reinstall, upgrade, uninstall, a checksum mismatch, and a missing release. The same job installs `test/fixtures/released-tools` from its lockfile and runs each pinned tool. `test/released-fixture.test.mjs` fails when a released tool is missing from that fixture or the fixture is derived from the released list.
 
 `mise run format` is the CI job. `mise run format-fix` is the local command that writes.
 
@@ -157,10 +163,11 @@ The Test plugin job runs one mise scenario per file in `test/plugin` on `windows
 Plugin files are at the repository root. Workspace packages are under `packages/`.
 
 - `metadata.lua` declares the mise plugin toolshed.
-- `hooks/` has the mise backend entry points `backend_install.lua`, `backend_list_versions.lua`, and `backend_exec_env.lua`.
+- `hooks/` has the mise backend entry points `backend_install.lua`, `backend_list_versions.lua`, `backend_list_tools.lua`, and `backend_exec_env.lua`.
 - `bin/get-skills` is the script mise installs.
 - `lib/get_skills_release.lua` lists and installs get-skills versions from this repo.
-- `lib/version_order.lua` orders version strings for get-skills and released tools.
+- `lib/shell.lua` runs git for get-skills. Released tools do not use it.
+- `lib/version_order.lua` orders get-skills version strings. Released tools keep GitHub's publish order.
 - `lib/released_tool.lua` lists and installs released tools from checksummed GitHub releases.
 - `packages/shared` is private scanner code. It has no build and it is not released.
 - `packages/check-exact-versions`, `packages/check-lockfiles`, and `packages/check-minimum-release-age` are private CLIs. What `check-exact-versions` checks is in [packages/check-exact-versions/README.md](packages/check-exact-versions/README.md). What `check-minimum-release-age` checks is in [packages/check-minimum-release-age/README.md](packages/check-minimum-release-age/README.md).

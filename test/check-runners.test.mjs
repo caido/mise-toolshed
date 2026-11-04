@@ -121,10 +121,96 @@ test("an anchored job header still rejects a self-hosted runner", () => {
   assert.equal(allowed.error, null, allowed.stderr);
 });
 
-test("a job header that cannot be parsed fails", () => {
+test("a flow-mapping job still rejects a self-hosted runner", () => {
   const result = run("jobs:\n  build: { runs-on: self-hosted }\n");
   assert.notEqual(result.error, null);
-  assert.match(result.stderr, /scratch\.yml: line 2: cannot parse job header/);
+  assert.match(result.stderr, /runs-on must be ubuntu-latest or macos-latest or windows-latest/);
+});
+
+test("a strategy inside a run script does not hide a self-hosted matrix", () => {
+  const result = run(
+    [
+      "jobs:",
+      "  job:",
+      "    runs-on: ${{ matrix.os }}",
+      "    steps:",
+      "      - run: |",
+      "          strategy:",
+      "            matrix:",
+      "              os: [ubuntu-latest]",
+      "    strategy:",
+      "      matrix:",
+      "        os: [self-hosted]",
+    ].join("\n"),
+  );
+  assert.notEqual(result.error, null);
+  assert.match(result.stderr, /runs-on must be ubuntu-latest or macos-latest or windows-latest/);
+});
+
+test("a strategy inside with does not hide a self-hosted matrix", () => {
+  const result = run(
+    [
+      "jobs:",
+      "  job:",
+      "    runs-on: ${{ matrix.os }}",
+      "    steps:",
+      "      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10",
+      "        with:",
+      "          strategy:",
+      "            matrix:",
+      "              os: [ubuntu-latest]",
+      "    strategy:",
+      "      matrix:",
+      "        os: [self-hosted]",
+    ].join("\n"),
+  );
+  assert.notEqual(result.error, null);
+  assert.match(result.stderr, /runs-on must be ubuntu-latest or macos-latest or windows-latest/);
+});
+
+test("a quoted runs-on key still rejects a self-hosted runner", () => {
+  const result = run('jobs:\n  job:\n    "runs-on": self-hosted\n');
+  assert.notEqual(result.error, null);
+  assert.match(result.stderr, /runs-on must be ubuntu-latest or macos-latest or windows-latest/);
+});
+
+test("a complex runs-on key still rejects a self-hosted runner", () => {
+  const result = run("jobs:\n  job:\n    ? runs-on\n    : self-hosted\n");
+  assert.notEqual(result.error, null);
+  assert.match(result.stderr, /runs-on must be ubuntu-latest or macos-latest or windows-latest/);
+});
+
+test("a quoted include key is rejected", () => {
+  const result = run(
+    [
+      "jobs:",
+      "  job:",
+      "    runs-on: ${{ matrix.os }}",
+      "    strategy:",
+      "      matrix:",
+      "        os: [ubuntu-latest]",
+      '        "include":',
+      "          - os: self-hosted",
+    ].join("\n"),
+  );
+  assert.notEqual(result.error, null);
+  assert.match(result.stderr, /runs-on must be ubuntu-latest or macos-latest or windows-latest/);
+});
+
+test("a duplicate quoted os key is rejected", () => {
+  const result = run(
+    [
+      "jobs:",
+      "  job:",
+      "    runs-on: ${{ matrix.os }}",
+      "    strategy:",
+      "      matrix:",
+      "        os: [ubuntu-latest]",
+      '        "os": [self-hosted]',
+    ].join("\n"),
+  );
+  assert.notEqual(result.error, null);
+  assert.match(result.stderr, /Map keys must be unique/);
 });
 
 test("an os key under env does not select the runner", () => {

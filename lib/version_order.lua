@@ -1,3 +1,4 @@
+-- get-skills sorts its git tags with this module. Released tools keep GitHub's publish order.
 local M = {}
 
 function M.version_body(version)

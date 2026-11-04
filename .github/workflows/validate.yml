@@ -147,6 +147,9 @@ jobs:
       - name: Fresh install
         run: node test/plugin/fresh-install.mjs
 
+      - name: Install with a space in the path
+        run: node test/plugin/space-in-path.mjs
+
       - name: Latest
         run: node test/plugin/latest.mjs
 
@@ -164,6 +167,20 @@ jobs:
 
       - name: Missing release
         run: node test/plugin/missing-release.mjs
+
+      - name: Link toolshed plugin
+        run: mise plugins link --force toolshed .
+
+      - name: Install the released-tools fixture from its lockfile
+        working-directory: test/fixtures/released-tools
+        env:
+          MISE_CEILING_PATHS: ${{ github.workspace }}/test/fixtures
+        run: mise install
+
+      - name: Run the released tools
+        env:
+          MISE_CEILING_PATHS: ${{ github.workspace }}/test/fixtures
+        run: node scripts/released-fixture.mjs --run
 
   pins:
     name: Pins
