@@ -88,12 +88,24 @@ local function next_link(link)
 	return nil
 end
 
-local function github_versions(tool)
+-- Tests point releases_url at a local document with the GitHub releases shape.
+local function releases_api(options)
+	if type(options) ~= "table" then
+		return DEFAULT_API
+	end
+	local url = options.releases_url
+	if type(url) ~= "string" or url == "" then
+		return DEFAULT_API
+	end
+	return url
+end
+
+local function github_versions(tool, api)
 	local http = require("http")
 	local json = require("json")
 	local prefix = tool .. "-v"
 	local pages = {}
-	local url = DEFAULT_API
+	local url = api
 	local headers = {
 		["Accept"] = "application/vnd.github+json",
 		["User-Agent"] = "caido-mise-toolshed",
@@ -120,6 +132,10 @@ local function github_versions(tool)
 		for index = #page, 1, -1 do
 			local release = page[index]
 			local tag = type(release) == "table" and release.tag_name or nil
+			local unpublished = type(release) == "table" and (release.draft == true or release.prerelease == true)
+			if unpublished then
+				tag = nil
+			end
 			if type(tag) == "string" and string.sub(tag, 1, #prefix) == prefix then
 				local version = string.sub(tag, #prefix + 1)
 				if version ~= "" and not seen[version] then
@@ -159,7 +175,7 @@ function M.list_versions(tool, options)
 	if mirror ~= nil then
 		return mirror_versions(tool, mirror)
 	end
-	return github_versions(tool)
+	return github_versions(tool, releases_api(options))
 end
 
 local function expected_hash(text, filename)

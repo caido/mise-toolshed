@@ -21,7 +21,7 @@ toolshed = "https://github.com/caido/mise-toolshed#<40-hex sha>"
 "toolshed:check-minimum-release-age" = "1.0.0"
 ```
 
-`mise ls-remote toolshed:<tool>` lists bare versions from GitHub releases whose tag is `<tool>-v*`. The list is oldest first, in the order GitHub published them, and each entry carries that release's `published_at` as `created_at`. It does not list `latest`. `mise install` downloads `<tool>.mjs` and `SHA256SUMS` from `https://github.com/caido/mise-toolshed/releases/download/<tool>-v<version>/`, checks the digest, and installs the file as `<tool>` on `PATH`. On Windows it also writes `<tool>.cmd` beside that file. The `.cmd` runs the file with `node`.
+`mise ls-remote toolshed:<tool>` lists bare versions from published GitHub releases whose tag is `<tool>-v*`. Drafts and prereleases are left out. The list is oldest first, in the order GitHub published them, and each entry carries that release's `published_at` as `created_at`. It does not list `latest`. `mise install` downloads `<tool>.mjs` and `SHA256SUMS` from `https://github.com/caido/mise-toolshed/releases/download/<tool>-v<version>/`, checks the digest, and installs the file as `<tool>` on `PATH`. On Windows it also writes `<tool>.cmd` beside that file. The `.cmd` runs the file with `node`.
 
 A `mirror` option on the tool replaces the GitHub URLs. The mirror serves `<mirror>/<tool>/index.json` in mise's backend index format, oldest first, and serves `<tool>.mjs` and `SHA256SUMS` at `<mirror>/<tool>/<version>/`.
 

@@ -302,3 +302,99 @@ await test("mise installs check-exact-versions only when SHA256SUMS matches", as
     assert.equal(version, "1.0.0");
   });
 });
+
+await test("a draft and a prerelease are not listed and are not latest", async (t) => {
+  const mise = spawnSync("mise", ["--version"], { encoding: "utf8" });
+  assert.equal(mise.status, 0, "mise is required on PATH");
+  const sha = spawnSync("sha256sum", ["--version"], { encoding: "utf8" });
+  assert.equal(sha.status, 0, "sha256sum is required on PATH");
+  const work = await mkdtemp(path.join(tmpdir(), "released-draft-"));
+  t.after(() => rm(work, { recursive: true, force: true }));
+
+  const releases = [
+    {
+      tag_name: "check-lockfiles-v9.9.9",
+      draft: true,
+      prerelease: false,
+      published_at: "2026-11-01T00:00:00Z",
+    },
+    {
+      tag_name: "check-lockfiles-v9.8.0",
+      draft: false,
+      prerelease: true,
+      published_at: "2026-10-28T00:00:00Z",
+    },
+    {
+      tag_name: "check-lockfiles-v1.0.1",
+      draft: false,
+      prerelease: false,
+      published_at: "2026-10-26T19:14:55Z",
+    },
+    {
+      tag_name: "check-lockfiles-v1.0.0",
+      draft: false,
+      prerelease: false,
+      published_at: "2026-10-26T01:19:24Z",
+    },
+  ];
+  await writeFile(path.join(work, "releases.json"), `${JSON.stringify(releases)}\n`);
+  const mirror = await startMirror(work);
+  t.after(() => mirror.close());
+
+  const home = path.join(work, "home");
+  const project = path.join(home, "project");
+  await mkdir(path.join(home, "data"), { recursive: true });
+  await mkdir(path.join(home, "cache"), { recursive: true });
+  await mkdir(path.join(home, "config"), { recursive: true });
+  await mkdir(path.join(home, "state"), { recursive: true });
+  await mkdir(project, { recursive: true });
+  const miseEnv: NodeJS.ProcessEnv = {
+    ...process.env,
+    MISE_DATA_DIR: path.join(home, "data"),
+    MISE_CACHE_DIR: path.join(home, "cache"),
+    MISE_CONFIG_DIR: path.join(home, "config"),
+    MISE_STATE_DIR: path.join(home, "state"),
+    MISE_GLOBAL_CONFIG_FILE: path.join(home, "config/config.toml"),
+    MISE_SYSTEM_CONFIG_FILE: path.join(home, "config/system.toml"),
+    MISE_YES: "1",
+  };
+  await writeFile(miseEnv.MISE_GLOBAL_CONFIG_FILE ?? "", "");
+  await writeFile(miseEnv.MISE_SYSTEM_CONFIG_FILE ?? "", "");
+  await writeFile(
+    path.join(project, "mise.toml"),
+    `[tools]\n"toolshed:check-lockfiles" = { version = "1.0.1", releases_url = "${mirror.url}/releases.json" }\n`,
+  );
+  must(
+    run("mise", ["plugin", "link", "--force", "toolshed", repoRoot], {
+      cwd: project,
+      env: miseEnv,
+    }),
+    "plugin link",
+  );
+
+  const listed = run("mise", ["ls-remote", "toolshed:check-lockfiles"], {
+    cwd: project,
+    env: miseEnv,
+  });
+  assert.equal(listed.status, 0, listed.stderr);
+  assert.equal(listed.stdout, "1.0.0\n1.0.1\n");
+
+  must(
+    run("mise", ["install", "toolshed:check-lockfiles@latest"], { cwd: project, env: miseEnv }),
+    "install latest",
+  );
+  const version = stripTrailingNewlines(
+    must(
+      run(
+        "mise",
+        ["exec", "toolshed:check-lockfiles@latest", "--", "check-lockfiles", "--version"],
+        {
+          cwd: project,
+          env: miseEnv,
+        },
+      ),
+      "latest version",
+    ),
+  );
+  assert.equal(version, "1.0.1");
+});

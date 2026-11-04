@@ -142,6 +142,8 @@ jobs:
           install: false
 
       - name: List versions
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: node test/plugin/ls-remote.mjs
 
       - name: Fresh install
