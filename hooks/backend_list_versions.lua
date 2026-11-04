@@ -11,7 +11,7 @@ function PLUGIN:BackendListVersions(ctx)
 		return process_get_skills()
 	end
 	if released.is_known(tool) then
-		return { versions = released.list_versions(tool) }
+		return { versions = released.list_versions(tool, ctx.options) }
 	end
 
 	error("unknown tool: " .. tostring(tool))
