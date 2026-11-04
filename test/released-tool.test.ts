@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { constants } from "node:fs";
-import { access, chmod, mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
+import { access, chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -338,6 +338,32 @@ await test("a draft and a prerelease are not listed and are not latest", async (
     },
   ];
   await writeFile(path.join(work, "releases.json"), `${JSON.stringify(releases)}\n`);
+  const marker = "toolshed-mirror-asset";
+  const body = `#!/usr/bin/env node
+if (process.argv.length === 3 && process.argv[2] === "--version") {
+  process.stdout.write("1.0.1\\n");
+  process.exit(0);
+}
+process.stderr.write("${marker}\\n");
+process.exit(1);
+`;
+  const assetDir = path.join(work, "check-lockfiles", "1.0.1");
+  await mkdir(assetDir, { recursive: true });
+  const asset = path.join(assetDir, "check-lockfiles.mjs");
+  await writeFile(asset, body);
+  await chmod(asset, 0o755);
+  await writeFile(path.join(assetDir, "SHA256SUMS"), `${sha256(body)}  check-lockfiles.mjs\n`);
+  await writeFile(
+    path.join(work, "check-lockfiles", "index.json"),
+    `${JSON.stringify({
+      versions: [
+        { version: "1.0.0", created_at: "2026-10-26T01:19:24Z" },
+        { version: "1.0.1", created_at: "2026-10-26T19:14:55Z" },
+        { version: "9.8.0", created_at: "2026-10-28T00:00:00Z" },
+        { version: "9.9.9", created_at: "2026-11-01T00:00:00Z" },
+      ],
+    })}\n`,
+  );
   const mirror = await startMirror(work);
   t.after(() => mirror.close());
 
@@ -362,7 +388,7 @@ await test("a draft and a prerelease are not listed and are not latest", async (
   await writeFile(miseEnv.MISE_SYSTEM_CONFIG_FILE ?? "", "");
   await writeFile(
     path.join(project, "mise.toml"),
-    `[tools]\n"toolshed:check-lockfiles" = { version = "1.0.1", releases_url = "${mirror.url}/releases.json" }\n`,
+    `[tools]\n"toolshed:check-lockfiles" = { version = "1.0.1", releases_url = "${mirror.url}/releases.json", mirror = "${mirror.url}" }\n`,
   );
   must(
     run("mise", ["plugin", "link", "--force", "toolshed", repoRoot], {
@@ -397,4 +423,12 @@ await test("a draft and a prerelease are not listed and are not latest", async (
     ),
   );
   assert.equal(version, "1.0.1");
+  const where = stripTrailingNewlines(
+    must(
+      run("mise", ["where", "toolshed:check-lockfiles"], { cwd: project, env: miseEnv }),
+      "mise where",
+    ),
+  );
+  const installed = await readFile(path.join(where, "bin", "check-lockfiles"), "utf8");
+  assert.match(installed, new RegExp(marker));
 });

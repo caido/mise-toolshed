@@ -127,6 +127,32 @@ test("a flow-mapping job still rejects a self-hosted runner", () => {
   assert.match(result.stderr, /runs-on must be ubuntu-latest or macos-latest or windows-latest/);
 });
 
+test("a matrix key indented by four spaces is still read", () => {
+  const allowed = run(
+    [
+      "jobs:",
+      "  job:",
+      "    runs-on: ${{ matrix.os }}",
+      "    strategy:",
+      "      matrix:",
+      "          os: [ubuntu-latest]",
+    ].join("\n"),
+  );
+  assert.equal(allowed.error, null, allowed.stderr);
+  const rejected = run(
+    [
+      "jobs:",
+      "  job:",
+      "    runs-on: ${{ matrix.os }}",
+      "    strategy:",
+      "      matrix:",
+      "          os: [self-hosted]",
+    ].join("\n"),
+  );
+  assert.notEqual(rejected.error, null);
+  assert.match(rejected.stderr, /runs-on must be ubuntu-latest or macos-latest or windows-latest/);
+});
+
 test("a strategy inside a run script does not hide a self-hosted matrix", () => {
   const result = run(
     [

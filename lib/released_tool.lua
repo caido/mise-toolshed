@@ -171,6 +171,10 @@ function M.list_versions(tool, options)
 	if not M.is_known(tool) then
 		error("unknown tool: " .. tostring(tool))
 	end
+	-- A releases_url lists from a GitHub-shaped document. mirror still supplies the files.
+	if type(options) == "table" and type(options.releases_url) == "string" and options.releases_url ~= "" then
+		return github_versions(tool, options.releases_url)
+	end
 	local mirror = mirror_of(options)
 	if mirror ~= nil then
 		return mirror_versions(tool, mirror)
