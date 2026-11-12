@@ -24,7 +24,7 @@ Preconditions:
 
 - **stage-copy.** Run `stage-release.sh check-exact-versions` into a new directory. Exit status is 0, stdout contains `check-exact-versions.mjs: OK`, stderr is empty, and the destination `check-exact-versions.mjs` matches the built bundle byte for byte. `SHA256SUMS` is appended to the evidence file.
 - **stage-usage.** Run `stage-release.sh` with no arguments. Exit status is 1, stdout is empty, and stderr is `usage: stage-release.sh <tool> <dest>` plus a newline.
-- **stage-missing.** Run `stage-release.sh not-a-tool` into a destination. Exit status is 1, stdout is empty, and stderr is `missing` plus the absolute path of `packages/not-a-tool/dist/not-a-tool.mjs`. The destination is not created.
+- **stage-missing.** Run `stage-release.sh not-a-tool` into `$SCRATCH/missing`. Exit status is 1, stdout is empty, and stderr is exactly `missing $REPO/packages/not-a-tool/dist/not-a-tool.mjs` plus a newline. `$SCRATCH/missing` does not exist.
 
 ```sh
 sh .agents/skills/playbook-verify-toolshed/session.sh stage-release <<'EOF'
@@ -52,7 +52,9 @@ sh "$REPO/scripts/stage-release.sh" not-a-tool "$SCRATCH/missing" >"$SCRATCH/mis
 record stage-missing "$status" "$SCRATCH/missing.out" "$SCRATCH/missing.err"
 test "$status" -eq 1
 test ! -s "$SCRATCH/missing.out"
-grep -F 'packages/not-a-tool/dist/not-a-tool.mjs' "$SCRATCH/missing.err" >/dev/null
+printf '%s\n' "missing $REPO/packages/not-a-tool/dist/not-a-tool.mjs" >"$SCRATCH/missing.expected"
+cmp -s "$SCRATCH/missing.expected" "$SCRATCH/missing.err"
+test ! -e "$SCRATCH/missing"
 EOF
 ```
 

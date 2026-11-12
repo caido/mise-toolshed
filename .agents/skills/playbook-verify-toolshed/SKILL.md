@@ -5,7 +5,7 @@ description: "Drive the mise-toolshed command-line tools on a scratch tree. Use 
 
 # playbook-verify-toolshed
 
-Each command is short-lived. Build once, then drive each feature in its own `session.sh` invocation. The helper deletes that drive's scratch directory and leaves the evidence file.
+Each command is short-lived. Build once, then drive each feature in its own tmux session. The helper deletes that drive's scratch directory and leaves the evidence file.
 
 ## Launch
 
@@ -17,7 +17,7 @@ That task uses the toolchain pinned in `.mise/config.toml`. The build is ready w
 - `packages/check-lockfiles/dist/check-lockfiles.mjs`
 - `packages/check-minimum-release-age/dist/check-minimum-release-age.mjs`
 
-Each drive starts in its own shell through `session.sh`. That process owns `HOME` and the git identity for the drive. The parent shell keeps its own. The helper's EXIT trap deletes only that drive's scratch directory.
+`session.sh` starts one detached tmux session per drive. The session name is `playbook-verify-toolshed-` plus the feature file name without `.md`. Before that session runs the feature commands, `session.sh` writes the name to a file in `.agents/skills/playbook-verify-toolshed/evidence/` whose name is the feature file name with `.session` instead of `.md`, and prints a line that starts with `session`. Record that name. The session process owns `HOME` and the git identity for the drive. The parent shell keeps its own. The inner EXIT trap deletes only that drive's scratch directory.
 
 ## Doctor
 
@@ -27,7 +27,7 @@ Each drive starts in its own shell through `session.sh`. That process owns `HOME
 sh .agents/skills/playbook-verify-toolshed/session.sh doctor
 ```
 
-Doctor reads the checkout. It exits non-zero when a built command, `bin/get-skills`, `scripts/stage-release.sh`, `git`, `sha256sum`, or `node` is missing. Each built command's `--version` prints one version line on stdout and exits 0. Doctor does not clone, fetch, or write a scratch directory.
+Doctor reads the checkout. It exits non-zero when a built command, `bin/get-skills`, `scripts/stage-release.sh`, `git`, `sha256sum`, `node`, or `tmux` is missing. Each built command's `--version` prints one version line on stdout and exits 0. Doctor does not clone, fetch, or write a scratch directory.
 
 When doctor fails because these commands disagree with the checkout, fix this skill and run doctor again before the next drive.
 
@@ -35,7 +35,7 @@ When doctor fails because these commands disagree with the checkout, fix this sk
 
 Read `features/README.md`, then run every feature file's fenced `sh` block from the checkout. One invocation drives one feature. Do not reuse another drive's scratch directory.
 
-`session.sh` reads the feature commands on stdin, runs doctor, then runs those commands. On success it prints one `evidence` line and one `scratch` line. The second field of each line is a path.
+`session.sh` reads the feature commands on stdin, starts the tmux session, runs doctor inside that session, then runs those commands. It prints a `session` line, then one `evidence` line and one `scratch` line. The second field of each line is a name or a path.
 
 ## Evidence
 
@@ -47,9 +47,17 @@ Cite the drive that ran and the gitignored directory `.agents/skills/playbook-ve
 
 ## Cleanup
 
-`session.sh` records no long-lived pid. Its EXIT trap deletes the scratch directory it created, including when the feature commands fail. Store that invocation's stdout in `session_output`. After the last drive, including any re-drive, the scratch path from that stdout does not exist, and the evidence directory does:
+The inner EXIT trap deletes the scratch directory, including when the feature commands fail. The outer EXIT trap kills the tmux session. After the last drive, including any re-drive, kill every recorded session again. The scratch path from that drive's stdout does not exist, and the evidence directory does:
 
 ```sh
+for session_file in .agents/skills/playbook-verify-toolshed/evidence/*.session; do
+	session_name=$(cat "$session_file")
+	tmux kill-session -t "$session_name" 2>/dev/null || true
+	if tmux has-session -t "$session_name" 2>/dev/null; then
+		echo "session still present: $session_name" >&2
+		exit 1
+	fi
+done
 scratch_path=$(printf '%s\n' "$session_output" | awk '/^scratch / { print $2; exit }')
 test -n "$scratch_path"
 test ! -e "$scratch_path"

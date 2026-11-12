@@ -7,7 +7,7 @@ This directory is the maintained source for driving mise-toolshed. Read this ind
 - The current directory is a checkout of mise-toolshed.
 - `mise run build` has finished.
 - `sh .agents/skills/playbook-verify-toolshed/session.sh doctor` exits 0.
-- Each drive uses its own `session.sh` invocation. The parent shell's `HOME` and git identity stay unchanged.
+- Each drive uses its own tmux session named `playbook-verify-toolshed-` plus the feature file name without `.md`. The parent shell's `HOME` and git identity stay unchanged.
 
 ## Driving conventions
 
