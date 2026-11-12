@@ -22,15 +22,15 @@ Preconditions:
 - `$REPO`, `$SCRATCH`, and `$EVIDENCE` are set, and `record` is defined.
 - `packages/check-exact-versions/dist/check-exact-versions.mjs` exists.
 
-- **Copy.** Run `stage-release.sh check-exact-versions` into a new directory. Exit status is 0, stdout contains `check-exact-versions.mjs: OK`, stderr is empty, and the destination `check-exact-versions.mjs` matches the built bundle byte for byte. `SHA256SUMS` is appended to the evidence file.
-- **Usage.** Run `stage-release.sh` with no arguments. Exit status is 1, stdout is empty, and stderr is `usage: stage-release.sh <tool> <dest>` plus a newline.
-- **Missing bundle.** Run `stage-release.sh not-a-tool` into a destination. Exit status is 1, stdout is empty, and stderr is `missing` plus the absolute path of `packages/not-a-tool/dist/not-a-tool.mjs`. The destination is not created.
+- **stage-copy.** Run `stage-release.sh check-exact-versions` into a new directory. Exit status is 0, stdout contains `check-exact-versions.mjs: OK`, stderr is empty, and the destination `check-exact-versions.mjs` matches the built bundle byte for byte. `SHA256SUMS` is appended to the evidence file.
+- **stage-usage.** Run `stage-release.sh` with no arguments. Exit status is 1, stdout is empty, and stderr is `usage: stage-release.sh <tool> <dest>` plus a newline.
+- **stage-missing.** Run `stage-release.sh not-a-tool` into a destination. Exit status is 1, stdout is empty, and stderr is `missing` plus the absolute path of `packages/not-a-tool/dist/not-a-tool.mjs`. The destination is not created.
 
 ```sh
 sh .agents/skills/playbook-verify-toolshed/session.sh stage-release <<'EOF'
 status=0
 sh "$REPO/scripts/stage-release.sh" check-exact-versions "$SCRATCH/stage" >"$SCRATCH/stage.out" 2>"$SCRATCH/stage.err" || status=$?
-record stage "$status" "$SCRATCH/stage.out" "$SCRATCH/stage.err"
+record stage-copy "$status" "$SCRATCH/stage.out" "$SCRATCH/stage.err"
 cat "$SCRATCH/stage/SHA256SUMS" >>"$EVIDENCE"
 test "$status" -eq 0
 test ! -s "$SCRATCH/stage.err"
@@ -41,7 +41,7 @@ cmp -s "$REPO/packages/check-exact-versions/dist/check-exact-versions.mjs" "$SCR
 
 status=0
 sh "$REPO/scripts/stage-release.sh" >"$SCRATCH/usage.out" 2>"$SCRATCH/usage.err" || status=$?
-record usage "$status" "$SCRATCH/usage.out" "$SCRATCH/usage.err"
+record stage-usage "$status" "$SCRATCH/usage.out" "$SCRATCH/usage.err"
 test "$status" -eq 1
 test ! -s "$SCRATCH/usage.out"
 printf '%s\n' 'usage: stage-release.sh <tool> <dest>' >"$SCRATCH/usage.expected"
@@ -49,7 +49,7 @@ cmp -s "$SCRATCH/usage.expected" "$SCRATCH/usage.err"
 
 status=0
 sh "$REPO/scripts/stage-release.sh" not-a-tool "$SCRATCH/missing" >"$SCRATCH/missing.out" 2>"$SCRATCH/missing.err" || status=$?
-record missing "$status" "$SCRATCH/missing.out" "$SCRATCH/missing.err"
+record stage-missing "$status" "$SCRATCH/missing.out" "$SCRATCH/missing.err"
 test "$status" -eq 1
 test ! -s "$SCRATCH/missing.out"
 grep -F 'packages/not-a-tool/dist/not-a-tool.mjs' "$SCRATCH/missing.err" >/dev/null

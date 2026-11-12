@@ -22,15 +22,15 @@ Preconditions:
 - `$REPO`, `$SCRATCH`, `$EVIDENCE`, `$HOME`, and `$AI_OPS_SKILLS_CACHE` are set, and `record` is defined.
 - `session.sh` has cleared `AI_OPS_SKILLS_REF` and pointed git config at the scratch directory.
 
-- **Unknown argument.** Run `bin/get-skills --nope`. Exit status is 1, stdout is empty, stderr contains `toolshed:get-skills: unknown argument: --nope`, and `$AI_OPS_SKILLS_CACHE` does not exist.
-- **Bad choice.** Run `bin/get-skills` with stdin `9`. Exit status is 1, stdout is empty, stderr contains `toolshed:get-skills: expected 1, 2, or 3`, and `$AI_OPS_SKILLS_CACHE` does not exist.
-- **Install.** Create a local git fixture whose `skills/grilling/SKILL.md` is `grill-v1`, then run `bin/get-skills --url` on that directory with stdin `1`. Exit status is 0, stdout is empty, stderr contains `toolshed:get-skills: synced <cache>/skills to <install>`, the cache remote is the fixture path, and `$HOME/.cursor/skills/grilling/SKILL.md` is `grill-v1`.
+- **skills-unknown.** Run `bin/get-skills --nope`. Exit status is 1, stdout is empty, stderr contains `toolshed:get-skills: unknown argument: --nope`, and `$AI_OPS_SKILLS_CACHE` does not exist.
+- **skills-bad-choice.** Run `bin/get-skills` with stdin `9`. Exit status is 1, stdout is empty, stderr contains `toolshed:get-skills: expected 1, 2, or 3`, and `$AI_OPS_SKILLS_CACHE` does not exist.
+- **skills-install.** Create a local git fixture whose `skills/grilling/SKILL.md` is `grill-v1`, then run `bin/get-skills --url` on that directory with stdin `1`. Exit status is 0, stdout is empty, stderr contains `toolshed:get-skills: synced` and the cache `skills` path, the cache remote is the fixture path, and `$HOME/.cursor/skills/grilling/SKILL.md` is `grill-v1`.
 
 ```sh
 sh .agents/skills/playbook-verify-toolshed/session.sh get-skills <<'EOF'
 status=0
 "$REPO/bin/get-skills" --nope >"$SCRATCH/unknown.out" 2>"$SCRATCH/unknown.err" || status=$?
-record unknown "$status" "$SCRATCH/unknown.out" "$SCRATCH/unknown.err"
+record skills-unknown "$status" "$SCRATCH/unknown.out" "$SCRATCH/unknown.err"
 test "$status" -eq 1
 test ! -s "$SCRATCH/unknown.out"
 grep -F 'toolshed:get-skills: unknown argument: --nope' "$SCRATCH/unknown.err" >/dev/null
@@ -38,7 +38,7 @@ test ! -e "$AI_OPS_SKILLS_CACHE"
 
 status=0
 printf '9\n' | "$REPO/bin/get-skills" >"$SCRATCH/bad.out" 2>"$SCRATCH/bad.err" || status=$?
-record bad-choice "$status" "$SCRATCH/bad.out" "$SCRATCH/bad.err"
+record skills-bad-choice "$status" "$SCRATCH/bad.out" "$SCRATCH/bad.err"
 test "$status" -eq 1
 test ! -s "$SCRATCH/bad.out"
 grep -F 'toolshed:get-skills: expected 1, 2, or 3' "$SCRATCH/bad.err" >/dev/null
@@ -53,7 +53,7 @@ git -C "$FIXTURE" commit -q -m 'skills-v1'
 
 status=0
 printf '1\n' | "$REPO/bin/get-skills" --url "$FIXTURE" >"$SCRATCH/install.out" 2>"$SCRATCH/install.err" || status=$?
-record install "$status" "$SCRATCH/install.out" "$SCRATCH/install.err"
+record skills-install "$status" "$SCRATCH/install.out" "$SCRATCH/install.err"
 {
 	printf '%s\n' '--- grilling/SKILL.md ---'
 	cat "$HOME/.cursor/skills/grilling/SKILL.md"

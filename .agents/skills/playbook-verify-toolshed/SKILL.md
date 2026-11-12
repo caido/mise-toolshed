@@ -5,7 +5,7 @@ description: "Drive the mise-toolshed command-line tools on a scratch tree. Use 
 
 # playbook-verify-toolshed
 
-The tools are short-lived CLIs. Build once, then drive each feature in its own `session.sh` invocation. The helper deletes that drive's scratch directory and leaves the evidence file.
+Each command is short-lived. Build once, then drive each feature in its own `session.sh` invocation. The helper deletes that drive's scratch directory and leaves the evidence file.
 
 ## Launch
 
@@ -17,11 +17,11 @@ That task uses the toolchain pinned in `.mise/config.toml`. The build is ready w
 - `packages/check-lockfiles/dist/check-lockfiles.mjs`
 - `packages/check-minimum-release-age/dist/check-minimum-release-age.mjs`
 
-There is no server to keep. Each drive starts in its own shell through `session.sh`. That process owns `HOME` and the git identity for the drive. The parent shell keeps its own. The helper's EXIT trap deletes only that drive's scratch directory.
+Each drive starts in its own shell through `session.sh`. That process owns `HOME` and the git identity for the drive. The parent shell keeps its own. The helper's EXIT trap deletes only that drive's scratch directory.
 
 ## Doctor
 
-Run doctor after Launch, before the first drive, at the start of each drive, and again after any failed drive. `session.sh` runs it at the start of every drive. Run it in the parent shell after Launch and after a failed drive:
+`session.sh` runs doctor at the start of every drive. Run it in the parent shell after Launch and after a failed drive:
 
 ```sh
 sh .agents/skills/playbook-verify-toolshed/session.sh doctor
@@ -33,13 +33,13 @@ When doctor fails because these commands disagree with the checkout, fix this sk
 
 ## Drive
 
-Read `features/README.md`, then run every feature file's `Driving it with session.sh` block from the checkout. One invocation drives one feature. Do not reuse another drive's scratch directory.
+Read `features/README.md`, then run every feature file's fenced `sh` block from the checkout. One invocation drives one feature. Do not reuse another drive's scratch directory.
 
-`session.sh <feature-id>` reads the feature commands on stdin, runs doctor, then runs those commands. It prints `evidence <path>` and `scratch <path>` on stdout when the commands exit 0.
+`session.sh` reads the feature commands on stdin, runs doctor, then runs those commands. On success it prints one `evidence` line and one `scratch` line. The second field of each line is a path.
 
 ## Evidence
 
-Evidence is `.agents/skills/playbook-verify-toolshed/evidence/<feature-id>.txt`. `.agents/skills/playbook-verify-toolshed/.gitignore` ignores `evidence/`. Each drive truncates that file, then appends every recorded status, stdout, and stderr before the scratch directory is deleted. Cleanup leaves the directory in place.
+Each drive writes one file in `.agents/skills/playbook-verify-toolshed/evidence/`. The file name is the feature file name with `.txt` instead of `.md`. `.agents/skills/playbook-verify-toolshed/.gitignore` ignores that `evidence/` directory. The drive truncates the file, then appends every recorded status, stdout, and stderr. Cleanup deletes the scratch directory and leaves the evidence directory in place.
 
 ## PR proof
 
@@ -47,14 +47,16 @@ Cite the drive that ran and the gitignored directory `.agents/skills/playbook-ve
 
 ## Cleanup
 
-`session.sh` records no long-lived pid. Its EXIT trap deletes the scratch directory it created, including when the feature commands fail. After the last drive, including any re-drive:
+`session.sh` records no long-lived pid. Its EXIT trap deletes the scratch directory it created, including when the feature commands fail. Store that invocation's stdout in `session_output`. After the last drive, including any re-drive, the scratch path from that stdout does not exist, and the evidence directory does:
 
 ```sh
+scratch_path=$(printf '%s\n' "$session_output" | awk '/^scratch / { print $2; exit }')
+test -n "$scratch_path"
+test ! -e "$scratch_path"
 test -d .agents/skills/playbook-verify-toolshed/evidence
-test ! -e <scratch>
 ```
 
-`<scratch>` is the path that invocation printed. The parent shell's `HOME` and git identity are unchanged.
+The parent shell's `HOME` and git identity are unchanged.
 
 ## Helpers
 
@@ -62,7 +64,6 @@ test ! -e <scratch>
 
 ```sh
 sh .agents/skills/playbook-verify-toolshed/session.sh doctor
-sh .agents/skills/playbook-verify-toolshed/session.sh <feature-id> <<'EOF'
-# feature commands
-EOF
 ```
+
+The other invocation is the fenced `sh` block in the feature file.

@@ -3,6 +3,10 @@ set -eu
 
 root=$(CDPATH='' cd -- "$(dirname "$0")/../../.." && pwd)
 
+usage() {
+	echo "usage: session.sh doctor | session.sh <feature-id>" >&2
+}
+
 doctor() {
 	test -f "$root/packages/check-exact-versions/dist/check-exact-versions.mjs"
 	test -f "$root/packages/check-lockfiles/dist/check-lockfiles.mjs"
@@ -18,7 +22,7 @@ doctor() {
 }
 
 if [ "$#" -ne 1 ]; then
-	echo "usage: session.sh doctor | session.sh <feature-id>" >&2
+	usage
 	exit 1
 fi
 
@@ -30,12 +34,12 @@ fi
 feature=$1
 case "$feature" in
 *[!a-z0-9-]*)
-	echo "usage: session.sh doctor | session.sh <feature-id>" >&2
+	usage
 	exit 1
 	;;
 esac
 if [ -z "$feature" ]; then
-	echo "usage: session.sh doctor | session.sh <feature-id>" >&2
+	usage
 	exit 1
 fi
 
