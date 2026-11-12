@@ -1,6 +1,6 @@
 # get-skills
 
-`get-skills` asks which personal folder to use, clones or updates a git checkout, and copies that checkout's `skills/` directories into the chosen folder. A choice other than `1`, `2`, or `3` exits 1 before any clone. An unknown argument exits 1 before the prompt.
+`get-skills` asks which personal folder to use, clones or updates a git checkout, and copies that checkout's `skills/` directories into the chosen folder. The command exits 1 before any clone when the choice is not `1`, `2`, or `3`. An unknown argument exits 1 before the prompt.
 
 ## Sub-features
 

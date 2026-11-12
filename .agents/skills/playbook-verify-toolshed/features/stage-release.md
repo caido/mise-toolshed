@@ -1,6 +1,6 @@
 # stage-release
 
-`stage-release.sh` copies one built `<tool>.mjs` into a destination directory and writes `SHA256SUMS` beside it. The wrong number of arguments prints usage. An unknown tool names the missing bundle path.
+`stage-release.sh` copies one built bundle into a destination directory and writes `SHA256SUMS` beside it. The script prints usage and exits 1 when the argument count is not two. When the bundle is absent, the script prints `missing` and the absolute bundle path, and it does not create the destination.
 
 ## Sub-features
 

@@ -1,11 +1,11 @@
 ---
 name: playbook-verify-toolshed
-description: "Drive the mise-toolshed command-line tools on a scratch tree. Use when verifying check-exact-versions, check-lockfiles, check-minimum-release-age, get-skills, or stage-release.sh from a checkout."
+description: "Drive the mise-toolshed command-line tools from a scratch directory. Use when verifying check-exact-versions, check-lockfiles, check-minimum-release-age, get-skills, or stage-release.sh from a checkout."
 ---
 
 # playbook-verify-toolshed
 
-Each command is short-lived. Build once, then drive each feature in its own tmux session. The helper deletes that drive's scratch directory and leaves the evidence file.
+Build once, then drive each feature in its own tmux session. The helper deletes that drive's scratch directory and leaves the evidence directory.
 
 ## Launch
 
@@ -29,7 +29,7 @@ sh .agents/skills/playbook-verify-toolshed/session.sh doctor
 
 Doctor reads the checkout. It exits non-zero when a built command, `bin/get-skills`, `scripts/stage-release.sh`, `git`, `sha256sum`, `node`, or `tmux` is missing. Each built command's `--version` prints one version line on stdout and exits 0. Doctor does not clone, fetch, or write a scratch directory.
 
-When doctor fails because these commands disagree with the checkout, fix this skill and run doctor again before the next drive.
+When doctor exits non-zero, a file or tool named in this section is missing from the checkout. Fix this skill and run doctor again before the next drive.
 
 ## Drive
 
@@ -39,7 +39,7 @@ Read `features/README.md`, then run every feature file's fenced `sh` block from 
 
 ## Evidence
 
-Each drive writes one file in `.agents/skills/playbook-verify-toolshed/evidence/`. The file name is the feature file name with `.txt` instead of `.md`. `.agents/skills/playbook-verify-toolshed/.gitignore` ignores that `evidence/` directory. The drive truncates the file, then appends every recorded status, stdout, and stderr. Cleanup deletes the scratch directory and leaves the evidence directory in place.
+Each drive writes three files in `.agents/skills/playbook-verify-toolshed/evidence/`. `.gitignore` in that skill directory ignores `evidence/`. The transcript uses the feature file name with `.txt` instead of `.md`, and the drive appends every recorded status, stdout, and stderr there. The session-name file uses `.session`. The drive log uses `.log` and contains the doctor version lines, the `evidence` line, the `scratch` line, and an `exit` line. Cleanup deletes the scratch directory and the tmux session, and leaves these files.
 
 ## PR proof
 
@@ -47,7 +47,7 @@ Cite the drive that ran and the gitignored directory `.agents/skills/playbook-ve
 
 ## Cleanup
 
-The inner EXIT trap deletes the scratch directory, including when the feature commands fail. The outer EXIT trap kills the tmux session. After the last drive, including any re-drive, kill every recorded session again. The scratch path from that drive's stdout does not exist, and the evidence directory does:
+The inner EXIT trap deletes the scratch directory, including when the feature commands fail. The outer EXIT trap kills the tmux session. After the last drive, including any re-drive, kill every recorded session again. Every scratch path recorded in a drive log does not exist, and the evidence directory does:
 
 ```sh
 for session_file in .agents/skills/playbook-verify-toolshed/evidence/*.session; do
@@ -58,9 +58,11 @@ for session_file in .agents/skills/playbook-verify-toolshed/evidence/*.session; 
 		exit 1
 	fi
 done
-scratch_path=$(printf '%s\n' "$session_output" | awk '/^scratch / { print $2; exit }')
-test -n "$scratch_path"
-test ! -e "$scratch_path"
+for drive_log in .agents/skills/playbook-verify-toolshed/evidence/*.log; do
+	scratch_path=$(awk '/^scratch / { print $2; exit }' "$drive_log")
+	test -n "$scratch_path"
+	test ! -e "$scratch_path"
+done
 test -d .agents/skills/playbook-verify-toolshed/evidence
 ```
 

@@ -1,6 +1,6 @@
 # check-exact-versions
 
-`check-exact-versions` scans the current directory and prints each pin that is not exact. A clean tree prints nothing and exits 0. `--version` prints the version. Any other argument list prints usage and does not scan.
+`check-exact-versions` scans the current directory and prints each pin that is not exact. When the scan has no findings, the command prints nothing and exits 0. `--version` prints the version. Any other argument list prints usage and does not scan.
 
 ## Sub-features
 

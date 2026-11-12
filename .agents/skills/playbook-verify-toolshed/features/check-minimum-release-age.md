@@ -1,6 +1,6 @@
 # check-minimum-release-age
 
-`check-minimum-release-age` scans the current directory and prints each pnpm or mise release-age setting that is missing or below 7 days. A passing setting prints nothing and exits 0. `--version` prints the version. Any other argument list prints usage and does not scan.
+`check-minimum-release-age` scans the current directory and prints each pnpm or mise release-age setting that is missing or below 7 days. When every setting passes, the command prints nothing and exits 0. `--version` prints the version. Any other argument list prints usage and does not scan.
 
 ## Sub-features
 

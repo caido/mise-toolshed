@@ -1,6 +1,6 @@
 # check-lockfiles
 
-`check-lockfiles` scans the current directory and prints each manifest whose lockfile is missing. A tree whose lockfile is present prints nothing and exits 0. `--version` prints the version. Any other argument list prints usage and does not scan.
+`check-lockfiles` scans the current directory and prints each manifest whose lockfile is missing. When every required lockfile is present, the command prints nothing and exits 0. `--version` prints the version. Any other argument list prints usage and does not scan.
 
 ## Sub-features
 

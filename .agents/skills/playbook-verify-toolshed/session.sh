@@ -66,7 +66,7 @@ EOF
 	status=0
 	sh "$scratch/body.sh" || status=$?
 	printf 'evidence %s\nscratch %s\n' "$evidence" "$scratch"
-	printf '%s\n' "$status" >"$evidence_dir/${feature}.exit"
+	printf 'exit %s\n' "$status"
 	exit "$status"
 }
 
@@ -137,7 +137,5 @@ while tmux has-session -t "$session_name" 2>/dev/null; do
 done
 
 cat "$log"
-if [ -f "$evidence_dir/${feature}.exit" ]; then
-	exit "$(cat "$evidence_dir/${feature}.exit")"
-fi
-exit 1
+status=$(awk '/^exit / { code = $2 } END { if (code == "") print 1; else print code }' "$log")
+exit "$status"
