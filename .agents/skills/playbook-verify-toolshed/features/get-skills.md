@@ -1,6 +1,6 @@
 # get-skills
 
-`get-skills` asks which personal folder to use, clones or updates a git checkout, and copies that checkout's `skills/` directories into the chosen folder. The command exits 1 before any clone when the choice is not `1`, `2`, or `3`. An unknown argument exits 1 before the prompt.
+`get-skills` asks which personal folder to use, clones or updates a git repository, and copies that repository's `skills/` directories into the chosen folder. The command exits 1 before any clone when the choice is not `1`, `2`, or `3`. An unknown argument exits 1 before the prompt.
 
 ## Sub-features
 
@@ -10,8 +10,8 @@
 
 ## How to get to it (user POV)
 
-- Run `bin/get-skills` and answer the folder prompt with `1`, `2`, or `3`.
-- Pass `--url <git-url>` to choose the checkout. The verification URL is a local git directory.
+- Run `bin/get-skills` and enter `1`, `2`, or `3` at the folder prompt.
+- Pass `--url <git-url>` to choose the repository. That URL is a local git directory.
 - Pass any other argument.
 
 ## Driving it with session.sh
@@ -69,7 +69,7 @@ EOF
 
 ## Gotchas
 
-- The verification `--url` is a local git directory. `https://github.com/caido/ai-ops` is the production default and is not the verification target.
+- The `--url` value is a local git directory. `https://github.com/caido/ai-ops` is the production default and is not that directory.
 - Choice `9` exits during the prompt, before `git clone`.
 - A local clone still prints git progress on stderr. The synced line names `$AI_OPS_SKILLS_CACHE/skills`.
 - `session.sh` sets `GIT_CONFIG_COUNT=0`, an empty global git config, and `GIT_CONFIG_SYSTEM=/dev/null` so environment `insteadOf` rules do not rewrite the local path.

@@ -3,10 +3,7 @@ set -eu
 
 root=$(CDPATH='' cd -- "$(dirname "$0")/../../.." && pwd)
 evidence_dir="$root/.agents/skills/playbook-verify-toolshed/evidence"
-
-usage() {
-	echo "usage: session.sh doctor | session.sh <feature-id>" >&2
-}
+usage_line="usage: session.sh doctor | session.sh <feature-id>"
 
 doctor() {
 	test -f "$root/packages/check-exact-versions/dist/check-exact-versions.mjs"
@@ -23,9 +20,8 @@ doctor() {
 	node "$root/packages/check-minimum-release-age/dist/check-minimum-release-age.mjs" --version
 }
 
-run_inner() {
+setup_drive() {
 	commands=$1
-	doctor
 	scratch=$(mktemp -d "${TMPDIR:-/tmp}/playbook-verify-toolshed.XXXXXX")
 	trap 'rm -rf "$scratch"' EXIT
 	evidence="$evidence_dir/${feature}.txt"
@@ -63,6 +59,9 @@ record() {
 }
 EOF
 	cat "$scratch/header.sh" "$commands" >"$scratch/body.sh"
+}
+
+run() {
 	status=0
 	sh "$scratch/body.sh" || status=$?
 	printf 'evidence %s\nscratch %s\n' "$evidence" "$scratch"
@@ -71,13 +70,13 @@ EOF
 }
 
 if [ "$#" -lt 1 ] || [ "$#" -gt 3 ]; then
-	usage
+	echo "$usage_line" >&2
 	exit 1
 fi
 
 if [ "$1" = "doctor" ]; then
 	if [ "$#" -ne 1 ]; then
-		usage
+		echo "$usage_line" >&2
 		exit 1
 	fi
 	doctor
@@ -87,12 +86,12 @@ fi
 feature=$1
 case "$feature" in
 *[!a-z0-9-]*)
-	usage
+	echo "$usage_line" >&2
 	exit 1
 	;;
 esac
 if [ -z "$feature" ]; then
-	usage
+	echo "$usage_line" >&2
 	exit 1
 fi
 
@@ -101,17 +100,20 @@ if [ "${2:-}" = "--inner" ]; then
 		echo "session: feature body is empty" >&2
 		exit 1
 	fi
-	run_inner "$3"
+	doctor
+	setup_drive "$3"
+	run
 fi
 
 if [ "$#" -ne 1 ]; then
-	usage
+	echo "$usage_line" >&2
 	exit 1
 fi
 
 commands=$(mktemp)
 cat >"$commands"
 if [ ! -s "$commands" ]; then
+	rm -f "$commands"
 	echo "session: feature body is empty" >&2
 	exit 1
 fi

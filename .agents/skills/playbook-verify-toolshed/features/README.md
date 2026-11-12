@@ -1,6 +1,6 @@
 # Toolshed verification map
 
-This directory is the maintained source for driving mise-toolshed. Read this index before driving, then use the matching feature file as the recipe. The directory contains `README.md` and one feature file for each command the skill drives: `check-exact-versions`, `check-lockfiles`, `check-minimum-release-age`, `get-skills`, and `stage-release.sh`.
+This directory is the maintained source for driving mise-toolshed. Read this index before driving, then drive the matching feature file. The directory contains `README.md` and one feature file for each command the skill drives: `check-exact-versions`, `check-lockfiles`, `check-minimum-release-age`, `get-skills`, and `stage-release.sh`.
 
 ## Baseline preconditions
 
@@ -11,7 +11,7 @@ This directory is the maintained source for driving mise-toolshed. Read this ind
 
 ## Driving conventions
 
-- Start every recipe from the baseline preconditions.
+- Start every feature file's drive from the baseline preconditions.
 - Treat every command as literal. Keep quoted names and flags unchanged.
 - Run the fenced `sh` block in the feature file. The argument after `session.sh` is the feature file name without `.md`.
 - Pass a local git directory to `get-skills --url`. Do not pass `https://github.com/caido/ai-ops`.
@@ -38,5 +38,5 @@ Each feature file starts with an H1 title and one paragraph describing the user-
 - [check-exact-versions](./check-exact-versions.md) scans the current directory and prints pins that are not exact.
 - [check-lockfiles](./check-lockfiles.md) scans the current directory and prints manifests whose lockfile is missing.
 - [check-minimum-release-age](./check-minimum-release-age.md) scans the current directory and prints pnpm and mise release-age settings that are missing or below 7 days.
-- [get-skills](./get-skills.md) copies skill directories from a git checkout into one personal folder chosen on stdin.
+- [get-skills](./get-skills.md) copies skill directories from a git repository into one personal folder chosen on stdin.
 - [stage-release](./stage-release.md) copies one built bundle into a destination and writes `SHA256SUMS`.

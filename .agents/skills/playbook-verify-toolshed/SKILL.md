@@ -29,7 +29,7 @@ sh .agents/skills/playbook-verify-toolshed/session.sh doctor
 
 Doctor reads the checkout. It exits non-zero when a built command, `bin/get-skills`, `scripts/stage-release.sh`, `git`, `sha256sum`, `node`, or `tmux` is missing. Each built command's `--version` prints one version line on stdout and exits 0. Doctor does not clone, fetch, or write a scratch directory.
 
-When doctor exits non-zero, a file or tool named in this section is missing from the checkout. Fix this skill and run doctor again before the next drive.
+When doctor exits non-zero, a checkout file named above is missing, `git`, `sha256sum`, `node`, or `tmux` is absent from `PATH`, or a built command's `--version` exited non-zero. Restore the missing file or tool, or repair the built command whose `--version` failed, then run doctor again before the next drive.
 
 ## Drive
 
@@ -39,7 +39,7 @@ Read `features/README.md`, then run every feature file's fenced `sh` block from 
 
 ## Evidence
 
-Each drive writes three files in `.agents/skills/playbook-verify-toolshed/evidence/`. `.gitignore` in that skill directory ignores `evidence/`. The transcript uses the feature file name with `.txt` instead of `.md`, and the drive appends every recorded status, stdout, and stderr there. The session-name file uses `.session`. The drive log uses `.log` and contains the doctor version lines, the `evidence` line, the `scratch` line, and an `exit` line. Cleanup deletes the scratch directory and the tmux session, and leaves these files.
+Each drive writes three files in `.agents/skills/playbook-verify-toolshed/evidence/`. `.gitignore` in that skill directory ignores `evidence/`. The evidence file uses the feature file name with `.txt` instead of `.md`, and the drive appends every recorded status, stdout, and stderr there. The session-name file uses `.session`. The drive log uses `.log` and contains the doctor version lines, the `evidence` line, the `scratch` line, and an `exit` line. Cleanup deletes the scratch directory and the tmux session, and leaves these files.
 
 ## PR proof
 
@@ -60,8 +60,8 @@ for session_file in .agents/skills/playbook-verify-toolshed/evidence/*.session; 
 done
 for drive_log in .agents/skills/playbook-verify-toolshed/evidence/*.log; do
 	scratch_path=$(awk '/^scratch / { print $2; exit }' "$drive_log")
-	test -n "$scratch_path"
-	test ! -e "$scratch_path"
+	test -n "$scratch_path" || exit 1
+	test ! -e "$scratch_path" || exit 1
 done
 test -d .agents/skills/playbook-verify-toolshed/evidence
 ```
