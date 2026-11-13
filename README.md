@@ -177,5 +177,5 @@ Plugin files are at the repository root. Workspace packages are under `packages/
 - `test/fixtures/released-tools` pins every released tool. `test/released-fixture.test.mjs` fails when one is missing or the fixture is derived from the released list.
 - `test/plugin` has one mise scenario per file. The Test plugin job runs each file on Windows, macOS, and Linux.
 - `test/release-plan.test.ts` and `test/released-tool.test.ts` cover release planning and checksummed installs.
-- `test/stage-release.test.ts` drives `scripts/stage-release.sh`, and `.cursor/skills/verify-toolshed/SKILL.md` drives check-pins, get-skills, and that script.
+- `test/stage-release.test.ts` drives `scripts/stage-release.sh`, and `.agents/skills/playbook-verify-toolshed/SKILL.md` drives check-exact-versions, check-lockfiles, check-minimum-release-age, get-skills, and that script.
 - `test/bump-version.test.ts` drives the version bump, the branch push, and the workflow tool list.
