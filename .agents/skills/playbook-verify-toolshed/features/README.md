@@ -37,6 +37,6 @@ Each feature file starts with an H1 title and one paragraph describing the user-
 
 - [check-exact-versions](./check-exact-versions.md) scans the current directory and prints pins that are not exact.
 - [check-lockfiles](./check-lockfiles.md) scans the current directory and prints manifests whose lockfile is missing.
-- [check-minimum-release-age](./check-minimum-release-age.md) scans the current directory and prints pnpm and mise release-age settings that are missing or below 7 days.
+- [check-minimum-release-age](./check-minimum-release-age.md) scans the current directory and prints pnpm and mise release-age settings that are missing or below 10080 minutes.
 - [get-skills](./get-skills.md) copies skill directories from a git repository into one personal folder chosen on stdin.
 - [stage-release](./stage-release.md) copies one built bundle into a destination and writes `SHA256SUMS`.
