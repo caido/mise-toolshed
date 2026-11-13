@@ -20,10 +20,10 @@
 Preconditions:
 
 - Doctor has exited 0 in this `session.sh` invocation.
-- `$REPO`, `$SCRATCH`, and `$EVIDENCE` are set, and `record` is defined.
+- `$REPO`, `$SCRATCH`, and `$EVIDENCE` are set, and `log` is defined.
 
 - **age-missing.** Write an empty `pnpm-workspace.yaml` and scan that directory. Exit status is 1, stdout is `pnpm-workspace.yaml:1: minimumReleaseAge is not set` plus a newline, and stderr is empty.
-- **age-set.** Set `minimumReleaseAge: 10080` and scan again. Exit status is 0 and both streams are empty.
+- **age-set.** Set `minimumReleaseAge: 10080` and scan again. Exit status is 0, and stdout and stderr are empty.
 - **age-version.** Run `--version`. Exit status is 0, stdout is the `version` field of `packages/check-minimum-release-age/package.json` plus a newline, and stderr is empty.
 - **age-usage.** Run `--help`. Exit status is 1, stdout is empty, and stderr is `usage: check-minimum-release-age --version` plus a newline.
 
@@ -34,7 +34,13 @@ mkdir -p "$TREE"
 : >"$TREE/pnpm-workspace.yaml"
 status=0
 (CDPATH='' cd -- "$TREE" && node "$REPO/packages/check-minimum-release-age/dist/check-minimum-release-age.mjs" >"$SCRATCH/missing.out" 2>"$SCRATCH/missing.err") || status=$?
-record age-missing "$status" "$SCRATCH/missing.out" "$SCRATCH/missing.err"
+log "age-missing status=$status"
+{
+	printf '%s\n' '--- stdout ---'
+	cat "$SCRATCH/missing.out"
+	printf '%s\n' '--- stderr ---'
+	cat "$SCRATCH/missing.err"
+} >>"$EVIDENCE"
 test "$status" -eq 1
 test ! -s "$SCRATCH/missing.err"
 printf '%s\n' 'pnpm-workspace.yaml:1: minimumReleaseAge is not set' >"$SCRATCH/missing.expected"
@@ -43,14 +49,26 @@ cmp -s "$SCRATCH/missing.expected" "$SCRATCH/missing.out"
 printf '%s\n' 'minimumReleaseAge: 10080' >"$TREE/pnpm-workspace.yaml"
 status=0
 (CDPATH='' cd -- "$TREE" && node "$REPO/packages/check-minimum-release-age/dist/check-minimum-release-age.mjs" >"$SCRATCH/set.out" 2>"$SCRATCH/set.err") || status=$?
-record age-set "$status" "$SCRATCH/set.out" "$SCRATCH/set.err"
+log "age-set status=$status"
+{
+	printf '%s\n' '--- stdout ---'
+	cat "$SCRATCH/set.out"
+	printf '%s\n' '--- stderr ---'
+	cat "$SCRATCH/set.err"
+} >>"$EVIDENCE"
 test "$status" -eq 0
 test ! -s "$SCRATCH/set.out"
 test ! -s "$SCRATCH/set.err"
 
 status=0
 node "$REPO/packages/check-minimum-release-age/dist/check-minimum-release-age.mjs" --version >"$SCRATCH/ver.out" 2>"$SCRATCH/ver.err" || status=$?
-record age-version "$status" "$SCRATCH/ver.out" "$SCRATCH/ver.err"
+log "age-version status=$status"
+{
+	printf '%s\n' '--- stdout ---'
+	cat "$SCRATCH/ver.out"
+	printf '%s\n' '--- stderr ---'
+	cat "$SCRATCH/ver.err"
+} >>"$EVIDENCE"
 test "$status" -eq 0
 test ! -s "$SCRATCH/ver.err"
 expected=$(node -p "require('$REPO/packages/check-minimum-release-age/package.json').version")
@@ -59,7 +77,13 @@ cmp -s "$SCRATCH/ver.expected" "$SCRATCH/ver.out"
 
 status=0
 node "$REPO/packages/check-minimum-release-age/dist/check-minimum-release-age.mjs" --help >"$SCRATCH/usage.out" 2>"$SCRATCH/usage.err" || status=$?
-record age-usage "$status" "$SCRATCH/usage.out" "$SCRATCH/usage.err"
+log "age-usage status=$status"
+{
+	printf '%s\n' '--- stdout ---'
+	cat "$SCRATCH/usage.out"
+	printf '%s\n' '--- stderr ---'
+	cat "$SCRATCH/usage.err"
+} >>"$EVIDENCE"
 test "$status" -eq 1
 test ! -s "$SCRATCH/usage.out"
 printf '%s\n' 'usage: check-minimum-release-age --version' >"$SCRATCH/usage.expected"

@@ -4,8 +4,8 @@
 
 ## Sub-features
 
-- `exact-finding` exits 1 when a dependency spec is `latest`.
-- `exact-clean` exits 0 when that dependency spec is an exact version.
+- `exact-finding` exits 1 when a pin is `latest`.
+- `exact-clean` exits 0 when that pin is an exact version.
 - `exact-version` prints the package version.
 - `exact-usage` rejects an argument other than a single `--version`.
 
@@ -20,10 +20,10 @@
 Preconditions:
 
 - Doctor has exited 0 in this `session.sh` invocation.
-- `$REPO`, `$SCRATCH`, and `$EVIDENCE` are set, and `record` is defined.
+- `$REPO`, `$SCRATCH`, and `$EVIDENCE` are set, and `log` is defined.
 
 - **exact-finding.** Write a `package.json` whose dependency `left-pad` is `latest`, and scan that directory. Exit status is 1, stdout contains `package.json:3: dependency left-pad is not an exact version`, and stderr is empty.
-- **exact-clean.** Change that spec to `1.2.3` and scan again. Exit status is 0 and both streams are empty.
+- **exact-clean.** Change that pin to `1.2.3` and scan again. Exit status is 0, and stdout and stderr are empty.
 - **exact-version.** Run `--version` outside the tree. Exit status is 0, stdout is the `version` field of `packages/check-exact-versions/package.json` plus a newline, and stderr is empty.
 - **exact-usage.** Run `--help`. Exit status is 1, stdout is empty, and stderr is `usage: check-exact-versions --version` plus a newline.
 
@@ -34,7 +34,13 @@ mkdir -p "$TREE"
 printf '%s\n' '{' '  "dependencies": {' '    "left-pad": "latest"' '  }' '}' >"$TREE/package.json"
 status=0
 (CDPATH='' cd -- "$TREE" && node "$REPO/packages/check-exact-versions/dist/check-exact-versions.mjs" >"$SCRATCH/latest.out" 2>"$SCRATCH/latest.err") || status=$?
-record exact-finding "$status" "$SCRATCH/latest.out" "$SCRATCH/latest.err"
+log "exact-finding status=$status"
+{
+	printf '%s\n' '--- stdout ---'
+	cat "$SCRATCH/latest.out"
+	printf '%s\n' '--- stderr ---'
+	cat "$SCRATCH/latest.err"
+} >>"$EVIDENCE"
 test "$status" -eq 1
 test ! -s "$SCRATCH/latest.err"
 grep -F 'package.json:3: dependency left-pad is not an exact version' "$SCRATCH/latest.out" >/dev/null
@@ -42,14 +48,26 @@ grep -F 'package.json:3: dependency left-pad is not an exact version' "$SCRATCH/
 printf '%s\n' '{' '  "dependencies": {' '    "left-pad": "1.2.3"' '  }' '}' >"$TREE/package.json"
 status=0
 (CDPATH='' cd -- "$TREE" && node "$REPO/packages/check-exact-versions/dist/check-exact-versions.mjs" >"$SCRATCH/exact.out" 2>"$SCRATCH/exact.err") || status=$?
-record exact-clean "$status" "$SCRATCH/exact.out" "$SCRATCH/exact.err"
+log "exact-clean status=$status"
+{
+	printf '%s\n' '--- stdout ---'
+	cat "$SCRATCH/exact.out"
+	printf '%s\n' '--- stderr ---'
+	cat "$SCRATCH/exact.err"
+} >>"$EVIDENCE"
 test "$status" -eq 0
 test ! -s "$SCRATCH/exact.out"
 test ! -s "$SCRATCH/exact.err"
 
 status=0
 node "$REPO/packages/check-exact-versions/dist/check-exact-versions.mjs" --version >"$SCRATCH/ver.out" 2>"$SCRATCH/ver.err" || status=$?
-record exact-version "$status" "$SCRATCH/ver.out" "$SCRATCH/ver.err"
+log "exact-version status=$status"
+{
+	printf '%s\n' '--- stdout ---'
+	cat "$SCRATCH/ver.out"
+	printf '%s\n' '--- stderr ---'
+	cat "$SCRATCH/ver.err"
+} >>"$EVIDENCE"
 test "$status" -eq 0
 test ! -s "$SCRATCH/ver.err"
 expected=$(node -p "require('$REPO/packages/check-exact-versions/package.json').version")
@@ -58,7 +76,13 @@ cmp -s "$SCRATCH/ver.expected" "$SCRATCH/ver.out"
 
 status=0
 node "$REPO/packages/check-exact-versions/dist/check-exact-versions.mjs" --help >"$SCRATCH/usage.out" 2>"$SCRATCH/usage.err" || status=$?
-record exact-usage "$status" "$SCRATCH/usage.out" "$SCRATCH/usage.err"
+log "exact-usage status=$status"
+{
+	printf '%s\n' '--- stdout ---'
+	cat "$SCRATCH/usage.out"
+	printf '%s\n' '--- stderr ---'
+	cat "$SCRATCH/usage.err"
+} >>"$EVIDENCE"
 test "$status" -eq 1
 test ! -s "$SCRATCH/usage.out"
 printf '%s\n' 'usage: check-exact-versions --version' >"$SCRATCH/usage.expected"

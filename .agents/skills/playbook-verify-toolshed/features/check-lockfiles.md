@@ -20,10 +20,10 @@
 Preconditions:
 
 - Doctor has exited 0 in this `session.sh` invocation.
-- `$REPO`, `$SCRATCH`, and `$EVIDENCE` are set, and `record` is defined.
+- `$REPO`, `$SCRATCH`, and `$EVIDENCE` are set, and `log` is defined.
 
 - **lockfile-missing.** Write `package.json` and scan that directory. Exit status is 1, stdout is `package.json:1: lockfile pnpm-lock.yaml is missing` plus a newline, and stderr is empty.
-- **lockfile-present.** Add an empty `pnpm-lock.yaml` beside it and scan again. Exit status is 0 and both streams are empty.
+- **lockfile-present.** Add an empty `pnpm-lock.yaml` beside it and scan again. Exit status is 0, and stdout and stderr are empty.
 - **lockfile-version.** Run `--version`. Exit status is 0, stdout is the `version` field of `packages/check-lockfiles/package.json` plus a newline, and stderr is empty.
 - **lockfile-usage.** Run `--help`. Exit status is 1, stdout is empty, and stderr is `usage: check-lockfiles --version` plus a newline.
 
@@ -34,7 +34,13 @@ mkdir -p "$TREE"
 printf '%s\n' '{' '  "name": "fixture"' '}' >"$TREE/package.json"
 status=0
 (CDPATH='' cd -- "$TREE" && node "$REPO/packages/check-lockfiles/dist/check-lockfiles.mjs" >"$SCRATCH/missing.out" 2>"$SCRATCH/missing.err") || status=$?
-record lockfile-missing "$status" "$SCRATCH/missing.out" "$SCRATCH/missing.err"
+log "lockfile-missing status=$status"
+{
+	printf '%s\n' '--- stdout ---'
+	cat "$SCRATCH/missing.out"
+	printf '%s\n' '--- stderr ---'
+	cat "$SCRATCH/missing.err"
+} >>"$EVIDENCE"
 test "$status" -eq 1
 test ! -s "$SCRATCH/missing.err"
 printf '%s\n' 'package.json:1: lockfile pnpm-lock.yaml is missing' >"$SCRATCH/missing.expected"
@@ -43,14 +49,26 @@ cmp -s "$SCRATCH/missing.expected" "$SCRATCH/missing.out"
 : >"$TREE/pnpm-lock.yaml"
 status=0
 (CDPATH='' cd -- "$TREE" && node "$REPO/packages/check-lockfiles/dist/check-lockfiles.mjs" >"$SCRATCH/present.out" 2>"$SCRATCH/present.err") || status=$?
-record lockfile-present "$status" "$SCRATCH/present.out" "$SCRATCH/present.err"
+log "lockfile-present status=$status"
+{
+	printf '%s\n' '--- stdout ---'
+	cat "$SCRATCH/present.out"
+	printf '%s\n' '--- stderr ---'
+	cat "$SCRATCH/present.err"
+} >>"$EVIDENCE"
 test "$status" -eq 0
 test ! -s "$SCRATCH/present.out"
 test ! -s "$SCRATCH/present.err"
 
 status=0
 node "$REPO/packages/check-lockfiles/dist/check-lockfiles.mjs" --version >"$SCRATCH/ver.out" 2>"$SCRATCH/ver.err" || status=$?
-record lockfile-version "$status" "$SCRATCH/ver.out" "$SCRATCH/ver.err"
+log "lockfile-version status=$status"
+{
+	printf '%s\n' '--- stdout ---'
+	cat "$SCRATCH/ver.out"
+	printf '%s\n' '--- stderr ---'
+	cat "$SCRATCH/ver.err"
+} >>"$EVIDENCE"
 test "$status" -eq 0
 test ! -s "$SCRATCH/ver.err"
 expected=$(node -p "require('$REPO/packages/check-lockfiles/package.json').version")
@@ -59,7 +77,13 @@ cmp -s "$SCRATCH/ver.expected" "$SCRATCH/ver.out"
 
 status=0
 node "$REPO/packages/check-lockfiles/dist/check-lockfiles.mjs" --help >"$SCRATCH/usage.out" 2>"$SCRATCH/usage.err" || status=$?
-record lockfile-usage "$status" "$SCRATCH/usage.out" "$SCRATCH/usage.err"
+log "lockfile-usage status=$status"
+{
+	printf '%s\n' '--- stdout ---'
+	cat "$SCRATCH/usage.out"
+	printf '%s\n' '--- stderr ---'
+	cat "$SCRATCH/usage.err"
+} >>"$EVIDENCE"
 test "$status" -eq 1
 test ! -s "$SCRATCH/usage.out"
 printf '%s\n' 'usage: check-lockfiles --version' >"$SCRATCH/usage.expected"

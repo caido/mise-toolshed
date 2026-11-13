@@ -19,7 +19,7 @@
 Preconditions:
 
 - Doctor has exited 0 in this `session.sh` invocation.
-- `$REPO`, `$SCRATCH`, and `$EVIDENCE` are set, and `record` is defined.
+- `$REPO`, `$SCRATCH`, and `$EVIDENCE` are set, and `log` is defined.
 - `packages/check-exact-versions/dist/check-exact-versions.mjs` exists.
 
 - **stage-copy.** Run `stage-release.sh check-exact-versions` into a new directory. Exit status is 0, stdout contains `check-exact-versions.mjs: OK`, stderr is empty, and the destination `check-exact-versions.mjs` matches the built bundle byte for byte. `SHA256SUMS` is appended to the evidence file.
@@ -30,7 +30,13 @@ Preconditions:
 sh .agents/skills/playbook-verify-toolshed/session.sh stage-release <<'EOF'
 status=0
 sh "$REPO/scripts/stage-release.sh" check-exact-versions "$SCRATCH/stage" >"$SCRATCH/stage.out" 2>"$SCRATCH/stage.err" || status=$?
-record stage-copy "$status" "$SCRATCH/stage.out" "$SCRATCH/stage.err"
+log "stage-copy status=$status"
+{
+	printf '%s\n' '--- stdout ---'
+	cat "$SCRATCH/stage.out"
+	printf '%s\n' '--- stderr ---'
+	cat "$SCRATCH/stage.err"
+} >>"$EVIDENCE"
 cat "$SCRATCH/stage/SHA256SUMS" >>"$EVIDENCE"
 test "$status" -eq 0
 test ! -s "$SCRATCH/stage.err"
@@ -41,7 +47,13 @@ cmp -s "$REPO/packages/check-exact-versions/dist/check-exact-versions.mjs" "$SCR
 
 status=0
 sh "$REPO/scripts/stage-release.sh" >"$SCRATCH/usage.out" 2>"$SCRATCH/usage.err" || status=$?
-record stage-usage "$status" "$SCRATCH/usage.out" "$SCRATCH/usage.err"
+log "stage-usage status=$status"
+{
+	printf '%s\n' '--- stdout ---'
+	cat "$SCRATCH/usage.out"
+	printf '%s\n' '--- stderr ---'
+	cat "$SCRATCH/usage.err"
+} >>"$EVIDENCE"
 test "$status" -eq 1
 test ! -s "$SCRATCH/usage.out"
 printf '%s\n' 'usage: stage-release.sh <tool> <dest>' >"$SCRATCH/usage.expected"
@@ -49,7 +61,13 @@ cmp -s "$SCRATCH/usage.expected" "$SCRATCH/usage.err"
 
 status=0
 sh "$REPO/scripts/stage-release.sh" not-a-tool "$SCRATCH/missing" >"$SCRATCH/missing.out" 2>"$SCRATCH/missing.err" || status=$?
-record stage-missing "$status" "$SCRATCH/missing.out" "$SCRATCH/missing.err"
+log "stage-missing status=$status"
+{
+	printf '%s\n' '--- stdout ---'
+	cat "$SCRATCH/missing.out"
+	printf '%s\n' '--- stderr ---'
+	cat "$SCRATCH/missing.err"
+} >>"$EVIDENCE"
 test "$status" -eq 1
 test ! -s "$SCRATCH/missing.out"
 printf '%s\n' "missing $REPO/packages/not-a-tool/dist/not-a-tool.mjs" >"$SCRATCH/missing.expected"

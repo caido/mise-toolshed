@@ -48,14 +48,8 @@ setup_drive() {
 
 	cat >"$scratch/header.sh" <<'EOF'
 set -eu
-record() {
-	{
-		printf '%s status=%s\n' "$1" "$2"
-		printf '%s\n' '--- stdout ---'
-		cat "$3"
-		printf '%s\n' '--- stderr ---'
-		cat "$4"
-	} >>"$EVIDENCE"
+log() {
+	printf '%s\n' "$1" >>"$EVIDENCE"
 }
 EOF
 	cat "$scratch/header.sh" "$commands" >"$scratch/body.sh"
@@ -64,9 +58,6 @@ EOF
 run() {
 	status=0
 	sh "$scratch/body.sh" || status=$?
-	printf 'evidence %s\nscratch %s\n' "$evidence" "$scratch"
-	printf 'exit %s\n' "$status"
-	exit "$status"
 }
 
 if [ "$#" -lt 1 ] || [ "$#" -gt 3 ]; then
@@ -103,6 +94,9 @@ if [ "${2:-}" = "--inner" ]; then
 	doctor
 	setup_drive "$3"
 	run
+	printf 'evidence %s\nscratch %s\n' "$evidence" "$scratch"
+	printf 'exit %s\n' "$status"
+	exit "$status"
 fi
 
 if [ "$#" -ne 1 ]; then
@@ -121,8 +115,8 @@ fi
 session_name="playbook-verify-toolshed-${feature}"
 mkdir -p "$evidence_dir"
 printf '%s\n' "$session_name" >"$evidence_dir/${feature}.session"
-log="$evidence_dir/${feature}.log"
-: >"$log"
+session_log="$evidence_dir/${feature}.log"
+: >"$session_log"
 
 trap 'tmux kill-session -t "$session_name" 2>/dev/null || true; rm -f "$commands"' EXIT
 
@@ -132,12 +126,12 @@ fi
 
 printf 'session %s\n' "$session_name"
 tmux new-session -d -s "$session_name" -c "$root" \
-	"sh '$root/.agents/skills/playbook-verify-toolshed/session.sh' '$feature' --inner '$commands' >'$log' 2>&1"
+	"sh '$root/.agents/skills/playbook-verify-toolshed/session.sh' '$feature' --inner '$commands' >'$session_log' 2>&1"
 
 while tmux has-session -t "$session_name" 2>/dev/null; do
 	sleep 1
 done
 
-cat "$log"
-status=$(awk '/^exit / { code = $2 } END { if (code == "") print 1; else print code }' "$log")
+cat "$session_log"
+status=$(awk '/^exit / { code = $2 } END { if (code == "") print 1; else print code }' "$session_log")
 exit "$status"

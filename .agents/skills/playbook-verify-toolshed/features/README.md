@@ -19,7 +19,7 @@ This directory is the maintained source for driving mise-toolshed. Read this ind
 
 ## Evidence and skip reporting
 
-- Record the command, the exit status, stdout, and stderr in `.agents/skills/playbook-verify-toolshed/evidence/`. The file name is the feature file name with `.txt` instead of `.md`.
+- Record the status line, stdout, and stderr in `.agents/skills/playbook-verify-toolshed/evidence/`. The file name is the feature file name with `.txt` instead of `.md`.
 - A scan or install also records the written file or the installed skill text in that same evidence file.
 - Report an unreachable entry point with the attempted command and the unmet precondition.
 - Do not report a skipped entry point as verified through a different entry point.
