@@ -11,7 +11,7 @@
 
 ## How to get to it (user POV)
 
-- From the directory to scan, run `node packages/check-lockfiles/dist/check-lockfiles.mjs` with no arguments.
+- From the directory to scan, run `node "$REPO/packages/check-lockfiles/dist/check-lockfiles.mjs"` with no arguments. `$REPO` is the absolute path of the checkout.
 - Run the same command with `--version`.
 - Run the same command with any other argument list, such as `--help`.
 
